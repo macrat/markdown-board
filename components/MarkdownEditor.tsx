@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Editor, rootCtx, defaultValueCtx } from '@milkdown/core';
 import { commonmark } from '@milkdown/preset-commonmark';
@@ -22,41 +22,7 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
   const providerRef = useRef<WebsocketProvider | null>(null);
   const router = useRouter();
 
-  useEffect(() => {
-    fetchPage();
-    
-    return () => {
-      // Cleanup
-      if (providerRef.current) {
-        providerRef.current.destroy();
-      }
-      if (editorInstanceRef.current) {
-        editorInstanceRef.current.destroy();
-      }
-    };
-  }, [pageId]);
-
-  const fetchPage = async () => {
-    try {
-      const response = await fetch(`/api/pages/${pageId}`);
-      if (response.ok) {
-        const data = await response.json();
-        setPage(data);
-        setTitle(data.title);
-        setLoading(false);
-        
-        // Initialize editor after page is loaded
-        setTimeout(() => initEditor(data.content), 100);
-      } else {
-        router.push('/');
-      }
-    } catch (error) {
-      console.error('Failed to fetch page:', error);
-      router.push('/');
-    }
-  };
-
-  const initEditor = async (initialContent: string) => {
+  const initEditor = useCallback(async (initialContent: string) => {
     if (!editorRef.current || editorInstanceRef.current) return;
 
     try {
@@ -91,9 +57,9 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
     } catch (error) {
       console.error('Failed to initialize editor:', error);
     }
-  };
+  }, []);
 
-  const handleContentChange = async (content: string) => {
+  const handleContentChange = useCallback(async (content: string) => {
     if (!page) return;
     
     // Debounced save
@@ -115,7 +81,41 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
     } finally {
       setTimeout(() => setIsSaving(false), 500);
     }
-  };
+  }, [page, pageId, title]);
+
+  const fetchPage = useCallback(async () => {
+    try {
+      const response = await fetch(`/api/pages/${pageId}`);
+      if (response.ok) {
+        const data = await response.json();
+        setPage(data);
+        setTitle(data.title);
+        setLoading(false);
+        
+        // Initialize editor after page is loaded
+        setTimeout(() => initEditor(data.content), 100);
+      } else {
+        router.push('/');
+      }
+    } catch (error) {
+      console.error('Failed to fetch page:', error);
+      router.push('/');
+    }
+  }, [pageId, router, initEditor]);
+
+  useEffect(() => {
+    fetchPage();
+    
+    return () => {
+      // Cleanup
+      if (providerRef.current) {
+        providerRef.current.destroy();
+      }
+      if (editorInstanceRef.current) {
+        editorInstanceRef.current.destroy();
+      }
+    };
+  }, [fetchPage]);
 
   const handleTitleChange = async (newTitle: string) => {
     setTitle(newTitle);
