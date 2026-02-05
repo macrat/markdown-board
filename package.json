@@ -3,9 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "concurrently \"next dev\" \"node server/websocket.js\"",
     "build": "next build",
-    "start": "next start",
+    "start": "concurrently \"next start\" \"node server/websocket.js\"",
     "lint": "eslint"
   },
   "dependencies": {
@@ -19,10 +19,13 @@
     "@milkdown/utils": "^7.18.0",
     "@types/better-sqlite3": "^7.6.13",
     "better-sqlite3": "^12.6.2",
+    "concurrently": "^9.2.1",
+    "lib0": "^0.2.117",
     "next": "16.1.6",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "uuidv7": "^1.1.0",
+    "ws": "^8.19.0",
     "y-protocols": "^1.0.7",
     "y-websocket": "^3.0.0",
     "yjs": "^13.6.29"
