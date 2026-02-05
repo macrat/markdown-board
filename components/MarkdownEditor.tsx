@@ -119,7 +119,6 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
               // The collab plugin will convert markdown to ProseMirror doc structure
               // For now, we'll use the defaultValueCtx approach but need to ensure
               // it happens before collab syncs again
-              const tempDoc = ydoc.getXmlFragment('prosemirror');
               logger.log('[Yjs] Direct Yjs population - fragment created');
             } else if (!isEmpty) {
               logger.log('[Yjs] Yjs document has content from another client, ignoring SQLite');
