@@ -62,6 +62,9 @@ markdown-board/
 │   │   └── archives/     # Archive management
 │   ├── archives/         # Archive list page
 │   ├── page/[id]/        # Individual page view
+│   ├── globals.css       # Global styles
+│   ├── layout.tsx        # Root layout component
+│   ├── milkdown.css      # Milkdown editor styles
 │   └── page.tsx          # Home page
 ├── components/           # React components
 │   ├── PageList.tsx      # Active pages list
