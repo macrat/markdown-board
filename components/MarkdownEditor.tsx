@@ -89,19 +89,9 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
   }, [pageId]);
 
   const initEditor = useCallback(async (initialContent: string) => {
-    if (!editorRef.current) return;
-    
-    // Prevent multiple initializations
-    if (editorInstanceRef.current) {
-      console.log('[Editor] Editor already initialized, skipping');
-      return;
-    }
+    if (!editorRef.current || editorInstanceRef.current) return;
 
     try {
-      // Clear any existing content in the editor div to prevent duplication
-      if (editorRef.current) {
-        editorRef.current.innerHTML = '';
-      }
       // Create Yjs document
       const ydoc = new Y.Doc();
       ydocRef.current = ydoc;
