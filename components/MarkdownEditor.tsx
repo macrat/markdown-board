@@ -58,9 +58,6 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
   const handleContentChange = useCallback(async (content: string) => {
     if (!pageRef.current) return;
     
-    // Log the content being saved for debugging
-    console.log('[MarkdownEditor] Content change detected:', content.substring(0, 100));
-    
     // Clear existing timeout
     if (saveTimeoutRef.current) {
       clearTimeout(saveTimeoutRef.current);
@@ -69,7 +66,6 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
     // Debounce save by 1 second
     saveTimeoutRef.current = setTimeout(async () => {
       setIsSaving(true);
-      console.log('[MarkdownEditor] Saving content:', content.substring(0, 100));
       
       try {
         await fetch(`/api/pages/${pageId}`, {
@@ -81,7 +77,6 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
             content,
           }),
         });
-        console.log('[MarkdownEditor] Content saved successfully');
       } catch (error) {
         console.error('Failed to save content:', error);
       } finally {
@@ -109,52 +104,15 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
       
       console.log(`[WebSocket] Connecting to room: ${pageId} at ${wsUrl}`);
       
-      // Wait for the provider to sync before creating the editor
-      await new Promise<void>((resolve) => {
-        if (provider.synced) {
-          console.log('[WebSocket] Already synced');
-          resolve();
-        } else {
-          provider.on('sync', (isSynced: boolean) => {
-            console.log(`[WebSocket] Synced: ${isSynced} (room: ${pageId})`);
-            if (isSynced) {
-              resolve();
-            }
-          });
-        }
-        
-        // Add status logging for debugging
-        provider.on('status', ({ status }: { status: string }) => {
-          console.log(`[WebSocket] Status: ${status} (room: ${pageId})`);
-        });
-        
-        provider.on('connection-close', (event: any) => {
-          console.log('[WebSocket] Connection closed:', event);
-        });
-        
-        provider.on('connection-error', (event: any) => {
-          console.error('[WebSocket] Connection error:', event);
-        });
-        
-        // Timeout after 5 seconds
-        setTimeout(() => {
-          console.log('[WebSocket] Sync timeout, proceeding anyway');
-          resolve();
-        }, 5000);
-      });
-      
-      console.log('[WebSocket] Provider ready, creating editor');
-
       const editor = await Editor.make()
         .config((ctx) => {
           ctx.set(rootCtx, editorRef.current!);
           
-          // Set up collaboration
-          ctx.get(collabServiceCtx).bindDoc(ydoc);
-          
-          // DON'T set defaultValueCtx when using Yjs collab
-          // Let the Yjs document be the source of truth
-          // The WebSocket sync will handle loading content from other clients
+          // Set initial content from SQLite if available
+          // The Yjs document will sync this across all clients
+          if (initialContent) {
+            ctx.set(defaultValueCtx, initialContent);
+          }
           
           // Listen to changes
           ctx.get(listenerCtx).markdownUpdated((ctx, markdown) => {
@@ -164,7 +122,19 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
         .use(commonmark)
         .use(listener)
         .use(collab)
+        .config((ctx) => {
+          // Configure collab service AFTER loading the plugin
+          const collabService = ctx.get(collabServiceCtx);
+          collabService.bindDoc(ydoc);
+          collabService.setAwareness(provider.awareness);
+        })
         .create();
+      
+      // Connect the collab service AFTER editor is fully created
+      // This is critical - calling connect() before the editor is ready will fail
+      editor.action((ctx) => {
+        ctx.get(collabServiceCtx).connect();
+      });
 
       editorInstanceRef.current = editor;
     } catch (error) {
