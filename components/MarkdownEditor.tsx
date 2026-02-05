@@ -106,6 +106,23 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
       
       const provider = new WebsocketProvider(wsUrl, pageId, ydoc);
       providerRef.current = provider;
+      
+      // Add status logging for debugging
+      provider.on('status', ({ status }: { status: string }) => {
+        console.log(`[WebSocket] Status: ${status}`);
+      });
+      
+      provider.on('sync', (isSynced: boolean) => {
+        console.log(`[WebSocket] Synced: ${isSynced}`);
+      });
+      
+      provider.on('connection-close', (event: any) => {
+        console.log('[WebSocket] Connection closed:', event);
+      });
+      
+      provider.on('connection-error', (event: any) => {
+        console.error('[WebSocket] Connection error:', event);
+      });
 
       const editor = await Editor.make()
         .config((ctx) => {
