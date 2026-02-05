@@ -137,6 +137,8 @@
 /* Fix collaborative cursor positioning without breaking line breaks */
 .milkdown .ProseMirror-yjs-cursor + .ProseMirror-trailingBreak {
   /* Only hide trailing breaks immediately after collaborative cursors */
+  /* Use visibility: hidden to preserve accessibility for screen readers */
+  visibility: hidden;
   line-height: 0;
   height: 0;
 }
