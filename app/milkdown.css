@@ -127,7 +127,7 @@
   pointer-events: none;
   word-break: normal;
   display: inline;
-  height: 1.2em;
+  height: 1.2em; /* Match typical line height to prevent layout shifts */
   vertical-align: text-bottom;
 }
 
