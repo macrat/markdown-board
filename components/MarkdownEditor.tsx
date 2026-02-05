@@ -90,6 +90,8 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
       // Connect to WebSocket server for collaborative editing
       const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
       const wsHost = window.location.hostname;
+      // NEXT_PUBLIC_WS_PORT (optional): public env var to override the default
+      // y-websocket server port. If not set, port 1234 is used.
       const wsPort = process.env.NEXT_PUBLIC_WS_PORT || '1234';
       const wsUrl = `${wsProtocol}//${wsHost}:${wsPort}`;
       
