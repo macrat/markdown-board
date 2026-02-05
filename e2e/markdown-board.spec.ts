@@ -15,15 +15,20 @@ test.describe('Markdown Board E2E Tests', () => {
     // Wait for editor to load
     await page.waitForSelector('.milkdown', { timeout: 10000 });
     
-    // Step 2: Edit the page with content
-    const testTitle = '# Test Page Title';
-    const testContent = '\n\nThis is test content.\n\n## Section 1\nSome details here.';
-    const fullContent = testTitle + testContent;
-    
-    // Click on the editor and type content
+    // Step 2: Edit the page with content by TYPING (not fill) to trigger proper markdown parsing
     const editor = page.locator('.milkdown').locator('div[contenteditable="true"]').first();
     await editor.click();
-    await editor.fill(fullContent);
+    
+    // Type naturally so Milkdown processes it as markdown
+    await editor.type('# Test Page Title');
+    await editor.press('Enter');
+    await editor.press('Enter');
+    await editor.type('This is test content.');
+    await editor.press('Enter');
+    await editor.press('Enter');
+    await editor.type('## Section 1');
+    await editor.press('Enter');
+    await editor.type('Some details here.');
     
     // Wait for auto-save (debounce is 1 second)
     await page.waitForTimeout(2000);
@@ -103,7 +108,11 @@ test.describe('Markdown Board E2E Tests', () => {
     
     const editor1 = page.locator('.milkdown').locator('div[contenteditable="true"]').first();
     await editor1.click();
-    await editor1.fill('# My Heading Title\n\nContent below');
+    // Type naturally to trigger markdown parsing
+    await editor1.type('# My Heading Title');
+    await editor1.press('Enter');
+    await editor1.press('Enter');
+    await editor1.type('Content below');
     
     await page.waitForTimeout(2000); // Wait for save
     
@@ -124,7 +133,10 @@ test.describe('Markdown Board E2E Tests', () => {
     
     const editor2 = page.locator('.milkdown').locator('div[contenteditable="true"]').first();
     await editor2.click();
-    await editor2.fill('Plain text title\n\nMore content');
+    await editor2.type('Plain text title');
+    await editor2.press('Enter');
+    await editor2.press('Enter');
+    await editor2.type('More content');
     
     await page.waitForTimeout(2000); // Wait for save
     
@@ -142,7 +154,10 @@ test.describe('Markdown Board E2E Tests', () => {
     
     const editor3 = page.locator('.milkdown').locator('div[contenteditable="true"]').first();
     await editor3.click();
-    await editor3.fill('### Level 3 Heading\n\nContent');
+    await editor3.type('### Level 3 Heading');
+    await editor3.press('Enter');
+    await editor3.press('Enter');
+    await editor3.type('Content');
     
     await page.waitForTimeout(2000); // Wait for save
     
@@ -192,10 +207,13 @@ test.describe('Markdown Board E2E Tests', () => {
     
     console.log('Both tabs opened, now editing in Tab A');
     
-    // NOW edit in Tab A (first tab)
+    // NOW edit in Tab A (first tab) - use .type() not .fill()
     const editor1 = page1.locator('.milkdown').locator('div[contenteditable="true"]').first();
     await editor1.click();
-    await editor1.fill('# Shared Document\n\nContent from Tab A');
+    await editor1.type('# Shared Document');
+    await editor1.press('Enter');
+    await editor1.press('Enter');
+    await editor1.type('Content from Tab A');
     
     console.log('Content typed in Tab A, waiting for sync...');
     
