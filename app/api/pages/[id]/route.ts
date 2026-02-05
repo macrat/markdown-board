@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import db from '@/lib/db';
 import { extractTitle } from '@/lib/utils';
+import { logger } from '@/lib/logger';
 
 export async function GET(
   request: Request,
@@ -23,7 +24,7 @@ export async function GET(
     
     return NextResponse.json(page);
   } catch (error) {
-    console.error('Failed to fetch page:', error);
+    logger.error('Failed to fetch page:', error);
     return NextResponse.json({ error: 'Failed to fetch page' }, { status: 500 });
   }
 }
@@ -79,7 +80,7 @@ export async function PATCH(
     
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Failed to update page:', error);
+    logger.error('Failed to update page:', error);
     return NextResponse.json({ error: 'Failed to update page' }, { status: 500 });
   }
 }
@@ -104,7 +105,7 @@ export async function DELETE(
     
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Failed to delete page:', error);
+    logger.error('Failed to delete page:', error);
     return NextResponse.json({ error: 'Failed to delete page' }, { status: 500 });
   }
 }

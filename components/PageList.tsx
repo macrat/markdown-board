@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import type { PageListItem } from '@/lib/types';
+import { logger } from '@/lib/logger';
 
 export default function PageList() {
   const [pages, setPages] = useState<PageListItem[]>([]);
@@ -21,7 +22,7 @@ export default function PageList() {
         setPages(data);
       }
     } catch (error) {
-      console.error('Failed to fetch pages:', error);
+      logger.error('Failed to fetch pages:', error);
     } finally {
       setLoading(false);
     }
@@ -37,7 +38,7 @@ export default function PageList() {
         router.push(`/page/${id}`);
       }
     } catch (error) {
-      console.error('Failed to create page:', error);
+      logger.error('Failed to create page:', error);
     }
   };
 
@@ -54,7 +55,7 @@ export default function PageList() {
         fetchPages();
       }
     } catch (error) {
-      console.error('Failed to archive page:', error);
+      logger.error('Failed to archive page:', error);
     }
   };
 
