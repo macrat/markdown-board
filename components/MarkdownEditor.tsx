@@ -102,21 +102,26 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
       const provider = new WebsocketProvider(wsUrl, pageId, ydoc);
       providerRef.current = provider;
       
-      console.log(`[WebSocket] Connecting to room: ${pageId} at ${wsUrl}`);
+      console.log(`[WebSocket] Connecting to room: ${pageId} at ws://localhost:1234`);
       
       // Wait for initial sync to complete before creating the editor
+      let shouldUseInitialContent = false;
+      
       await new Promise<void>((resolve) => {
         const handleSync = (isSynced: boolean) => {
           if (isSynced) {
             provider.off('sync', handleSync);
             
-            // If Yjs document is empty but we have content in SQLite, populate it BEFORE creating editor
-            const ytext = ydoc.getText('prosemirror');
-            const ydocContent = ytext.toString();
+            // Check if Yjs document is empty after sync
+            // We need to check the XML fragment that Milkdown will use
+            const fragment = ydoc.getXmlFragment('prosemirror');
+            const isEmpty = fragment.length === 0;
             
-            if (!ydocContent && initialContent) {
-              console.log('[Yjs] Populating empty document with SQLite content');
-              ytext.insert(0, initialContent);
+            if (isEmpty && initialContent) {
+              console.log('[Yjs] Yjs document is empty, will use SQLite content as initial value');
+              shouldUseInitialContent = true;
+            } else {
+              console.log('[Yjs] Yjs document has content, ignoring SQLite content');
             }
             
             resolve();
@@ -128,6 +133,8 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
         // Timeout fallback in case sync takes too long
         setTimeout(() => {
           provider.off('sync', handleSync);
+          console.log('[Yjs] Sync timeout, assuming empty document');
+          shouldUseInitialContent = !!initialContent;
           resolve();
         }, 2000);
       });
@@ -136,9 +143,9 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
         .config((ctx) => {
           ctx.set(rootCtx, editorRef.current!);
           
-          // Set initial content from SQLite if available
-          // The Yjs document will sync this across all clients
-          if (initialContent) {
+          // Only set initial content if Yjs document is empty
+          // This prevents overwriting synced content with stale SQLite data
+          if (shouldUseInitialContent) {
             ctx.set(defaultValueCtx, initialContent);
           }
           
