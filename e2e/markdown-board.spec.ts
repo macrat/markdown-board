@@ -62,6 +62,39 @@ test.describe('Markdown Board E2E Tests', () => {
     await expect(editorArea).toContainText('Some details here');
   });
 
+  test('should handle escaped heading markers correctly', async ({ page }) => {
+    // Create a new page
+    await page.click('button:has-text("New Page")');
+    await page.waitForURL(/\/page\/.+/);
+    await page.waitForSelector('.milkdown', { timeout: 10000 });
+    
+    const editor = page.locator('.milkdown').locator('div[contenteditable="true"]').first();
+    await editor.click();
+    
+    // Type content that will be escaped by Milkdown
+    // When you type "a# hello" and delete "a", Milkdown keeps it as plain text "\# hello"
+    await editor.type('a# hello');
+    await editor.press('Home');
+    await editor.press('Delete');
+    
+    // Wait for save
+    await page.waitForTimeout(2000);
+    
+    // Go back to home
+    await page.click('button:has-text("← Back")');
+    await page.waitForURL('/');
+    await page.waitForTimeout(500);
+    
+    // The title should be "# hello" (the literal text with hash symbol)
+    // because Milkdown saved it as "\# hello" (escaped)
+    const pageListItems = page.locator('h3').filter({ hasText: '# hello' });
+    await expect(pageListItems.first()).toBeVisible();
+    
+    const titleText = await pageListItems.first().textContent();
+    // Title should contain the # symbol because it's escaped text, not a heading
+    expect(titleText).toContain('# hello');
+  });
+
   test('should extract title from first line correctly', async ({ page }) => {
     // Test 1: Heading as first line (with #)
     await page.click('button:has-text("New Page")');
@@ -124,62 +157,64 @@ test.describe('Markdown Board E2E Tests', () => {
     expect(title3Text).not.toContain('#');
   });
 
-  test('should synchronize data across multiple tabs', async ({ browser }) => {
+  test('should synchronize data across multiple tabs in real-time', async ({ browser }) => {
     // Create a new page in the first tab
     const context = await browser.newContext();
     const page1 = await context.newPage();
+    
+    // Enable console logging for debugging
+    page1.on('console', msg => console.log('Page1:', msg.text()));
+    
     await page1.goto('/');
     await page1.waitForLoadState('networkidle');
     
-    // Create new page
+    // Create new page in Tab A
     await page1.click('button:has-text("New Page")');
     await page1.waitForURL(/\/page\/.+/);
     const pageUrl = page1.url();
     const pageId = pageUrl.split('/page/')[1];
     
+    console.log(`Testing sync for page: ${pageId}`);
+    
     await page1.waitForSelector('.milkdown', { timeout: 10000 });
+    await page1.waitForTimeout(1000);
     
-    // Type content in first tab
-    const editor1 = page1.locator('.milkdown').locator('div[contenteditable="true"]').first();
-    await editor1.click();
-    await editor1.fill('# Shared Document\n\nContent from Tab 1');
-    
-    // Wait for save
-    await page1.waitForTimeout(2000);
-    
-    // Open the same page in a second tab
+    // Open the same page in Tab B BEFORE editing in Tab A
     const page2 = await context.newPage();
+    
+    // Enable console logging for debugging
+    page2.on('console', msg => console.log('Page2:', msg.text()));
+    
     await page2.goto(pageUrl);
     await page2.waitForLoadState('networkidle');
     await page2.waitForSelector('.milkdown', { timeout: 10000 });
     await page2.waitForTimeout(2000);
     
-    // Verify content is visible in second tab - use more specific selector
+    console.log('Both tabs opened, now editing in Tab A');
+    
+    // NOW edit in Tab A (first tab)
+    const editor1 = page1.locator('.milkdown').locator('div[contenteditable="true"]').first();
+    await editor1.click();
+    await editor1.fill('# Shared Document\n\nContent from Tab A');
+    
+    console.log('Content typed in Tab A, waiting for sync...');
+    
+    // Wait for WebSocket sync (should be real-time, not requiring save)
+    await page1.waitForTimeout(3000);
+    
+    // Verify content appears in Tab B WITHOUT reload
     const editorArea2 = page2.locator('.milkdown .ProseMirror').first();
-    await expect(editorArea2).toContainText('Shared Document');
-    await expect(editorArea2).toContainText('Content from Tab 1');
     
-    // Edit in second tab
-    const editor2 = page2.locator('.milkdown').locator('div[contenteditable="true"]').first();
-    await editor2.click();
-    
-    // Clear and type new content to ensure it propagates
-    await editor2.press('Control+A');
-    await editor2.press('Delete');
-    await editor2.fill('# Updated Document\n\nContent from Tab 2');
-    
-    // Wait for save and sync
-    await page2.waitForTimeout(3000);
-    
-    // Reload page1 to get updated content (since WebSocket sync might not be working perfectly)
-    await page1.reload();
-    await page1.waitForLoadState('networkidle');
-    await page1.waitForSelector('.milkdown', { timeout: 10000 });
-    await page1.waitForTimeout(1000);
-    
-    // Check if first tab receives the update
-    const editorArea1 = page1.locator('.milkdown .ProseMirror').first();
-    await expect(editorArea1).toContainText('Content from Tab 2', { timeout: 5000 });
+    try {
+      await expect(editorArea2).toContainText('Shared Document', { timeout: 5000 });
+      await expect(editorArea2).toContainText('Content from Tab A', { timeout: 5000 });
+      console.log('SUCCESS: Content synchronized to Tab B in real-time');
+    } catch (error) {
+      console.error('FAILED: Content did not sync to Tab B');
+      const content = await editorArea2.textContent();
+      console.log('Tab B content:', content);
+      throw error;
+    }
     
     await context.close();
   });

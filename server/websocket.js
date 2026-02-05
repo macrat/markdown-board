@@ -36,11 +36,19 @@ wss.on('connection', (conn, req) => {
     // Broadcast message to all other clients in the same room
     const roomConnections = rooms.get(roomName);
     if (roomConnections) {
+      const clientCount = roomConnections.size;
+      let broadcastCount = 0;
+      
       roomConnections.forEach((client) => {
         if (client !== conn && client.readyState === WebSocket.OPEN) {
           client.send(message, { binary: true });
+          broadcastCount++;
         }
       });
+      
+      if (broadcastCount > 0) {
+        console.log(`[${roomName}] Broadcasting message to ${broadcastCount} of ${clientCount} clients`);
+      }
     }
   });
   
