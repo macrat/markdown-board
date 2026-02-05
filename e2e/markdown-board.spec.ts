@@ -2,20 +2,20 @@ import { test, expect, Page } from '@playwright/test';
 
 // Helper function to create a new page with content
 async function createPageWithContent(page: Page, content: string) {
-  await page.click('button:has-text("New Page")');
+  await page.click('button[title="Create new page"]');
   await page.waitForURL(/\/page\/.+/);
   await page.waitForSelector('.milkdown', { timeout: 10000 });
-  
+
   const editor = page.locator('.milkdown').locator('div[contenteditable="true"]').first();
   await editor.click();
-  
+
   // Type content line by line
   const lines = content.split('\n');
   for (let i = 0; i < lines.length; i++) {
     if (i > 0) await editor.press('Enter');
     if (lines[i]) await editor.type(lines[i]);
   }
-  
+
   // Wait for auto-save (debounce is 1 second in the app)
   await page.waitForTimeout(2000);
   return page.url().split('/page/')[1];
@@ -33,7 +33,7 @@ test.describe('Markdown Board E2E Tests', () => {
 
   test('should persist data through create → edit → home → return workflow', async ({ page }) => {
     // Step 1: Create a new page
-    await page.click('button:has-text("New Page")');
+    await page.click('button[title="Create new page"]');
     await page.waitForURL(/\/page\/.+/);
     
     // Wait for editor to load
@@ -75,8 +75,8 @@ test.describe('Markdown Board E2E Tests', () => {
     expect(titleText).not.toContain('#');
     expect(titleText).toContain('Test Page Title');
     
-    // Step 4: Return to the page
-    await page.locator('button:has-text("Open")').first().click();
+    // Step 4: Return to the page by clicking the page item
+    await page.locator('h3').filter({ hasText: 'Test Page Title' }).first().click();
     await page.waitForURL(/\/page\/.+/);
     
     // Step 5: Verify data persisted
@@ -93,7 +93,7 @@ test.describe('Markdown Board E2E Tests', () => {
 
   test('should handle escaped heading markers correctly', async ({ page }) => {
     // Create a new page
-    await page.click('button:has-text("New Page")');
+    await page.click('button[title="Create new page"]');
     await page.waitForURL(/\/page\/.+/);
     await page.waitForSelector('.milkdown', { timeout: 10000 });
     
@@ -126,7 +126,7 @@ test.describe('Markdown Board E2E Tests', () => {
 
   test('should extract title from first line correctly', async ({ page }) => {
     // Test 1: Heading as first line (with #)
-    await page.click('button:has-text("New Page")');
+    await page.click('button[title="Create new page"]');
     await page.waitForURL(/\/page\/.+/);
     await page.waitForSelector('.milkdown', { timeout: 10000 });
     
@@ -151,7 +151,7 @@ test.describe('Markdown Board E2E Tests', () => {
     expect(title1Text).not.toContain('#');
     
     // Test 2: Regular text as first line
-    await page.click('button:has-text("New Page")');
+    await page.click('button[title="Create new page"]');
     await page.waitForURL(/\/page\/.+/);
     await page.waitForSelector('.milkdown', { timeout: 10000 });
     
@@ -172,7 +172,7 @@ test.describe('Markdown Board E2E Tests', () => {
     await expect(page.locator('h3').filter({ hasText: 'Plain text title' }).first()).toBeVisible();
     
     // Test 3: Multiple # in heading
-    await page.click('button:has-text("New Page")');
+    await page.click('button[title="Create new page"]');
     await page.waitForURL(/\/page\/.+/);
     await page.waitForSelector('.milkdown', { timeout: 10000 });
     
@@ -208,7 +208,7 @@ test.describe('Markdown Board E2E Tests', () => {
     await page1.waitForLoadState('networkidle');
     
     // Create new page in Tab A
-    await page1.click('button:has-text("New Page")');
+    await page1.click('button[title="Create new page"]');
     await page1.waitForURL(/\/page\/.+/);
     const pageUrl = page1.url();
     const pageId = pageUrl.split('/page/')[1];
@@ -263,7 +263,7 @@ test.describe('Markdown Board E2E Tests', () => {
 
   test('should restore content from SQLite after server restart', async ({ page }) => {
     // Step 1: Create a new page with content
-    await page.click('button:has-text("New Page")');
+    await page.click('button[title="Create new page"]');
     await page.waitForURL(/\/page\/.+/);
     await page.waitForSelector('.milkdown', { timeout: 10000 });
     
@@ -313,7 +313,7 @@ test.describe('Markdown Board E2E Tests', () => {
   // ==================== EMPTY CONTENT HANDLING ====================
   
   test('should handle empty page creation correctly', async ({ page }) => {
-    await page.click('button:has-text("New Page")');
+    await page.click('button[title="Create new page"]');
     await page.waitForURL(/\/page\/.+/);
     await page.waitForSelector('.milkdown', { timeout: 10000 });
     
@@ -328,7 +328,7 @@ test.describe('Markdown Board E2E Tests', () => {
   });
 
   test('should handle page with only whitespace', async ({ page }) => {
-    await page.click('button:has-text("New Page")');
+    await page.click('button[title="Create new page"]');
     await page.waitForURL(/\/page\/.+/);
     await page.waitForSelector('.milkdown', { timeout: 10000 });
     
@@ -348,7 +348,7 @@ test.describe('Markdown Board E2E Tests', () => {
   // ==================== VERY LONG CONTENT (STRESS TEST) ====================
   
   test('should handle very long content without performance issues', async ({ page }) => {
-    await page.click('button:has-text("New Page")');
+    await page.click('button[title="Create new page"]');
     await page.waitForURL(/\/page\/.+/);
     await page.waitForSelector('.milkdown', { timeout: 10000 });
     
@@ -399,11 +399,12 @@ Currency: $€£¥₹₽`;
     await page.waitForURL('/');
     await page.waitForTimeout(500);
     
-    await page.locator('button:has-text("Open")').first().click();
+    // Click on the page item to navigate
+    await page.locator('h3').filter({ hasText: 'Special Characters Test' }).first().click();
     await page.waitForURL(/\/page\/.+/);
     await page.waitForSelector('.milkdown', { timeout: 10000 });
     await page.waitForTimeout(1000);
-    
+
     const editorArea = page.locator('.milkdown .ProseMirror').first();
     await expect(editorArea).toContainText('Special chars: !@#$%^&*()_+-={}[]|\\:";\'<>?,./');
     await expect(editorArea).toContainText('∑∏∫∂∞≈≠≤≥±×÷');
@@ -429,8 +430,9 @@ Russian: Привет мир`;
     
     // Verify title includes emoji and timestamp - use first() for strict mode
     await expect(page.locator('h3').filter({ hasText: '🌍' }).first()).toBeVisible();
-    
-    await page.locator('button:has-text("Open")').first().click();
+
+    // Click on the page item to navigate
+    await page.locator('h3').filter({ hasText: '🌍' }).first().click();
     await page.waitForURL(/\/page\/.+/);
     await page.waitForSelector('.milkdown', { timeout: 10000 });
     await page.waitForTimeout(1000);
@@ -465,65 +467,6 @@ Russian: Привет мир`;
       const pageExists = await page.locator('h3').filter({ hasText: `MultiPage ${timestamp}-${i}` }).count();
       expect(pageExists).toBeGreaterThan(0);
     }
-  });
-
-  // ==================== ARCHIVE/UNARCHIVE WORKFLOWS ====================
-  
-  test('should archive and unarchive a page', async ({ page }) => {
-    const timestamp = Date.now();
-    // Create a unique page
-    const pageId = await createPageWithContent(page, `# ArchiveTest${timestamp}\n\nThis page will be archived`);
-    
-    await page.click('button:has-text("← Back")');
-    await page.waitForURL('/');
-    await page.waitForTimeout(1000);
-    
-    // Verify page is in the list
-    const heading = page.locator('h3').filter({ hasText: `ArchiveTest${timestamp}` });
-    await expect(heading).toBeVisible();
-    
-    // Click on the heading to select the card, then find archive button within that card
-    const card = heading.locator('xpath=ancestor::div[contains(@class, "p-6")]');
-    const archiveButton = card.locator('button:has-text("Archive")');
-    
-    page.once('dialog', dialog => dialog.accept());
-    await archiveButton.click();
-    await page.waitForTimeout(1500);
-    
-    // Verify page is no longer in main list
-    const mainListPages = await page.locator('h3').filter({ hasText: `ArchiveTest${timestamp}` }).count();
-    expect(mainListPages).toBe(0);
-    
-    // Navigate to archives
-    await page.click('button:has-text("View Archives")');
-    await page.waitForURL('/archives');
-    await page.waitForTimeout(500);
-    
-    // Verify page is in archives
-    await expect(page.locator('h3').filter({ hasText: `ArchiveTest${timestamp}` })).toBeVisible();
-    await expect(page.locator('text=Days remaining:')).toBeVisible();
-    
-    // Unarchive the page
-    await page.click('button:has-text("Unarchive")');
-    await page.waitForTimeout(1500);
-    
-    // Verify page is no longer in archives
-    const archivedPages = await page.locator('h3').filter({ hasText: `ArchiveTest${timestamp}` }).count();
-    expect(archivedPages).toBe(0);
-    
-    // Go back to home and verify page is restored
-    await page.click('button:has-text("← Back to Pages")');
-    await page.waitForURL('/');
-    await page.waitForTimeout(500);
-    
-    await expect(page.locator('h3').filter({ hasText: `ArchiveTest${timestamp}` })).toBeVisible();
-  });
-
-  test('should show empty state when no archives exist', async ({ page }) => {
-    await page.click('button:has-text("View Archives")');
-    await page.waitForURL('/archives');
-    
-    await expect(page.locator('text=No archived pages.')).toBeVisible();
   });
 
   // ==================== NAVIGATION BETWEEN PAGES ====================
@@ -590,7 +533,7 @@ Russian: Привет мир`;
   });
 
   test('should render text formatting (bold, italic, strikethrough)', async ({ page }) => {
-    await page.click('button:has-text("New Page")');
+    await page.click('button[title="Create new page"]');
     await page.waitForURL(/\/page\/.+/);
     await page.waitForSelector('.milkdown', { timeout: 10000 });
     
@@ -623,7 +566,7 @@ Russian: Привет мир`;
   });
 
   test('should render unordered and ordered lists', async ({ page }) => {
-    await page.click('button:has-text("New Page")');
+    await page.click('button[title="Create new page"]');
     await page.waitForURL(/\/page\/.+/);
     await page.waitForSelector('.milkdown', { timeout: 10000 });
     
@@ -656,7 +599,7 @@ Russian: Привет мир`;
   });
 
   test('should render nested lists', async ({ page }) => {
-    await page.click('button:has-text("New Page")');
+    await page.click('button[title="Create new page"]');
     await page.waitForURL(/\/page\/.+/);
     await page.waitForSelector('.milkdown', { timeout: 10000 });
     
@@ -681,7 +624,7 @@ Russian: Привет мир`;
   });
 
   test('should render links', async ({ page }) => {
-    await page.click('button:has-text("New Page")');
+    await page.click('button[title="Create new page"]');
     await page.waitForURL(/\/page\/.+/);
     await page.waitForSelector('.milkdown', { timeout: 10000 });
     
@@ -700,7 +643,7 @@ Russian: Привет мир`;
   });
 
   test('should render inline code and code blocks', async ({ page }) => {
-    await page.click('button:has-text("New Page")');
+    await page.click('button[title="Create new page"]');
     await page.waitForURL(/\/page\/.+/);
     await page.waitForSelector('.milkdown', { timeout: 10000 });
     
@@ -735,7 +678,7 @@ Russian: Привет мир`;
   });
 
   test('should render blockquotes', async ({ page }) => {
-    await page.click('button:has-text("New Page")');
+    await page.click('button[title="Create new page"]');
     await page.waitForURL(/\/page\/.+/);
     await page.waitForSelector('.milkdown', { timeout: 10000 });
     
@@ -757,7 +700,7 @@ Russian: Привет мир`;
   });
 
   test('should render horizontal rules', async ({ page }) => {
-    await page.click('button:has-text("New Page")');
+    await page.click('button[title="Create new page"]');
     await page.waitForURL(/\/page\/.+/);
     await page.waitForSelector('.milkdown', { timeout: 10000 });
     
@@ -779,7 +722,7 @@ Russian: Привет мир`;
   });
 
   test('should render tables', async ({ page }) => {
-    await page.click('button:has-text("New Page")');
+    await page.click('button[title="Create new page"]');
     await page.waitForURL(/\/page\/.+/);
     await page.waitForSelector('.milkdown', { timeout: 10000 });
     
@@ -811,12 +754,12 @@ Russian: Привет мир`;
     await expect(page.locator('h1')).toContainText('Markdown Board');
     
     // Check button accessibility
-    const newPageButton = page.locator('button:has-text("New Page")');
+    const newPageButton = page.locator('button[title="Create new page"]');
     await expect(newPageButton).toBeVisible();
     await expect(newPageButton).toBeEnabled();
     
     // Create a page and check editor accessibility
-    await page.click('button:has-text("New Page")');
+    await page.click('button[title="Create new page"]');
     await page.waitForURL(/\/page\/.+/);
     await page.waitForSelector('.milkdown', { timeout: 10000 });
     
@@ -833,7 +776,7 @@ Russian: Привет мир`;
     expect(focusedElement).toBeTruthy();
     
     // Test keyboard navigation in editor
-    await page.click('button:has-text("New Page")');
+    await page.click('button[title="Create new page"]');
     await page.waitForURL(/\/page\/.+/);
     await page.waitForSelector('.milkdown', { timeout: 10000 });
     
@@ -850,7 +793,7 @@ Russian: Привет мир`;
   });
 
   test('should have visible focus indicators', async ({ page }) => {
-    const newPageButton = page.locator('button:has-text("New Page")');
+    const newPageButton = page.locator('button[title="Create new page"]');
     
     // Focus the button with keyboard
     await newPageButton.focus();
@@ -865,24 +808,24 @@ Russian: Привет мир`;
     await page.click('button:has-text("← Back")');
     await page.waitForURL('/');
     await page.waitForTimeout(500);
-    
+
     // Focus on body first
     await page.locator('body').focus();
-    
-    // Use Tab multiple times to navigate to View Archives button
+
+    // Use Tab multiple times to navigate to archive tab
     // We need to tab through multiple elements
     for (let i = 0; i < MAX_TAB_ITERATIONS; i++) {
       await page.keyboard.press('Tab');
       const focused = await page.evaluate(() => document.activeElement?.textContent);
-      if (focused && focused.includes('View Archives')) {
+      if (focused && focused.includes('アーカイブ')) {
         break;
       }
     }
-    
+
     // Check if we can activate with Enter
     const activeElement = await page.evaluate(() => document.activeElement?.textContent);
-    
-    // If we found the button, this test passes
+
+    // If we found the tab, this test passes
     expect(activeElement).toBeDefined();
   });
 
@@ -897,7 +840,7 @@ Russian: Привет мир`;
     
     // Check if main elements are visible
     await expect(page.locator('h1')).toBeVisible();
-    await expect(page.locator('button:has-text("New Page")')).toBeVisible();
+    await expect(page.locator('button[title="Create new page"]')).toBeVisible();
   });
 
   test('should be responsive on tablet viewport', async ({ page }) => {
@@ -908,32 +851,34 @@ Russian: Привет мир`;
     await page.waitForLoadState('networkidle');
     
     await expect(page.locator('h1')).toBeVisible();
-    await expect(page.locator('button:has-text("New Page")')).toBeVisible();
+    await expect(page.locator('button[title="Create new page"]')).toBeVisible();
   });
 
   // ==================== EDGE CASES ====================
   
   test('should handle rapid navigation without data loss', async ({ page }) => {
     const pageId = await createPageWithContent(page, '# Rapid Test\n\nContent to preserve');
-    
+
     // Rapidly navigate back and forth
     await page.click('button:has-text("← Back")');
     await page.waitForURL('/');
     await page.waitForTimeout(300);
-    
-    await page.locator('button:has-text("Open")').first().click();
+
+    // Click on the page item to navigate
+    await page.locator('h3').filter({ hasText: 'Rapid Test' }).first().click();
     await page.waitForURL(/\/page\/.+/);
     await page.waitForTimeout(300);
-    
+
     await page.click('button:has-text("← Back")');
     await page.waitForURL('/');
     await page.waitForTimeout(300);
-    
-    await page.locator('button:has-text("Open")').first().click();
+
+    // Click on the page item again
+    await page.locator('h3').filter({ hasText: 'Rapid Test' }).first().click();
     await page.waitForURL(/\/page\/.+/);
     await page.waitForSelector('.milkdown', { timeout: 10000 });
     await page.waitForTimeout(1000);
-    
+
     // Verify content is still there
     const editorArea = page.locator('.milkdown .ProseMirror').first();
     await expect(editorArea).toContainText('Content to preserve');
@@ -983,31 +928,153 @@ Also test <img> and <a> tags`;
     await expect(page.locator('text=Updated:').first()).toBeVisible();
   });
 
-  test('should handle Cancel on archive confirmation dialog', async ({ page }) => {
+  // ==================== TAB UI TESTS ====================
+
+  test('should switch between tabs correctly', async ({ page }) => {
     const timestamp = Date.now();
-    await createPageWithContent(page, `# CancelArchive${timestamp}`);
-    
+
+    // Create a page and archive it to have content in both tabs
+    const pageId = await createPageWithContent(page, `# TabSwitchTest${timestamp}\n\nContent for tab test`);
+
     await page.click('button:has-text("← Back")');
     await page.waitForURL('/');
-    await page.waitForTimeout(1000);
-    
-    // Get the initial count of our page
-    const heading = page.locator('h3').filter({ hasText: `CancelArchive${timestamp}` });
-    await expect(heading).toBeVisible();
-    const initialCount = await heading.count();
-    
-    // Find the archive button for this specific page
-    const card = heading.locator('xpath=ancestor::div[contains(@class, "p-6")]');
-    const archiveButton = card.locator('button:has-text("Archive")');
-    
-    // Dismiss the confirmation dialog
-    page.once('dialog', dialog => dialog.dismiss());
+    await page.waitForTimeout(500);
+
+    // Verify "最新" (Recent) tab is active by default
+    const recentTab = page.locator('button:has-text("最新")');
+    await expect(recentTab).toBeVisible();
+
+    // Verify page is visible in recent tab
+    const pageItem = page.locator(`[data-testid="page-item-${pageId}"]`);
+    await expect(pageItem).toBeVisible();
+
+    // Archive the page using the archive icon
+    const archiveButton = pageItem.locator('button[title="Archive"]');
     await archiveButton.click();
+    await page.waitForTimeout(1000);
+
+    // Switch to "アーカイブ" (Archive) tab
+    const archiveTab = page.locator('button:has-text("アーカイブ")');
+    await archiveTab.click();
+    await page.waitForTimeout(500);
+
+    // Verify archived page is visible
+    const archiveItem = page.locator(`[data-testid="archive-item-${pageId}"]`);
+    await expect(archiveItem).toBeVisible();
+
+    // Switch back to "最新" tab
+    await recentTab.click();
+    await page.waitForTimeout(500);
+
+    // Verify page is NOT in recent tab anymore
+    await expect(pageItem).not.toBeVisible();
+  });
+
+  test('should create new page via FAB button', async ({ page }) => {
+    // Click the FAB (Floating Action Button) to create a new page
+    const fabButton = page.locator('button[title="Create new page"]');
+    await expect(fabButton).toBeVisible();
+    await fabButton.click();
+
+    // Wait for navigation to new page
+    await page.waitForURL(/\/page\/.+/);
+    await page.waitForSelector('.milkdown', { timeout: 10000 });
+
+    // Verify editor is ready
+    const editor = page.locator('.milkdown').locator('div[contenteditable="true"]').first();
+    await expect(editor).toBeVisible();
+
+    // Add some content
+    await editor.click();
+    await editor.type('# FAB Created Page');
     await page.waitForTimeout(2000);
-    
-    // Page should still be visible - the count should remain the same
-    const finalCount = await heading.count();
-    expect(finalCount).toBe(initialCount);
-    expect(finalCount).toBeGreaterThan(0);
+
+    // Go back and verify page exists
+    await page.click('button:has-text("← Back")');
+    await page.waitForURL('/');
+    await page.waitForTimeout(500);
+
+    // Verify page appears in the list
+    await expect(page.locator('h3').filter({ hasText: 'FAB Created Page' }).first()).toBeVisible();
+  });
+
+  test('should archive and unarchive pages', async ({ page }) => {
+    const timestamp = Date.now();
+
+    // Create a page
+    const pageId = await createPageWithContent(page, `# ArchiveUnarchiveTest${timestamp}\n\nContent to archive`);
+
+    await page.click('button:has-text("← Back")');
+    await page.waitForURL('/');
+    await page.waitForTimeout(500);
+
+    // Verify page is in recent list
+    const pageItem = page.locator(`[data-testid="page-item-${pageId}"]`);
+    await expect(pageItem).toBeVisible();
+
+    // Click archive icon on the page item
+    const archiveButton = pageItem.locator('button[title="Archive"]');
+    await archiveButton.click();
+    await page.waitForTimeout(1000);
+
+    // Verify page disappeared from recent list
+    await expect(pageItem).not.toBeVisible();
+
+    // Switch to archive tab
+    const archiveTab = page.locator('button:has-text("アーカイブ")');
+    await archiveTab.click();
+    await page.waitForTimeout(500);
+
+    // Verify page is in archive list
+    const archiveItem = page.locator(`[data-testid="archive-item-${pageId}"]`);
+    await expect(archiveItem).toBeVisible();
+
+    // Click unarchive icon
+    const unarchiveButton = archiveItem.locator('button[title="Unarchive"]');
+    await unarchiveButton.click();
+    await page.waitForTimeout(1000);
+
+    // Verify page disappeared from archive list
+    await expect(archiveItem).not.toBeVisible();
+
+    // Switch back to recent tab
+    const recentTab = page.locator('button:has-text("最新")');
+    await recentTab.click();
+    await page.waitForTimeout(500);
+
+    // Verify page is back in recent list
+    await expect(pageItem).toBeVisible();
+  });
+
+  test('should show toast notification on archive and cancel it', async ({ page }) => {
+    const timestamp = Date.now();
+
+    // Create a page
+    const pageId = await createPageWithContent(page, `# ToastTest${timestamp}\n\nContent for toast test`);
+
+    await page.click('button:has-text("← Back")');
+    await page.waitForURL('/');
+    await page.waitForTimeout(500);
+
+    // Verify page is in recent list
+    const pageItem = page.locator(`[data-testid="page-item-${pageId}"]`);
+    await expect(pageItem).toBeVisible();
+
+    // Click archive icon
+    const archiveButton = pageItem.locator('button[title="Archive"]');
+    await archiveButton.click();
+
+    // Verify toast notification appears
+    const toast = page.locator('text=アーカイブしました');
+    await expect(toast).toBeVisible({ timeout: 5000 });
+
+    // Click cancel button on the toast
+    const cancelButton = page.locator('button:has-text("キャンセル")');
+    await expect(cancelButton).toBeVisible();
+    await cancelButton.click();
+    await page.waitForTimeout(1000);
+
+    // Verify page is back in recent list (archive was cancelled)
+    await expect(pageItem).toBeVisible();
   });
 });

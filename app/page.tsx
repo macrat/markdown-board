@@ -1,4 +1,4 @@
-import PageList from '@/components/PageList';
+import PageBoard from '@/components/PageBoard';
 
 export default function Home() {
   return (
@@ -12,7 +12,7 @@ export default function Home() {
             Collaborative markdown editing
           </p>
         </header>
-        <PageList />
+        <PageBoard />
       </div>
     </div>
   );
