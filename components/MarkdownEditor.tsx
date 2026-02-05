@@ -30,10 +30,14 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
       const ydoc = new Y.Doc();
       ydocRef.current = ydoc;
 
-      // For now, we'll skip WebSocket provider in development
-      // In production, you would set up a WebSocket server
-      // const provider = new WebsocketProvider('ws://localhost:1234', pageId, ydoc);
-      // providerRef.current = provider;
+      // Connect to WebSocket server for collaborative editing
+      const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const wsHost = window.location.hostname;
+      const wsPort = process.env.NODE_ENV === 'production' ? window.location.port || '80' : '1234';
+      const wsUrl = `${wsProtocol}//${wsHost}:${wsPort}`;
+      
+      const provider = new WebsocketProvider(wsUrl, pageId, ydoc);
+      providerRef.current = provider;
 
       const editor = await Editor.make()
         .config((ctx) => {
@@ -57,7 +61,7 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
     } catch (error) {
       console.error('Failed to initialize editor:', error);
     }
-  }, []);
+  }, [pageId]);
 
   const handleContentChange = useCallback(async (content: string) => {
     if (!page) return;

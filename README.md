@@ -46,6 +46,8 @@ npm install
 npm run dev
 ```
 
+This will start both the Next.js application (port 3000) and the WebSocket server (port 1234) for collaborative editing.
+
 4. Open [http://localhost:3000](http://localhost:3000) in your browser
 
 The SQLite database will be automatically created in the `data/` directory on first run.
@@ -68,6 +70,8 @@ markdown-board/
 ├── lib/
 │   ├── db.ts            # Database connection
 │   └── types.ts         # TypeScript types
+├── server/
+│   └── websocket.js     # WebSocket server for Yjs
 ├── scripts/
 │   └── cleanup-archives.js # Scheduled cleanup script
 └── data/                # SQLite database (auto-created)
@@ -106,9 +110,14 @@ curl -X DELETE http://localhost:3000/api/archives
 - **Accent**: `#c42776`
 - **Accent Light**: `#e893c2`
 
-## Collaborative Editing (Optional)
+## Collaborative Editing
 
-To enable real-time collaborative editing, you need to set up a WebSocket server for Yjs. Uncomment the WebSocket provider code in `components/MarkdownEditor.tsx` and set up a WebSocket server (e.g., using `y-websocket` server).
+Real-time collaborative editing is enabled out of the box! The WebSocket server for Yjs runs automatically when you start the application.
+
+- **Development**: WebSocket server runs on `ws://localhost:1234`
+- **Production**: WebSocket server runs alongside the Next.js app
+
+Multiple users can edit the same page simultaneously, and changes will be synchronized in real-time across all connected clients.
 
 ## Building for Production
 
@@ -116,6 +125,8 @@ To enable real-time collaborative editing, you need to set up a WebSocket server
 npm run build
 npm start
 ```
+
+The `npm start` command will start both the Next.js production server and the WebSocket server for collaborative editing.
 
 ## License
 
