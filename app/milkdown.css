@@ -127,14 +127,11 @@
   pointer-events: none;
   word-break: normal;
   display: inline;
+  height: 1.2em;
+  vertical-align: text-bottom;
 }
 
 /* Hide the user name label */
 .milkdown .ProseMirror-yjs-cursor > div {
-  display: none;
-}
-
-/* Hide trailing break elements that cause unwanted spacing */
-.milkdown .ProseMirror-trailingBreak {
   display: none;
 }
