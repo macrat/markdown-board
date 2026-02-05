@@ -33,7 +33,7 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
       // Connect to WebSocket server for collaborative editing
       const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
       const wsHost = window.location.hostname;
-      const wsPort = process.env.NODE_ENV === 'production' ? window.location.port || '80' : '1234';
+      const wsPort = '1234'; // WebSocket server always runs on port 1234
       const wsUrl = `${wsProtocol}//${wsHost}:${wsPort}`;
       
       const provider = new WebsocketProvider(wsUrl, pageId, ydoc);
@@ -117,6 +117,9 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
       }
       if (editorInstanceRef.current) {
         editorInstanceRef.current.destroy();
+      }
+      if (ydocRef.current) {
+        ydocRef.current.destroy();
       }
     };
   }, [fetchPage]);
