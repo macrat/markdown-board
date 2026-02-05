@@ -40,6 +40,7 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
   const ydocRef = useRef<Y.Doc | null>(null);
   const providerRef = useRef<WebsocketProvider | null>(null);
   const pageRef = useRef<Page | null>(null);
+  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const router = useRouter();
 
   // Keep pageRef in sync with page state
@@ -50,28 +51,31 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
   const handleContentChange = useCallback(async (content: string) => {
     if (!pageRef.current) return;
     
-    // Extract title from content
-    const title = extractTitle(content);
-    
-    // Debounced save
-    setIsSaving(true);
-    
-    try {
-      await fetch(`/api/pages/${pageId}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          title,
-          content,
-        }),
-      });
-    } catch (error) {
-      console.error('Failed to save content:', error);
-    } finally {
-      setTimeout(() => setIsSaving(false), 500);
+    // Clear existing timeout
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
     }
+    
+    // Debounce save by 1 second
+    saveTimeoutRef.current = setTimeout(async () => {
+      setIsSaving(true);
+      
+      try {
+        await fetch(`/api/pages/${pageId}`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            content,
+          }),
+        });
+      } catch (error) {
+        console.error('Failed to save content:', error);
+      } finally {
+        setIsSaving(false);
+      }
+    }, 1000);
   }, [pageId]);
 
   const initEditor = useCallback(async (initialContent: string) => {
@@ -139,6 +143,9 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
     
     return () => {
       // Cleanup
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
       if (providerRef.current) {
         providerRef.current.destroy();
       }
