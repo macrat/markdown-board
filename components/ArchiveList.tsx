@@ -96,8 +96,8 @@ export default function ArchiveList() {
                     {page.title}
                   </h3>
                   <div className="text-sm space-y-1" style={{ color: '#574a46', opacity: 0.6 }}>
-                    <p>Archived: {formatDate(page.archived_at!)}</p>
-                    <p>Days remaining: {getDaysRemaining(page.archived_at!)}</p>
+                    <p>Archived: {page.archived_at ? formatDate(page.archived_at) : 'Unknown'}</p>
+                    <p>Days remaining: {page.archived_at ? getDaysRemaining(page.archived_at) : 0}</p>
                   </div>
                 </div>
                 <button
