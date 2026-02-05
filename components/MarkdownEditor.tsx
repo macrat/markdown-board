@@ -4,12 +4,12 @@ import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Editor, rootCtx, defaultValueCtx } from '@milkdown/core';
 import { commonmark } from '@milkdown/preset-commonmark';
-import { nord } from '@milkdown/theme-nord';
 import { listener, listenerCtx } from '@milkdown/plugin-listener';
 import { collab, collabServiceCtx } from '@milkdown/plugin-collab';
 import type { Page } from '@/lib/types';
 import * as Y from 'yjs';
 import { WebsocketProvider } from 'y-websocket';
+import '../app/milkdown.css';
 
 export default function MarkdownEditor({ pageId }: { pageId: string }) {
   const [page, setPage] = useState<Page | null>(null);
@@ -82,7 +82,6 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
             handleContentChange(markdown);
           });
         })
-        .config(nord)
         .use(commonmark)
         .use(listener)
         .use(collab)
@@ -187,11 +186,7 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
       <div className="max-w-5xl mx-auto px-8 py-8">
         <div 
           ref={editorRef}
-          className="prose prose-lg max-w-none"
-          style={{
-            minHeight: '500px',
-            color: '#574a46',
-          }}
+          className="milkdown"
         />
       </div>
     </div>
