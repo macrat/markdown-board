@@ -16,15 +16,12 @@ async function createPageWithContent(page: Page, content: string) {
     if (lines[i]) await editor.type(lines[i]);
   }
   
-  await page.waitForTimeout(2000); // Wait for auto-save
+  // Wait for auto-save (debounce is 1 second in the app)
+  await page.waitForTimeout(2000);
   return page.url().split('/page/')[1];
 }
 
-// Helper function to get editor content
-async function getEditorContent(page: Page): Promise<string> {
-  const editorArea = page.locator('.milkdown .ProseMirror').first();
-  return await editorArea.textContent() || '';
-}
+const MAX_TAB_ITERATIONS = 10;
 
 test.describe('Markdown Board E2E Tests', () => {
   test.beforeEach(async ({ page }) => {
@@ -874,7 +871,7 @@ Russian: Привет мир`;
     
     // Use Tab multiple times to navigate to View Archives button
     // We need to tab through multiple elements
-    for (let i = 0; i < 10; i++) {
+    for (let i = 0; i < MAX_TAB_ITERATIONS; i++) {
       await page.keyboard.press('Tab');
       const focused = await page.evaluate(() => document.activeElement?.textContent);
       if (focused && focused.includes('View Archives')) {
