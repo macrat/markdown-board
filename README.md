@@ -85,6 +85,18 @@ npm run dev
 
 http://localhost:3000 を開く。
 
+### 環境変数
+
+プロジェクトでは以下の環境変数を使用できます。必要に応じて `.env.local` ファイルを作成して設定してください。
+
+| 変数名 | 説明 | デフォルト値 |
+|--------|------|--------------|
+| `WS_PORT` | WebSocketサーバーのポート番号 | `1234` |
+| `NEXT_PUBLIC_WS_PORT` | クライアント側で使用するWebSocketサーバーのポート番号（通常は`WS_PORT`と同じ値を設定） | `1234` |
+| `API_URL` | クリーンアップスクリプト（`scripts/cleanup-archives.js`）で使用するAPIサーバーのベースURL | `http://localhost:3000` |
+
+詳細は `.env.example` ファイルを参照してください。
+
 ## 技術構成
 
 Next.js / SQLite / Milkdown / Yjs / TypeScript / Tailwind CSS
