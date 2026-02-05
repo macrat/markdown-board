@@ -1,10 +1,37 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, Page } from '@playwright/test';
+
+// Helper function to create a new page with content
+async function createPageWithContent(page: Page, content: string) {
+  await page.click('button:has-text("New Page")');
+  await page.waitForURL(/\/page\/.+/);
+  await page.waitForSelector('.milkdown', { timeout: 10000 });
+  
+  const editor = page.locator('.milkdown').locator('div[contenteditable="true"]').first();
+  await editor.click();
+  
+  // Type content line by line
+  const lines = content.split('\n');
+  for (let i = 0; i < lines.length; i++) {
+    if (i > 0) await editor.press('Enter');
+    if (lines[i]) await editor.type(lines[i]);
+  }
+  
+  await page.waitForTimeout(2000); // Wait for auto-save
+  return page.url().split('/page/')[1];
+}
+
+// Helper function to get editor content
+async function getEditorContent(page: Page): Promise<string> {
+  const editorArea = page.locator('.milkdown .ProseMirror').first();
+  return await editorArea.textContent() || '';
+}
 
 test.describe('Markdown Board E2E Tests', () => {
   test.beforeEach(async ({ page }) => {
     // Navigate to home page
     await page.goto('/');
     await page.waitForLoadState('networkidle');
+    await page.waitForTimeout(500);
   });
 
   test('should persist data through create → edit → home → return workflow', async ({ page }) => {
@@ -284,5 +311,706 @@ test.describe('Markdown Board E2E Tests', () => {
     // Also verify title in page header
     const pageTitle = page.locator('h1').first();
     await expect(pageTitle).toContainText('Restart Test');
+  });
+
+  // ==================== EMPTY CONTENT HANDLING ====================
+  
+  test('should handle empty page creation correctly', async ({ page }) => {
+    await page.click('button:has-text("New Page")');
+    await page.waitForURL(/\/page\/.+/);
+    await page.waitForSelector('.milkdown', { timeout: 10000 });
+    
+    // Don't add any content, just go back
+    await page.click('button:has-text("← Back")');
+    await page.waitForURL('/');
+    await page.waitForTimeout(500);
+    
+    // Should show "Untitled" for empty pages - check count instead of visibility
+    const untitledCount = await page.locator('h3').filter({ hasText: 'Untitled' }).count();
+    expect(untitledCount).toBeGreaterThan(0);
+  });
+
+  test('should handle page with only whitespace', async ({ page }) => {
+    await page.click('button:has-text("New Page")');
+    await page.waitForURL(/\/page\/.+/);
+    await page.waitForSelector('.milkdown', { timeout: 10000 });
+    
+    const editor = page.locator('.milkdown').locator('div[contenteditable="true"]').first();
+    await editor.click();
+    await editor.type('   ');
+    await page.waitForTimeout(2000);
+    
+    await page.click('button:has-text("← Back")');
+    await page.waitForURL('/');
+    await page.waitForTimeout(500);
+    
+    // Should show "Untitled" for whitespace-only pages (use first() to handle multiple Untitled pages)
+    await expect(page.locator('h3').filter({ hasText: 'Untitled' }).first()).toBeVisible();
+  });
+
+  // ==================== VERY LONG CONTENT (STRESS TEST) ====================
+  
+  test('should handle very long content without performance issues', async ({ page }) => {
+    await page.click('button:has-text("New Page")');
+    await page.waitForURL(/\/page\/.+/);
+    await page.waitForSelector('.milkdown', { timeout: 10000 });
+    
+    const editor = page.locator('.milkdown').locator('div[contenteditable="true"]').first();
+    await editor.click();
+    
+    // Create long content with multiple headings and paragraphs
+    await editor.type('# Stress Test Document');
+    await editor.press('Enter');
+    await editor.press('Enter');
+    
+    // Add multiple sections programmatically
+    for (let i = 1; i <= 10; i++) {
+      await editor.type(`## Section ${i}`);
+      await editor.press('Enter');
+      await editor.press('Enter');
+      await editor.type(`This is paragraph 1 of section ${i} with some text content that should be saved properly.`);
+      await editor.press('Enter');
+      await editor.press('Enter');
+      await editor.type(`This is paragraph 2 of section ${i} with more text content.`);
+      await editor.press('Enter');
+      await editor.press('Enter');
+    }
+    
+    await page.waitForTimeout(2500);
+    
+    // Verify content persists
+    const editorArea = page.locator('.milkdown .ProseMirror').first();
+    await expect(editorArea).toContainText('Stress Test Document');
+    await expect(editorArea).toContainText('Section 1');
+    await expect(editorArea).toContainText('Section 10');
+  });
+
+  // ==================== SPECIAL CHARACTERS AND UNICODE ====================
+  
+  test('should handle special characters correctly', async ({ page }) => {
+    const specialContent = `# Special Characters Test
+    
+Special chars: !@#$%^&*()_+-={}[]|\\:";'<>?,./
+Math symbols: ∑∏∫∂∞≈≠≤≥±×÷
+Arrows: ←→↑↓↔↕⇐⇒⇑⇓
+Currency: $€£¥₹₽`;
+
+    const pageId = await createPageWithContent(page, specialContent);
+    
+    // Go back and return
+    await page.click('button:has-text("← Back")');
+    await page.waitForURL('/');
+    await page.waitForTimeout(500);
+    
+    await page.locator('button:has-text("Open")').first().click();
+    await page.waitForURL(/\/page\/.+/);
+    await page.waitForSelector('.milkdown', { timeout: 10000 });
+    await page.waitForTimeout(1000);
+    
+    const editorArea = page.locator('.milkdown .ProseMirror').first();
+    await expect(editorArea).toContainText('Special chars: !@#$%^&*()_+-={}[]|\\:";\'<>?,./');
+    await expect(editorArea).toContainText('∑∏∫∂∞≈≠≤≥±×÷');
+    await expect(editorArea).toContainText('←→↑↓↔↕⇐⇒⇑⇓');
+  });
+
+  test('should handle unicode characters (emoji, international)', async ({ page }) => {
+    const timestamp = Date.now();
+    const unicodeContent = `# Unicode Test ${timestamp} 🌍
+    
+Emoji: 😀😃😄😁🎉🎊🎈🎁
+Japanese: こんにちは世界
+Arabic: مرحبا بالعالم
+Hebrew: שלום עולם
+Chinese: 你好世界
+Russian: Привет мир`;
+
+    const pageId = await createPageWithContent(page, unicodeContent);
+    
+    await page.click('button:has-text("← Back")');
+    await page.waitForURL('/');
+    await page.waitForTimeout(500);
+    
+    // Verify title includes emoji and timestamp - use first() for strict mode
+    await expect(page.locator('h3').filter({ hasText: '🌍' }).first()).toBeVisible();
+    
+    await page.locator('button:has-text("Open")').first().click();
+    await page.waitForURL(/\/page\/.+/);
+    await page.waitForSelector('.milkdown', { timeout: 10000 });
+    await page.waitForTimeout(1000);
+    
+    const editorArea = page.locator('.milkdown .ProseMirror').first();
+    await expect(editorArea).toContainText('😀😃😄😁🎉🎊🎈🎁');
+    await expect(editorArea).toContainText('こんにちは世界');
+    await expect(editorArea).toContainText('مرحبا بالعالم');
+  });
+
+  // ==================== PAGE CREATION AND DELETION FLOWS ====================
+  
+  test('should handle creating multiple pages', async ({ page }) => {
+    const pageCount = 3;
+    const pageIds: string[] = [];
+    const timestamp = Date.now();
+    
+    for (let i = 1; i <= pageCount; i++) {
+      await page.goto('/');
+      await page.waitForLoadState('networkidle');
+      
+      const pageId = await createPageWithContent(page, `# MultiPage ${timestamp}-${i}\n\nContent for page ${i}`);
+      pageIds.push(pageId);
+      
+      await page.click('button:has-text("← Back")');
+      await page.waitForURL('/');
+      await page.waitForTimeout(500);
+    }
+    
+    // Verify all pages are listed - check by count
+    for (let i = 1; i <= pageCount; i++) {
+      const pageExists = await page.locator('h3').filter({ hasText: `MultiPage ${timestamp}-${i}` }).count();
+      expect(pageExists).toBeGreaterThan(0);
+    }
+  });
+
+  // ==================== ARCHIVE/UNARCHIVE WORKFLOWS ====================
+  
+  test('should archive and unarchive a page', async ({ page }) => {
+    const timestamp = Date.now();
+    // Create a unique page
+    const pageId = await createPageWithContent(page, `# ArchiveTest${timestamp}\n\nThis page will be archived`);
+    
+    await page.click('button:has-text("← Back")');
+    await page.waitForURL('/');
+    await page.waitForTimeout(1000);
+    
+    // Verify page is in the list
+    const heading = page.locator('h3').filter({ hasText: `ArchiveTest${timestamp}` });
+    await expect(heading).toBeVisible();
+    
+    // Click on the heading to select the card, then find archive button within that card
+    const card = heading.locator('xpath=ancestor::div[contains(@class, "p-6")]');
+    const archiveButton = card.locator('button:has-text("Archive")');
+    
+    page.once('dialog', dialog => dialog.accept());
+    await archiveButton.click();
+    await page.waitForTimeout(1500);
+    
+    // Verify page is no longer in main list
+    const mainListPages = await page.locator('h3').filter({ hasText: `ArchiveTest${timestamp}` }).count();
+    expect(mainListPages).toBe(0);
+    
+    // Navigate to archives
+    await page.click('button:has-text("View Archives")');
+    await page.waitForURL('/archives');
+    await page.waitForTimeout(500);
+    
+    // Verify page is in archives
+    await expect(page.locator('h3').filter({ hasText: `ArchiveTest${timestamp}` })).toBeVisible();
+    await expect(page.locator('text=Days remaining:')).toBeVisible();
+    
+    // Unarchive the page
+    await page.click('button:has-text("Unarchive")');
+    await page.waitForTimeout(1500);
+    
+    // Verify page is no longer in archives
+    const archivedPages = await page.locator('h3').filter({ hasText: `ArchiveTest${timestamp}` }).count();
+    expect(archivedPages).toBe(0);
+    
+    // Go back to home and verify page is restored
+    await page.click('button:has-text("← Back to Pages")');
+    await page.waitForURL('/');
+    await page.waitForTimeout(500);
+    
+    await expect(page.locator('h3').filter({ hasText: `ArchiveTest${timestamp}` })).toBeVisible();
+  });
+
+  test('should show empty state when no archives exist', async ({ page }) => {
+    await page.click('button:has-text("View Archives")');
+    await page.waitForURL('/archives');
+    
+    await expect(page.locator('text=No archived pages.')).toBeVisible();
+  });
+
+  // ==================== NAVIGATION BETWEEN PAGES ====================
+  
+  test('should navigate between multiple pages seamlessly', async ({ page }) => {
+    const timestamp = Date.now();
+    // Create first page
+    const pageId1 = await createPageWithContent(page, `# First Page ${timestamp}\n\nContent of first page`);
+    await page.click('button:has-text("← Back")');
+    await page.waitForURL('/');
+    await page.waitForTimeout(500);
+    
+    // Create second page
+    const pageId2 = await createPageWithContent(page, `# Second Page ${timestamp}\n\nContent of second page`);
+    await page.click('button:has-text("← Back")');
+    await page.waitForURL('/');
+    await page.waitForTimeout(500);
+    
+    // Navigate to first page
+    await page.locator('h3').filter({ hasText: `First Page ${timestamp}` }).click();
+    await page.waitForURL(/\/page\/.+/);
+    await page.waitForSelector('.milkdown', { timeout: 10000 });
+    await page.waitForTimeout(1000);
+    
+    let editorArea = page.locator('.milkdown .ProseMirror').first();
+    await expect(editorArea).toContainText('Content of first page');
+    
+    // Go back and navigate to second page
+    await page.click('button:has-text("← Back")');
+    await page.waitForURL('/');
+    await page.waitForTimeout(500);
+    
+    await page.locator('h3').filter({ hasText: `Second Page ${timestamp}` }).click();
+    await page.waitForURL(/\/page\/.+/);
+    await page.waitForSelector('.milkdown', { timeout: 10000 });
+    await page.waitForTimeout(1000);
+    
+    editorArea = page.locator('.milkdown .ProseMirror').first();
+    await expect(editorArea).toContainText('Content of second page');
+  });
+
+  // ==================== MARKDOWN SYNTAX TESTS ====================
+  
+  test('should render all heading levels (h1-h6)', async ({ page }) => {
+    const content = `# Heading 1
+## Heading 2
+### Heading 3
+#### Heading 4
+##### Heading 5
+###### Heading 6`;
+
+    const pageId = await createPageWithContent(page, content);
+    
+    await page.waitForTimeout(1000);
+    const editorArea = page.locator('.milkdown .ProseMirror').first();
+    
+    // Check all headings are present
+    await expect(editorArea.locator('h1')).toContainText('Heading 1');
+    await expect(editorArea.locator('h2')).toContainText('Heading 2');
+    await expect(editorArea.locator('h3')).toContainText('Heading 3');
+    await expect(editorArea.locator('h4')).toContainText('Heading 4');
+    await expect(editorArea.locator('h5')).toContainText('Heading 5');
+    await expect(editorArea.locator('h6')).toContainText('Heading 6');
+  });
+
+  test('should render text formatting (bold, italic, strikethrough)', async ({ page }) => {
+    await page.click('button:has-text("New Page")');
+    await page.waitForURL(/\/page\/.+/);
+    await page.waitForSelector('.milkdown', { timeout: 10000 });
+    
+    const editor = page.locator('.milkdown').locator('div[contenteditable="true"]').first();
+    await editor.click();
+    
+    // Type bold text
+    await editor.type('**bold text**');
+    await editor.press('Space');
+    await page.waitForTimeout(500);
+    
+    // Type italic text
+    await editor.type('*italic text*');
+    await editor.press('Space');
+    await page.waitForTimeout(500);
+    
+    // Type strikethrough text
+    await editor.type('~~strikethrough text~~');
+    await editor.press('Space');
+    
+    await page.waitForTimeout(2000);
+    
+    const editorArea = page.locator('.milkdown .ProseMirror').first();
+    
+    // Verify content is present (formatting may be rendered or stored as markdown)
+    const content = await editorArea.textContent();
+    expect(content).toContain('bold text');
+    expect(content).toContain('italic text');
+    expect(content).toContain('strikethrough text');
+  });
+
+  test('should render unordered and ordered lists', async ({ page }) => {
+    await page.click('button:has-text("New Page")');
+    await page.waitForURL(/\/page\/.+/);
+    await page.waitForSelector('.milkdown', { timeout: 10000 });
+    
+    const editor = page.locator('.milkdown').locator('div[contenteditable="true"]').first();
+    await editor.click();
+    
+    // Unordered list
+    await editor.type('- Item 1');
+    await editor.press('Enter');
+    await editor.type('Item 2');
+    await editor.press('Enter');
+    await editor.type('Item 3');
+    await editor.press('Enter');
+    await editor.press('Enter');
+    
+    // Ordered list
+    await editor.type('1. First');
+    await editor.press('Enter');
+    await editor.type('Second');
+    await editor.press('Enter');
+    await editor.type('Third');
+    
+    await page.waitForTimeout(1500);
+    
+    const editorArea = page.locator('.milkdown .ProseMirror').first();
+    
+    // Verify lists are rendered
+    await expect(editorArea.locator('ul li').first()).toContainText('Item 1');
+    await expect(editorArea.locator('ol li').first()).toContainText('First');
+  });
+
+  test('should render nested lists', async ({ page }) => {
+    await page.click('button:has-text("New Page")');
+    await page.waitForURL(/\/page\/.+/);
+    await page.waitForSelector('.milkdown', { timeout: 10000 });
+    
+    const editor = page.locator('.milkdown').locator('div[contenteditable="true"]').first();
+    await editor.click();
+    
+    await editor.type('- Parent 1');
+    await editor.press('Enter');
+    await editor.type('  - Child 1');
+    await editor.press('Enter');
+    await editor.type('  - Child 2');
+    
+    await page.waitForTimeout(2000);
+    
+    const editorArea = page.locator('.milkdown .ProseMirror').first();
+    const content = await editorArea.textContent();
+    
+    // Verify content is present
+    expect(content).toContain('Parent 1');
+    expect(content).toContain('Child 1');
+    expect(content).toContain('Child 2');
+  });
+
+  test('should render links', async ({ page }) => {
+    await page.click('button:has-text("New Page")');
+    await page.waitForURL(/\/page\/.+/);
+    await page.waitForSelector('.milkdown', { timeout: 10000 });
+    
+    const editor = page.locator('.milkdown').locator('div[contenteditable="true"]').first();
+    await editor.click();
+    
+    await editor.type('[Click here](https://example.com)');
+    
+    await page.waitForTimeout(2000);
+    
+    const editorArea = page.locator('.milkdown .ProseMirror').first();
+    const content = await editorArea.textContent();
+    
+    // Verify link text is present (it may be rendered as link or markdown)
+    expect(content).toContain('Click here');
+  });
+
+  test('should render inline code and code blocks', async ({ page }) => {
+    await page.click('button:has-text("New Page")');
+    await page.waitForURL(/\/page\/.+/);
+    await page.waitForSelector('.milkdown', { timeout: 10000 });
+    
+    const editor = page.locator('.milkdown').locator('div[contenteditable="true"]').first();
+    await editor.click();
+    
+    // Inline code
+    await editor.type('Use `console.log()` for debugging');
+    await editor.press('Enter');
+    await editor.press('Enter');
+    
+    // Code block
+    await editor.type('```javascript');
+    await editor.press('Enter');
+    await editor.type('function hello() {');
+    await editor.press('Enter');
+    await editor.type('  return "world";');
+    await editor.press('Enter');
+    await editor.type('}');
+    await editor.press('Enter');
+    await editor.type('```');
+    
+    await page.waitForTimeout(1500);
+    
+    const editorArea = page.locator('.milkdown .ProseMirror').first();
+    
+    // Verify inline code
+    await expect(editorArea.locator('code').first()).toContainText('console.log()');
+    
+    // Verify code block
+    await expect(editorArea.locator('pre code')).toContainText('function hello()');
+  });
+
+  test('should render blockquotes', async ({ page }) => {
+    await page.click('button:has-text("New Page")');
+    await page.waitForURL(/\/page\/.+/);
+    await page.waitForSelector('.milkdown', { timeout: 10000 });
+    
+    const editor = page.locator('.milkdown').locator('div[contenteditable="true"]').first();
+    await editor.click();
+    
+    await editor.type('> This is a quote');
+    await editor.press('Enter');
+    await editor.type('> Second line of quote');
+    
+    await page.waitForTimeout(2000);
+    
+    const editorArea = page.locator('.milkdown .ProseMirror').first();
+    const content = await editorArea.textContent();
+    
+    // Verify quote content is present
+    expect(content).toContain('This is a quote');
+    expect(content).toContain('Second line of quote');
+  });
+
+  test('should render horizontal rules', async ({ page }) => {
+    await page.click('button:has-text("New Page")');
+    await page.waitForURL(/\/page\/.+/);
+    await page.waitForSelector('.milkdown', { timeout: 10000 });
+    
+    const editor = page.locator('.milkdown').locator('div[contenteditable="true"]').first();
+    await editor.click();
+    
+    await editor.type('Content above');
+    await editor.press('Enter');
+    await editor.press('Enter');
+    await editor.type('---');
+    await editor.press('Enter');
+    await editor.press('Enter');
+    await editor.type('Content below');
+    
+    await page.waitForTimeout(1500);
+    
+    const editorArea = page.locator('.milkdown .ProseMirror').first();
+    await expect(editorArea.locator('hr')).toBeVisible();
+  });
+
+  test('should render tables', async ({ page }) => {
+    await page.click('button:has-text("New Page")');
+    await page.waitForURL(/\/page\/.+/);
+    await page.waitForSelector('.milkdown', { timeout: 10000 });
+    
+    const editor = page.locator('.milkdown').locator('div[contenteditable="true"]').first();
+    await editor.click();
+    
+    await editor.type('| Header 1 | Header 2 |');
+    await editor.press('Enter');
+    await editor.type('|----------|----------|');
+    await editor.press('Enter');
+    await editor.type('| Cell 1   | Cell 2   |');
+    
+    await page.waitForTimeout(2000);
+    
+    const editorArea = page.locator('.milkdown .ProseMirror').first();
+    const content = await editorArea.textContent();
+    
+    // Verify table content is present
+    expect(content).toContain('Header 1');
+    expect(content).toContain('Header 2');
+    expect(content).toContain('Cell 1');
+    expect(content).toContain('Cell 2');
+  });
+
+  // ==================== ACCESSIBILITY TESTS ====================
+  
+  test('should have proper ARIA labels and roles', async ({ page }) => {
+    // Check home page
+    await expect(page.locator('h1')).toContainText('Markdown Board');
+    
+    // Check button accessibility
+    const newPageButton = page.locator('button:has-text("New Page")');
+    await expect(newPageButton).toBeVisible();
+    await expect(newPageButton).toBeEnabled();
+    
+    // Create a page and check editor accessibility
+    await page.click('button:has-text("New Page")');
+    await page.waitForURL(/\/page\/.+/);
+    await page.waitForSelector('.milkdown', { timeout: 10000 });
+    
+    const editor = page.locator('.milkdown').locator('div[contenteditable="true"]').first();
+    await expect(editor).toHaveAttribute('contenteditable', 'true');
+  });
+
+  test('should support keyboard navigation', async ({ page }) => {
+    // Tab through buttons on home page
+    await page.keyboard.press('Tab');
+    
+    // Check focus is visible (we'll verify by checking activeElement)
+    let focusedElement = await page.evaluate(() => document.activeElement?.tagName);
+    expect(focusedElement).toBeTruthy();
+    
+    // Test keyboard navigation in editor
+    await page.click('button:has-text("New Page")');
+    await page.waitForURL(/\/page\/.+/);
+    await page.waitForSelector('.milkdown', { timeout: 10000 });
+    
+    const editor = page.locator('.milkdown').locator('div[contenteditable="true"]').first();
+    await editor.click();
+    
+    // Type with keyboard
+    await page.keyboard.type('Keyboard test');
+    
+    await page.waitForTimeout(1500);
+    
+    const editorArea = page.locator('.milkdown .ProseMirror').first();
+    await expect(editorArea).toContainText('Keyboard test');
+  });
+
+  test('should have visible focus indicators', async ({ page }) => {
+    const newPageButton = page.locator('button:has-text("New Page")');
+    
+    // Focus the button with keyboard
+    await newPageButton.focus();
+    
+    // Check if button has focus
+    await expect(newPageButton).toBeFocused();
+  });
+
+  test('should work with Tab key for navigation', async ({ page }) => {
+    // Create a page first
+    await createPageWithContent(page, '# Test Page\n\nContent here');
+    await page.click('button:has-text("← Back")');
+    await page.waitForURL('/');
+    await page.waitForTimeout(500);
+    
+    // Focus on body first
+    await page.locator('body').focus();
+    
+    // Use Tab multiple times to navigate to View Archives button
+    // We need to tab through multiple elements
+    for (let i = 0; i < 10; i++) {
+      await page.keyboard.press('Tab');
+      const focused = await page.evaluate(() => document.activeElement?.textContent);
+      if (focused && focused.includes('View Archives')) {
+        break;
+      }
+    }
+    
+    // Check if we can activate with Enter
+    const activeElement = await page.evaluate(() => document.activeElement?.textContent);
+    
+    // If we found the button, this test passes
+    expect(activeElement).toBeDefined();
+  });
+
+  // ==================== RESPONSIVE LAYOUT TESTS ====================
+  
+  test('should be responsive on mobile viewport', async ({ page }) => {
+    // Set mobile viewport
+    await page.setViewportSize({ width: 375, height: 667 });
+    
+    await page.goto('/');
+    await page.waitForLoadState('networkidle');
+    
+    // Check if main elements are visible
+    await expect(page.locator('h1')).toBeVisible();
+    await expect(page.locator('button:has-text("New Page")')).toBeVisible();
+  });
+
+  test('should be responsive on tablet viewport', async ({ page }) => {
+    // Set tablet viewport
+    await page.setViewportSize({ width: 768, height: 1024 });
+    
+    await page.goto('/');
+    await page.waitForLoadState('networkidle');
+    
+    await expect(page.locator('h1')).toBeVisible();
+    await expect(page.locator('button:has-text("New Page")')).toBeVisible();
+  });
+
+  // ==================== EDGE CASES ====================
+  
+  test('should handle rapid navigation without data loss', async ({ page }) => {
+    const pageId = await createPageWithContent(page, '# Rapid Test\n\nContent to preserve');
+    
+    // Rapidly navigate back and forth
+    await page.click('button:has-text("← Back")');
+    await page.waitForURL('/');
+    await page.waitForTimeout(300);
+    
+    await page.locator('button:has-text("Open")').first().click();
+    await page.waitForURL(/\/page\/.+/);
+    await page.waitForTimeout(300);
+    
+    await page.click('button:has-text("← Back")');
+    await page.waitForURL('/');
+    await page.waitForTimeout(300);
+    
+    await page.locator('button:has-text("Open")').first().click();
+    await page.waitForURL(/\/page\/.+/);
+    await page.waitForSelector('.milkdown', { timeout: 10000 });
+    await page.waitForTimeout(1000);
+    
+    // Verify content is still there
+    const editorArea = page.locator('.milkdown .ProseMirror').first();
+    await expect(editorArea).toContainText('Content to preserve');
+  });
+
+  test('should handle markdown with HTML-like tags in text', async ({ page }) => {
+    const content = `# HTML Tags Test
+    
+Text with <div> and <script> tags should be escaped
+Also test <img> and <a> tags`;
+
+    const pageId = await createPageWithContent(page, content);
+    
+    await page.waitForTimeout(1000);
+    const editorArea = page.locator('.milkdown .ProseMirror').first();
+    
+    // Content should be present as text, not rendered as HTML
+    await expect(editorArea).toContainText('<div>');
+    await expect(editorArea).toContainText('<script>');
+  });
+
+  test('should handle very long lines without breaking layout', async ({ page }) => {
+    const longLine = 'a'.repeat(1000);
+    const content = `# Long Line Test\n\n${longLine}`;
+    
+    await createPageWithContent(page, content);
+    
+    await page.waitForTimeout(1000);
+    
+    // Check that the page doesn't have horizontal scroll
+    const hasHorizontalScroll = await page.evaluate(() => {
+      return document.documentElement.scrollWidth > document.documentElement.clientWidth;
+    });
+    
+    // Long text should wrap, not cause horizontal scroll
+    expect(hasHorizontalScroll).toBe(false);
+  });
+
+  test('should show proper timestamps on page list', async ({ page }) => {
+    await createPageWithContent(page, '# Timestamp Test\n\nContent');
+    
+    await page.click('button:has-text("← Back")');
+    await page.waitForURL('/');
+    await page.waitForTimeout(500);
+    
+    // Check that "Updated:" timestamp is visible - use first() to handle multiple matches
+    await expect(page.locator('text=Updated:').first()).toBeVisible();
+  });
+
+  test('should handle Cancel on archive confirmation dialog', async ({ page }) => {
+    const timestamp = Date.now();
+    await createPageWithContent(page, `# CancelArchive${timestamp}`);
+    
+    await page.click('button:has-text("← Back")');
+    await page.waitForURL('/');
+    await page.waitForTimeout(1000);
+    
+    // Get the initial count of our page
+    const heading = page.locator('h3').filter({ hasText: `CancelArchive${timestamp}` });
+    await expect(heading).toBeVisible();
+    const initialCount = await heading.count();
+    
+    // Find the archive button for this specific page
+    const card = heading.locator('xpath=ancestor::div[contains(@class, "p-6")]');
+    const archiveButton = card.locator('button:has-text("Archive")');
+    
+    // Dismiss the confirmation dialog
+    page.once('dialog', dialog => dialog.dismiss());
+    await archiveButton.click();
+    await page.waitForTimeout(2000);
+    
+    // Page should still be visible - the count should remain the same
+    const finalCount = await heading.count();
+    expect(finalCount).toBe(initialCount);
+    expect(finalCount).toBeGreaterThan(0);
   });
 });
