@@ -11,6 +11,9 @@ import * as Y from 'yjs';
 import { WebsocketProvider } from 'y-websocket';
 import '../app/milkdown.css';
 
+// Timeout for waiting for Yjs sync to complete (in milliseconds)
+const SYNC_TIMEOUT_MS = 2000;
+
 // Extract title from markdown content
 function extractTitle(content: string): string {
   if (!content || content.trim() === '') {
@@ -102,7 +105,7 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
       const provider = new WebsocketProvider(wsUrl, pageId, ydoc);
       providerRef.current = provider;
       
-      console.log(`[WebSocket] Connecting to room: ${pageId} at ws://localhost:1234`);
+      console.log(`[WebSocket] Connecting to room: ${pageId} at ${wsUrl}`);
       
       // Wait for initial sync to complete before creating the editor
       let shouldUseInitialContent = false;
@@ -136,7 +139,7 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
           console.log('[Yjs] Sync timeout, assuming empty document');
           shouldUseInitialContent = !!initialContent;
           resolve();
-        }, 2000);
+        }, SYNC_TIMEOUT_MS);
       });
       
       const editor = await Editor.make()
