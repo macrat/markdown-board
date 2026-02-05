@@ -237,42 +237,33 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <p style={{ color: '#574a46' }}>Loading...</p>
+        <p style={{ color: '#574a46' }}>読み込み中...</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen">
-      <div className="border-b" style={{ borderColor: 'rgba(87, 74, 70, 0.2)' }}>
-        <div className="max-w-5xl mx-auto px-8 py-6">
-          <div className="flex justify-between items-center">
-            <button
-              onClick={() => router.push('/')}
-              className="px-4 py-2 rounded transition-colors text-sm"
-              style={{
-                backgroundColor: '#f5eae6',
-                color: '#574a46',
-                border: '1px solid #574a46',
-              }}
-            >
-              ← Back
-            </button>
-            <div className="flex items-center gap-4">
-              {isSaving && (
-                <span className="text-sm" style={{ color: '#574a46', opacity: 0.6 }}>
-                  Saving...
-                </span>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-      <div className="max-w-5xl mx-auto px-8 py-8">
-        <div 
+    <div className="min-h-screen relative">
+      <div className="h-screen p-8 overflow-auto">
+        <div
           ref={editorRef}
-          className="milkdown"
+          className="milkdown max-w-4xl mx-auto"
         />
+      </div>
+
+      {/* 保存中表示 - 右下に控えめに表示 */}
+      <div
+        role="status"
+        aria-live="polite"
+        className="fixed bottom-4 right-4 text-xs px-3 py-1.5 rounded-full transition-opacity duration-300"
+        style={{
+          color: '#574a46',
+          backgroundColor: 'rgba(245, 234, 230, 0.9)',
+          opacity: isSaving ? 0.8 : 0,
+          pointerEvents: 'none',
+        }}
+      >
+        保存中...
       </div>
     </div>
   );

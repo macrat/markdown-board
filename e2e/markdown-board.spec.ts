@@ -62,8 +62,8 @@ test.describe('Markdown Board E2E Tests', () => {
     const pageId = url.split('/page/')[1];
     
     // Step 3: Go back to home
-    await page.click('button:has-text("← Back")');
-    await page.waitForURL('/');
+    await page.goto('/');
+    await page.waitForLoadState('networkidle');
     await page.waitForTimeout(500);
     
     // Verify the page appears in the list with correct title (should be without #)
@@ -110,8 +110,8 @@ test.describe('Markdown Board E2E Tests', () => {
     await page.waitForTimeout(2000);
     
     // Go back to home
-    await page.click('button:has-text("← Back")');
-    await page.waitForURL('/');
+    await page.goto('/');
+    await page.waitForLoadState('networkidle');
     await page.waitForTimeout(500);
     
     // The title should be "# hello" (the literal text with hash symbol)
@@ -140,8 +140,8 @@ test.describe('Markdown Board E2E Tests', () => {
     
     await page.waitForTimeout(2000); // Wait for save
     
-    await page.click('button:has-text("← Back")');
-    await page.waitForURL('/');
+    await page.goto('/');
+    await page.waitForLoadState('networkidle');
     await page.waitForTimeout(500);
     
     // Title should be "My Heading Title" (without #)
@@ -164,8 +164,8 @@ test.describe('Markdown Board E2E Tests', () => {
     
     await page.waitForTimeout(2000); // Wait for save
     
-    await page.click('button:has-text("← Back")');
-    await page.waitForURL('/');
+    await page.goto('/');
+    await page.waitForLoadState('networkidle');
     await page.waitForTimeout(500);
     
     // Title should be "Plain text title"
@@ -185,8 +185,8 @@ test.describe('Markdown Board E2E Tests', () => {
     
     await page.waitForTimeout(2000); // Wait for save
     
-    await page.click('button:has-text("← Back")');
-    await page.waitForURL('/');
+    await page.goto('/');
+    await page.waitForLoadState('networkidle');
     await page.waitForTimeout(500);
     
     // Title should be "Level 3 Heading" (without ###)
@@ -305,7 +305,7 @@ test.describe('Markdown Board E2E Tests', () => {
     await expect(editorArea).toContainText('This content should survive server restart', { timeout: 5000 });
     await expect(editorArea).toContainText('Second line of content', { timeout: 5000 });
     
-    // Also verify title in page header
+    // Verify title is rendered as h1 in the editor content
     const pageTitle = page.locator('h1').first();
     await expect(pageTitle).toContainText('Restart Test');
   });
@@ -318,8 +318,8 @@ test.describe('Markdown Board E2E Tests', () => {
     await page.waitForSelector('.milkdown', { timeout: 10000 });
     
     // Don't add any content, just go back
-    await page.click('button:has-text("← Back")');
-    await page.waitForURL('/');
+    await page.goto('/');
+    await page.waitForLoadState('networkidle');
     await page.waitForTimeout(500);
     
     // Should show "Untitled" for empty pages - check count instead of visibility
@@ -337,8 +337,8 @@ test.describe('Markdown Board E2E Tests', () => {
     await editor.type('   ');
     await page.waitForTimeout(2000);
     
-    await page.click('button:has-text("← Back")');
-    await page.waitForURL('/');
+    await page.goto('/');
+    await page.waitForLoadState('networkidle');
     await page.waitForTimeout(500);
     
     // Should show "Untitled" for whitespace-only pages (use first() to handle multiple Untitled pages)
@@ -395,8 +395,8 @@ Currency: $€£¥₹₽`;
     const pageId = await createPageWithContent(page, specialContent);
     
     // Go back and return
-    await page.click('button:has-text("← Back")');
-    await page.waitForURL('/');
+    await page.goto('/');
+    await page.waitForLoadState('networkidle');
     await page.waitForTimeout(500);
     
     // Click on the page item to navigate
@@ -424,8 +424,8 @@ Russian: Привет мир`;
 
     const pageId = await createPageWithContent(page, unicodeContent);
     
-    await page.click('button:has-text("← Back")');
-    await page.waitForURL('/');
+    await page.goto('/');
+    await page.waitForLoadState('networkidle');
     await page.waitForTimeout(500);
     
     // Verify title includes emoji and timestamp - use first() for strict mode
@@ -457,8 +457,8 @@ Russian: Привет мир`;
       const pageId = await createPageWithContent(page, `# MultiPage ${timestamp}-${i}\n\nContent for page ${i}`);
       pageIds.push(pageId);
       
-      await page.click('button:has-text("← Back")');
-      await page.waitForURL('/');
+      await page.goto('/');
+      await page.waitForLoadState('networkidle');
       await page.waitForTimeout(500);
     }
     
@@ -475,14 +475,14 @@ Russian: Привет мир`;
     const timestamp = Date.now();
     // Create first page
     const pageId1 = await createPageWithContent(page, `# First Page ${timestamp}\n\nContent of first page`);
-    await page.click('button:has-text("← Back")');
-    await page.waitForURL('/');
+    await page.goto('/');
+    await page.waitForLoadState('networkidle');
     await page.waitForTimeout(500);
     
     // Create second page
     const pageId2 = await createPageWithContent(page, `# Second Page ${timestamp}\n\nContent of second page`);
-    await page.click('button:has-text("← Back")');
-    await page.waitForURL('/');
+    await page.goto('/');
+    await page.waitForLoadState('networkidle');
     await page.waitForTimeout(500);
     
     // Navigate to first page
@@ -495,8 +495,8 @@ Russian: Привет мир`;
     await expect(editorArea).toContainText('Content of first page');
     
     // Go back and navigate to second page
-    await page.click('button:has-text("← Back")');
-    await page.waitForURL('/');
+    await page.goto('/');
+    await page.waitForLoadState('networkidle');
     await page.waitForTimeout(500);
     
     await page.locator('h3').filter({ hasText: `Second Page ${timestamp}` }).click();
@@ -805,8 +805,8 @@ Russian: Привет мир`;
   test('should work with Tab key for navigation', async ({ page }) => {
     // Create a page first
     await createPageWithContent(page, '# Test Page\n\nContent here');
-    await page.click('button:has-text("← Back")');
-    await page.waitForURL('/');
+    await page.goto('/');
+    await page.waitForLoadState('networkidle');
     await page.waitForTimeout(500);
 
     // Focus on body first
@@ -860,8 +860,8 @@ Russian: Привет мир`;
     const pageId = await createPageWithContent(page, '# Rapid Test\n\nContent to preserve');
 
     // Rapidly navigate back and forth
-    await page.click('button:has-text("← Back")');
-    await page.waitForURL('/');
+    await page.goto('/');
+    await page.waitForLoadState('networkidle');
     await page.waitForTimeout(300);
 
     // Click on the page item to navigate
@@ -869,8 +869,8 @@ Russian: Привет мир`;
     await page.waitForURL(/\/page\/.+/);
     await page.waitForTimeout(300);
 
-    await page.click('button:has-text("← Back")');
-    await page.waitForURL('/');
+    await page.goto('/');
+    await page.waitForLoadState('networkidle');
     await page.waitForTimeout(300);
 
     // Click on the page item again
@@ -920,8 +920,8 @@ Also test <img> and <a> tags`;
   test('should show proper timestamps on page list', async ({ page }) => {
     await createPageWithContent(page, '# Timestamp Test\n\nContent');
     
-    await page.click('button:has-text("← Back")');
-    await page.waitForURL('/');
+    await page.goto('/');
+    await page.waitForLoadState('networkidle');
     await page.waitForTimeout(500);
     
     // Check that "Updated:" timestamp is visible - use first() to handle multiple matches
@@ -936,8 +936,8 @@ Also test <img> and <a> tags`;
     // Create a page and archive it to have content in both tabs
     const pageId = await createPageWithContent(page, `# TabSwitchTest${timestamp}\n\nContent for tab test`);
 
-    await page.click('button:has-text("← Back")');
-    await page.waitForURL('/');
+    await page.goto('/');
+    await page.waitForLoadState('networkidle');
     await page.waitForTimeout(500);
 
     // Verify "最新" (Recent) tab is active by default
@@ -990,8 +990,8 @@ Also test <img> and <a> tags`;
     await page.waitForTimeout(2000);
 
     // Go back and verify page exists
-    await page.click('button:has-text("← Back")');
-    await page.waitForURL('/');
+    await page.goto('/');
+    await page.waitForLoadState('networkidle');
     await page.waitForTimeout(500);
 
     // Verify page appears in the list
@@ -1004,8 +1004,8 @@ Also test <img> and <a> tags`;
     // Create a page
     const pageId = await createPageWithContent(page, `# ArchiveUnarchiveTest${timestamp}\n\nContent to archive`);
 
-    await page.click('button:has-text("← Back")');
-    await page.waitForURL('/');
+    await page.goto('/');
+    await page.waitForLoadState('networkidle');
     await page.waitForTimeout(500);
 
     // Verify page is in recent list
@@ -1052,8 +1052,8 @@ Also test <img> and <a> tags`;
     // Create a page
     const pageId = await createPageWithContent(page, `# ToastTest${timestamp}\n\nContent for toast test`);
 
-    await page.click('button:has-text("← Back")');
-    await page.waitForURL('/');
+    await page.goto('/');
+    await page.waitForLoadState('networkidle');
     await page.waitForTimeout(500);
 
     // Verify page is in recent list
