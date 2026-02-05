@@ -127,11 +127,16 @@
   pointer-events: none;
   word-break: normal;
   display: inline;
-  height: 1.2em; /* Match typical line height to prevent layout shifts */
-  vertical-align: text-bottom;
 }
 
 /* Hide the user name label */
 .milkdown .ProseMirror-yjs-cursor > div {
   display: none;
+}
+
+/* Fix collaborative cursor positioning without breaking line breaks */
+.milkdown .ProseMirror-yjs-cursor + .ProseMirror-trailingBreak {
+  /* Only hide trailing breaks immediately after collaborative cursors */
+  line-height: 0;
+  height: 0;
 }
