@@ -133,3 +133,8 @@
 .milkdown .ProseMirror-yjs-cursor > div {
   display: none;
 }
+
+/* Hide trailing break elements that cause unwanted spacing */
+.milkdown .ProseMirror-trailingBreak {
+  display: none;
+}
