@@ -1,36 +1,126 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Markdown Board
+
+A collaborative markdown editing board built with Next.js, SQLite, and Milkdown.
+
+## Features
+
+- **Page Management**: Create, view, and organize markdown pages
+- **Archive System**: Archive pages and automatically delete them after 30 days
+- **WYSIWYG Markdown Editor**: Powered by Milkdown for a seamless editing experience
+- **Collaborative Editing**: Built with Yjs for real-time collaboration (WebSocket server setup required)
+- **Simple & Modern Design**: Clean interface with a custom color scheme
+- **No Authentication**: Open access for anyone with the URL
+- **UUIDv7**: Each page gets a unique, time-sortable ID
+
+## Tech Stack
+
+- **Next.js 16**: React framework with App Router
+- **SQLite**: Lightweight database using better-sqlite3
+- **Milkdown**: WYSIWYG markdown editor
+- **Yjs**: CRDT for collaborative editing
+- **TypeScript**: Type-safe development
+- **Tailwind CSS**: Utility-first styling
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
 
+- Node.js 18+ 
+- npm, yarn, pnpm, or bun
+
+### Installation
+
+1. Clone the repository:
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+git clone https://github.com/macrat/markdown-board.git
+cd markdown-board
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+2. Install dependencies:
+```bash
+npm install
+```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+3. Run the development server:
+```bash
+npm run dev
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+4. Open [http://localhost:3000](http://localhost:3000) in your browser
 
-## Learn More
+The SQLite database will be automatically created in the `data/` directory on first run.
 
-To learn more about Next.js, take a look at the following resources:
+## Project Structure
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```
+markdown-board/
+├── app/
+│   ├── api/              # API routes
+│   │   ├── pages/        # Page CRUD operations
+│   │   └── archives/     # Archive management
+│   ├── archives/         # Archive list page
+│   ├── page/[id]/        # Individual page view
+│   └── page.tsx          # Home page
+├── components/           # React components
+│   ├── PageList.tsx      # Active pages list
+│   ├── ArchiveList.tsx   # Archived pages list
+│   └── MarkdownEditor.tsx # Milkdown editor
+├── lib/
+│   ├── db.ts            # Database connection
+│   └── types.ts         # TypeScript types
+├── scripts/
+│   └── cleanup-archives.js # Scheduled cleanup script
+└── data/                # SQLite database (auto-created)
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## API Routes
 
-## Deploy on Vercel
+- `GET /api/pages` - List all active pages
+- `POST /api/pages` - Create a new page
+- `GET /api/pages/[id]` - Get a specific page
+- `PATCH /api/pages/[id]` - Update a page
+- `DELETE /api/pages/[id]` - Delete a page
+- `POST /api/pages/[id]/archive` - Archive a page
+- `POST /api/pages/[id]/unarchive` - Unarchive a page
+- `GET /api/archives` - List all archived pages
+- `DELETE /api/archives` - Delete archives older than 30 days
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Archive Cleanup
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+To automatically clean up archives older than 30 days, you can set up a cron job:
+
+```bash
+# Run cleanup daily at 2 AM
+0 2 * * * cd /path/to/markdown-board && node scripts/cleanup-archives.js
+```
+
+Or use the API endpoint directly:
+```bash
+curl -X DELETE http://localhost:3000/api/archives
+```
+
+## Color Scheme
+
+- **Background**: `#f5eae6`
+- **Text**: `#574a46`
+- **Accent**: `#c42776`
+- **Accent Light**: `#e893c2`
+
+## Collaborative Editing (Optional)
+
+To enable real-time collaborative editing, you need to set up a WebSocket server for Yjs. Uncomment the WebSocket provider code in `components/MarkdownEditor.tsx` and set up a WebSocket server (e.g., using `y-websocket` server).
+
+## Building for Production
+
+```bash
+npm run build
+npm start
+```
+
+## License
+
+MIT
+
+## Author
+
+macrat
