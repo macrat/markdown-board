@@ -1,0 +1,39 @@
+import { NextResponse } from 'next/server';
+import { uuidv7 } from 'uuidv7';
+import db from '@/lib/db';
+
+export async function GET() {
+  try {
+    const stmt = db.prepare(`
+      SELECT id, title, created_at, updated_at
+      FROM pages
+      WHERE archived_at IS NULL
+      ORDER BY updated_at DESC
+    `);
+    
+    const pages = stmt.all();
+    return NextResponse.json(pages);
+  } catch (error) {
+    console.error('Failed to fetch pages:', error);
+    return NextResponse.json({ error: 'Failed to fetch pages' }, { status: 500 });
+  }
+}
+
+export async function POST() {
+  try {
+    const id = uuidv7();
+    const now = Date.now();
+    
+    const stmt = db.prepare(`
+      INSERT INTO pages (id, title, content, created_at, updated_at, archived_at)
+      VALUES (?, ?, ?, ?, ?, NULL)
+    `);
+    
+    stmt.run(id, 'Untitled', '', now, now);
+    
+    return NextResponse.json({ id }, { status: 201 });
+  } catch (error) {
+    console.error('Failed to create page:', error);
+    return NextResponse.json({ error: 'Failed to create page' }, { status: 500 });
+  }
+}
