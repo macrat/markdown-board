@@ -2,45 +2,16 @@
 
 /**
  * WebSocket server for Yjs collaborative editing
- * Handles real-time synchronization between multiple clients
+ * Simple relay server that broadcasts all messages to other clients in the same room
  */
 
 const WebSocket = require('ws');
 const http = require('http');
-const Y = require('yjs');
-const syncProtocol = require('lib0/dist/encoding.cjs');
-const decoding = require('lib0/dist/decoding.cjs');
 
 const PORT = process.env.WS_PORT || 1234;
 
-// Store Y.Doc instances and state vectors for each room
-const docs = new Map();
-const connections = new Map();
-
-// Get or create a Y.Doc for a room
-function getDoc(roomName) {
-  let doc = docs.get(roomName);
-  if (!doc) {
-    doc = new Y.Doc();
-    docs.set(roomName, doc);
-    
-    // Listen for updates and broadcast them
-    doc.on('update', (update, origin) => {
-      const conns = connections.get(roomName) || [];
-      const encoder = syncProtocol.createEncoder();
-      syncProtocol.writeVarUint(encoder, 0); // messageSync
-      syncProtocol.writeVarUint8Array(encoder, update);
-      const message = syncProtocol.toUint8Array(encoder);
-      
-      conns.forEach((conn) => {
-        if (conn !== origin && conn.readyState === WebSocket.OPEN) {
-          conn.send(message, { binary: true });
-        }
-      });
-    });
-  }
-  return doc;
-}
+// Store connections for each room
+const rooms = new Map();
 
 const server = http.createServer();
 const wss = new WebSocket.Server({ server });
@@ -49,51 +20,41 @@ console.log(`✓ WebSocket server running on ws://localhost:${PORT}`);
 
 wss.on('connection', (conn, req) => {
   const roomName = req.url?.slice(1) || 'default';
-  const doc = getDoc(roomName);
   
   // Add connection to room
-  if (!connections.has(roomName)) {
-    connections.set(roomName, []);
+  if (!rooms.has(roomName)) {
+    rooms.set(roomName, new Set());
   }
-  connections.get(roomName).push(conn);
+  rooms.get(roomName).add(conn);
   
-  console.log(`Client connected to room: ${roomName} (${connections.get(roomName).length} clients)`);
+  console.log(`Client connected to room: ${roomName} (${rooms.get(roomName).size} clients)`);
   
-  // Send initial state
-  const encoder = syncProtocol.createEncoder();
-  syncProtocol.writeVarUint(encoder, 0); // messageSync  
-  syncProtocol.writeVarUint8Array(encoder, Y.encodeStateAsUpdate(doc));
-  conn.send(syncProtocol.toUint8Array(encoder), { binary: true });
+  // Store room name on connection for cleanup
+  conn.roomName = roomName;
   
   conn.on('message', (message) => {
-    try {
-      const uint8Array = new Uint8Array(message);
-      const decoder = decoding.createDecoder(uint8Array);
-      const messageType = decoding.readVarUint(decoder);
-      
-      if (messageType === 0) {
-        // Sync message - apply update
-        const update = decoding.readVarUint8Array(decoder);
-        Y.applyUpdate(doc, update, conn);
-      }
-    } catch (error) {
-      console.error('Error processing message:', error);
+    // Broadcast message to all other clients in the same room
+    const roomConnections = rooms.get(roomName);
+    if (roomConnections) {
+      roomConnections.forEach((client) => {
+        if (client !== conn && client.readyState === WebSocket.OPEN) {
+          client.send(message, { binary: true });
+        }
+      });
     }
   });
   
   conn.on('close', () => {
-    const conns = connections.get(roomName) || [];
-    const index = conns.indexOf(conn);
-    if (index !== -1) {
-      conns.splice(index, 1);
-    }
-    console.log(`Client disconnected from room: ${roomName} (${conns.length} clients remaining)`);
-    
-    // Clean up empty rooms
-    if (conns.length === 0) {
-      connections.delete(roomName);
-      docs.delete(roomName);
-      console.log(`Room ${roomName} cleaned up`);
+    const roomConnections = rooms.get(roomName);
+    if (roomConnections) {
+      roomConnections.delete(conn);
+      console.log(`Client disconnected from room: ${roomName} (${roomConnections.size} clients remaining)`);
+      
+      // Clean up empty rooms
+      if (roomConnections.size === 0) {
+        rooms.delete(roomName);
+        console.log(`Room ${roomName} cleaned up`);
+      }
     }
   });
   
@@ -107,6 +68,9 @@ server.listen(PORT);
 // Graceful shutdown
 const shutdown = () => {
   console.log('Shutting down WebSocket server...');
+  wss.clients.forEach((client) => {
+    client.close();
+  });
   wss.close(() => {
     server.close(() => {
       console.log('WebSocket server closed');
