@@ -107,30 +107,54 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
       const provider = new WebsocketProvider(wsUrl, pageId, ydoc);
       providerRef.current = provider;
       
-      // Add status logging for debugging
-      provider.on('status', ({ status }: { status: string }) => {
-        console.log(`[WebSocket] Status: ${status}`);
+      console.log(`[WebSocket] Connecting to room: ${pageId} at ${wsUrl}`);
+      
+      // Wait for the provider to sync before creating the editor
+      await new Promise<void>((resolve) => {
+        if (provider.synced) {
+          console.log('[WebSocket] Already synced');
+          resolve();
+        } else {
+          provider.on('sync', (isSynced: boolean) => {
+            console.log(`[WebSocket] Synced: ${isSynced} (room: ${pageId})`);
+            if (isSynced) {
+              resolve();
+            }
+          });
+        }
+        
+        // Add status logging for debugging
+        provider.on('status', ({ status }: { status: string }) => {
+          console.log(`[WebSocket] Status: ${status} (room: ${pageId})`);
+        });
+        
+        provider.on('connection-close', (event: any) => {
+          console.log('[WebSocket] Connection closed:', event);
+        });
+        
+        provider.on('connection-error', (event: any) => {
+          console.error('[WebSocket] Connection error:', event);
+        });
+        
+        // Timeout after 5 seconds
+        setTimeout(() => {
+          console.log('[WebSocket] Sync timeout, proceeding anyway');
+          resolve();
+        }, 5000);
       });
       
-      provider.on('sync', (isSynced: boolean) => {
-        console.log(`[WebSocket] Synced: ${isSynced}`);
-      });
-      
-      provider.on('connection-close', (event: any) => {
-        console.log('[WebSocket] Connection closed:', event);
-      });
-      
-      provider.on('connection-error', (event: any) => {
-        console.error('[WebSocket] Connection error:', event);
-      });
+      console.log('[WebSocket] Provider ready, creating editor');
 
       const editor = await Editor.make()
         .config((ctx) => {
           ctx.set(rootCtx, editorRef.current!);
-          ctx.set(defaultValueCtx, initialContent);
           
           // Set up collaboration
           ctx.get(collabServiceCtx).bindDoc(ydoc);
+          
+          // DON'T set defaultValueCtx when using Yjs collab
+          // Let the Yjs document be the source of truth
+          // The WebSocket sync will handle loading content from other clients
           
           // Listen to changes
           ctx.get(listenerCtx).markdownUpdated((ctx, markdown) => {
