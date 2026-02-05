@@ -89,7 +89,13 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
   }, [pageId]);
 
   const initEditor = useCallback(async (initialContent: string) => {
-    if (!editorRef.current || editorInstanceRef.current) return;
+    if (!editorRef.current) return;
+    
+    // Prevent double initialization
+    if (editorInstanceRef.current) {
+      console.log('[Editor] Editor already initialized, skipping');
+      return;
+    }
 
     try {
       // Create Yjs document
@@ -180,29 +186,42 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
     }
   }, [pageId, handleContentChange]);
 
-  const fetchPage = useCallback(async () => {
-    try {
-      const response = await fetch(`/api/pages/${pageId}`);
-      if (response.ok) {
+  useEffect(() => {
+    // Fetch page data and initialize editor - only once on mount
+    let isMounted = true;
+    
+    const fetchPage = async () => {
+      try {
+        const response = await fetch(`/api/pages/${pageId}`);
+        if (!response.ok) {
+          if (isMounted) router.push('/');
+          return;
+        }
+        
         const data = await response.json();
+        if (!isMounted) return;
+        
         setPage(data);
         setLoading(false);
         
         // Initialize editor after page is loaded
-        setTimeout(() => initEditor(data.content), 100);
-      } else {
-        router.push('/');
+        // Small delay to ensure DOM is ready
+        setTimeout(() => {
+          if (isMounted) {
+            initEditor(data.content);
+          }
+        }, 100);
+      } catch (error) {
+        console.error('Failed to fetch page:', error);
+        if (isMounted) router.push('/');
       }
-    } catch (error) {
-      console.error('Failed to fetch page:', error);
-      router.push('/');
-    }
-  }, [pageId, router, initEditor]);
-
-  useEffect(() => {
+    };
+    
     fetchPage();
     
     return () => {
+      isMounted = false;
+      
       // Cleanup
       if (saveTimeoutRef.current) {
         clearTimeout(saveTimeoutRef.current);
@@ -212,12 +231,13 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
       }
       if (editorInstanceRef.current) {
         editorInstanceRef.current.destroy();
+        editorInstanceRef.current = null;
       }
       if (ydocRef.current) {
         ydocRef.current.destroy();
       }
     };
-  }, [fetchPage]);
+  }, [pageId, router, initEditor]);
 
   if (loading) {
     return (
