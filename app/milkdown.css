@@ -117,29 +117,19 @@
   height: 0;
 }
 
-/* Collaborative cursor styling */
+/* Collaborative cursor styling - single simple caret */
 .milkdown .ProseMirror-yjs-cursor {
-  position: absolute;
+  position: relative;
   border-left: 2px solid #c42776;
   border-right: none;
   margin-left: -1px;
+  margin-right: -1px;
   pointer-events: none;
   word-break: normal;
+  display: inline;
 }
 
 /* Hide the user name label */
 .milkdown .ProseMirror-yjs-cursor > div {
   display: none;
-}
-
-/* Cursor caret styling */
-.milkdown .ProseMirror-yjs-cursor::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -1px;
-  width: 2px;
-  height: 1.2em;
-  background-color: #c42776;
-  pointer-events: none;
 }
