@@ -97,6 +97,8 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
       return;
     }
 
+    console.log('[Editor] Initializing editor with SQLite content length:', initialContent?.length || 0);
+
     try {
       // Create Yjs document
       const ydoc = new Y.Doc();
@@ -125,6 +127,8 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
             // We need to check the XML fragment that Milkdown will use
             const fragment = ydoc.getXmlFragment('prosemirror');
             const isEmpty = fragment.length === 0;
+            
+            console.log('[Yjs] Sync complete. Fragment isEmpty:', isEmpty, 'initialContent length:', initialContent?.length || 0);
             
             if (isEmpty && initialContent) {
               console.log('[Yjs] Yjs document is empty, will use SQLite content as initial value');
@@ -155,7 +159,10 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
           // Only set initial content if Yjs document is empty
           // This prevents overwriting synced content with stale SQLite data
           if (shouldUseInitialContent) {
+            console.log('[Editor] Setting defaultValueCtx with SQLite content');
             ctx.set(defaultValueCtx, initialContent);
+          } else {
+            console.log('[Editor] NOT setting defaultValueCtx (using Yjs content or empty)');
           }
           
           // Listen to changes
