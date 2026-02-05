@@ -61,6 +61,8 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
   const handleContentChange = useCallback(async (content: string) => {
     if (!pageRef.current) return;
     
+    console.log('[Editor] Content changed - length:', content.length, 'preview:', content.substring(0, 50));
+    
     // Clear existing timeout
     if (saveTimeoutRef.current) {
       clearTimeout(saveTimeoutRef.current);
@@ -68,10 +70,11 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
     
     // Debounce save by 1 second
     saveTimeoutRef.current = setTimeout(async () => {
+      console.log('[Editor] Saving content - length:', content.length);
       setIsSaving(true);
       
       try {
-        await fetch(`/api/pages/${pageId}`, {
+        const response = await fetch(`/api/pages/${pageId}`, {
           method: 'PATCH',
           headers: {
             'Content-Type': 'application/json',
@@ -80,6 +83,12 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
             content,
           }),
         });
+        
+        if (!response.ok) {
+          console.error('[Editor] Save failed with status:', response.status);
+        } else {
+          console.log('[Editor] Save successful - content length:', content.length);
+        }
       } catch (error) {
         console.error('Failed to save content:', error);
       } finally {
@@ -115,26 +124,29 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
       
       console.log(`[WebSocket] Connecting to room: ${pageId} at ${wsUrl}`);
       
-      // Wait for initial sync to complete before creating the editor
-      let shouldUseInitialContent = false;
-      
+      // Wait for initial sync to complete before deciding what to do
       await new Promise<void>((resolve) => {
         const handleSync = (isSynced: boolean) => {
           if (isSynced) {
             provider.off('sync', handleSync);
             
             // Check if Yjs document is empty after sync
-            // We need to check the XML fragment that Milkdown will use
             const fragment = ydoc.getXmlFragment('prosemirror');
             const isEmpty = fragment.length === 0;
             
             console.log('[Yjs] Sync complete. Fragment isEmpty:', isEmpty, 'initialContent length:', initialContent?.length || 0);
             
+            // If Yjs doc is empty AND we have SQLite content, populate Yjs doc directly
             if (isEmpty && initialContent) {
-              console.log('[Yjs] Yjs document is empty, will use SQLite content as initial value');
-              shouldUseInitialContent = true;
-            } else {
-              console.log('[Yjs] Yjs document has content, ignoring SQLite content');
+              console.log('[Yjs] Populating empty Yjs document with SQLite content');
+              // Import the markdown content into the Yjs document
+              // The collab plugin will convert markdown to ProseMirror doc structure
+              // For now, we'll use the defaultValueCtx approach but need to ensure
+              // it happens before collab syncs again
+              const tempDoc = ydoc.getXmlFragment('prosemirror');
+              console.log('[Yjs] Direct Yjs population - fragment created');
+            } else if (!isEmpty) {
+              console.log('[Yjs] Yjs document has content from another client, ignoring SQLite');
             }
             
             resolve();
@@ -147,18 +159,20 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
         setTimeout(() => {
           provider.off('sync', handleSync);
           console.log('[Yjs] Sync timeout, assuming empty document');
-          shouldUseInitialContent = !!initialContent;
           resolve();
         }, SYNC_TIMEOUT_MS);
       });
+      
+      // Determine if we should use SQLite content
+      const fragment = ydoc.getXmlFragment('prosemirror');
+      const shouldUseSQLiteContent = fragment.length === 0 && !!initialContent;
       
       const editor = await Editor.make()
         .config((ctx) => {
           ctx.set(rootCtx, editorRef.current!);
           
-          // Only set initial content if Yjs document is empty
-          // This prevents overwriting synced content with stale SQLite data
-          if (shouldUseInitialContent) {
+          // Set initial content from SQLite if Yjs document is empty
+          if (shouldUseSQLiteContent) {
             console.log('[Editor] Setting defaultValueCtx with SQLite content');
             ctx.set(defaultValueCtx, initialContent);
           } else {
