@@ -11,16 +11,68 @@ import * as Y from 'yjs';
 import { WebsocketProvider } from 'y-websocket';
 import '../app/milkdown.css';
 
+// Extract title from markdown content
+function extractTitle(content: string): string {
+  if (!content || content.trim() === '') {
+    return 'Untitled';
+  }
+  
+  const firstLine = content.split('\n')[0].trim();
+  
+  if (!firstLine) {
+    return 'Untitled';
+  }
+  
+  // If the first line is a heading, remove the # characters
+  if (firstLine.startsWith('#')) {
+    return firstLine.replace(/^#+\s*/, '').trim() || 'Untitled';
+  }
+  
+  return firstLine;
+}
+
 export default function MarkdownEditor({ pageId }: { pageId: string }) {
   const [page, setPage] = useState<Page | null>(null);
   const [loading, setLoading] = useState(true);
-  const [title, setTitle] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const editorRef = useRef<HTMLDivElement>(null);
   const editorInstanceRef = useRef<Editor | null>(null);
   const ydocRef = useRef<Y.Doc | null>(null);
   const providerRef = useRef<WebsocketProvider | null>(null);
+  const pageRef = useRef<Page | null>(null);
   const router = useRouter();
+
+  // Keep pageRef in sync with page state
+  useEffect(() => {
+    pageRef.current = page;
+  }, [page]);
+
+  const handleContentChange = useCallback(async (content: string) => {
+    if (!pageRef.current) return;
+    
+    // Extract title from content
+    const title = extractTitle(content);
+    
+    // Debounced save
+    setIsSaving(true);
+    
+    try {
+      await fetch(`/api/pages/${pageId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          title,
+          content,
+        }),
+      });
+    } catch (error) {
+      console.error('Failed to save content:', error);
+    } finally {
+      setTimeout(() => setIsSaving(false), 500);
+    }
+  }, [pageId]);
 
   const initEditor = useCallback(async (initialContent: string) => {
     if (!editorRef.current || editorInstanceRef.current) return;
@@ -61,31 +113,7 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
     } catch (error) {
       console.error('Failed to initialize editor:', error);
     }
-  }, [pageId]);
-
-  const handleContentChange = useCallback(async (content: string) => {
-    if (!page) return;
-    
-    // Debounced save
-    setIsSaving(true);
-    
-    try {
-      await fetch(`/api/pages/${pageId}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          title,
-          content,
-        }),
-      });
-    } catch (error) {
-      console.error('Failed to save content:', error);
-    } finally {
-      setTimeout(() => setIsSaving(false), 500);
-    }
-  }, [page, pageId, title]);
+  }, [pageId, handleContentChange]);
 
   const fetchPage = useCallback(async () => {
     try {
@@ -93,7 +121,6 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
       if (response.ok) {
         const data = await response.json();
         setPage(data);
-        setTitle(data.title);
         setLoading(false);
         
         // Initialize editor after page is loaded
@@ -124,27 +151,6 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
     };
   }, [fetchPage]);
 
-  const handleTitleChange = async (newTitle: string) => {
-    setTitle(newTitle);
-    
-    if (!page) return;
-    
-    try {
-      await fetch(`/api/pages/${pageId}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          title: newTitle,
-          content: page.content,
-        }),
-      });
-    } catch (error) {
-      console.error('Failed to save title:', error);
-    }
-  };
-
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -157,7 +163,7 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
     <div className="min-h-screen">
       <div className="border-b" style={{ borderColor: 'rgba(87, 74, 70, 0.2)' }}>
         <div className="max-w-5xl mx-auto px-8 py-6">
-          <div className="flex justify-between items-center mb-4">
+          <div className="flex justify-between items-center">
             <button
               onClick={() => router.push('/')}
               className="px-4 py-2 rounded transition-colors text-sm"
@@ -177,17 +183,6 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
               )}
             </div>
           </div>
-          <input
-            type="text"
-            value={title}
-            onChange={(e) => handleTitleChange(e.target.value)}
-            className="w-full text-3xl font-bold border-none outline-none"
-            style={{
-              backgroundColor: 'transparent',
-              color: '#574a46',
-            }}
-            placeholder="Page title..."
-          />
         </div>
       </div>
       <div className="max-w-5xl mx-auto px-8 py-8">

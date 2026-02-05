@@ -1,6 +1,26 @@
 import { NextResponse } from 'next/server';
 import db from '@/lib/db';
 
+// Extract title from markdown content
+function extractTitle(content: string): string {
+  if (!content || content.trim() === '') {
+    return 'Untitled';
+  }
+  
+  const firstLine = content.split('\n')[0].trim();
+  
+  if (!firstLine) {
+    return 'Untitled';
+  }
+  
+  // If the first line is a heading, remove the # characters
+  if (firstLine.startsWith('#')) {
+    return firstLine.replace(/^#+\s*/, '').trim() || 'Untitled';
+  }
+  
+  return firstLine;
+}
+
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -34,7 +54,10 @@ export async function PATCH(
   try {
     const { id } = await params;
     const body = await request.json();
-    const { title, content } = body;
+    const { content } = body;
+    
+    // Extract title from content
+    const title = extractTitle(content || '');
     
     const now = Date.now();
     
