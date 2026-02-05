@@ -112,6 +112,7 @@ export default function PageList() {
           {pages.map((page) => (
             <div
               key={page.id}
+              data-testid={`page-card-${page.id}`}
               className="p-6 rounded-lg shadow-sm border"
               style={{
                 backgroundColor: 'rgba(245, 234, 230, 0.5)',
