@@ -104,6 +104,34 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
       
       console.log(`[WebSocket] Connecting to room: ${pageId} at ${wsUrl}`);
       
+      // Wait for initial sync to complete before creating the editor
+      await new Promise<void>((resolve) => {
+        const handleSync = (isSynced: boolean) => {
+          if (isSynced) {
+            provider.off('sync', handleSync);
+            
+            // If Yjs document is empty but we have content in SQLite, populate it BEFORE creating editor
+            const ytext = ydoc.getText('prosemirror');
+            const ydocContent = ytext.toString();
+            
+            if (!ydocContent && initialContent) {
+              console.log('[Yjs] Populating empty document with SQLite content');
+              ytext.insert(0, initialContent);
+            }
+            
+            resolve();
+          }
+        };
+        
+        provider.on('sync', handleSync);
+        
+        // Timeout fallback in case sync takes too long
+        setTimeout(() => {
+          provider.off('sync', handleSync);
+          resolve();
+        }, 2000);
+      });
+      
       const editor = await Editor.make()
         .config((ctx) => {
           ctx.set(rootCtx, editorRef.current!);
