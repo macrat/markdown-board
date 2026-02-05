@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import type { Page } from '@/lib/types';
+import { logger } from '@/lib/logger';
 
 export default function ArchiveList() {
   const [archives, setArchives] = useState<Page[]>([]);
@@ -21,7 +22,7 @@ export default function ArchiveList() {
         setArchives(data);
       }
     } catch (error) {
-      console.error('Failed to fetch archives:', error);
+      logger.error('Failed to fetch archives:', error);
     } finally {
       setLoading(false);
     }
@@ -36,7 +37,7 @@ export default function ArchiveList() {
         fetchArchives();
       }
     } catch (error) {
-      console.error('Failed to unarchive page:', error);
+      logger.error('Failed to unarchive page:', error);
     }
   };
 
