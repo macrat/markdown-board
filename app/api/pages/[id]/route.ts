@@ -13,9 +13,10 @@ function extractTitle(content: string): string {
     return 'Untitled';
   }
   
-  // If the first line is a heading, remove the # characters
-  if (firstLine.startsWith('#')) {
-    return firstLine.replace(/^#+\s*/, '').trim() || 'Untitled';
+  // If the first line is a heading, remove the # characters (and escaped versions)
+  if (firstLine.startsWith('#') || firstLine.startsWith('\\#')) {
+    // Remove escaped backslashes and heading markers
+    return firstLine.replace(/^\\?#+\s*/, '').trim() || 'Untitled';
   }
   
   return firstLine;

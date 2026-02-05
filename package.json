@@ -6,7 +6,10 @@
     "dev": "concurrently \"next dev\" \"node server/websocket.js\"",
     "build": "next build",
     "start": "concurrently \"next start\" \"node server/websocket.js\"",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:headed": "playwright test --headed"
   },
   "dependencies": {
     "@milkdown/core": "^7.18.0",
@@ -31,6 +34,7 @@
     "yjs": "^13.6.29"
   },
   "devDependencies": {
+    "@playwright/test": "^1.58.1",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
