@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import type { PageListItem, Page } from '@/lib/types';
 import Toast from './Toast';
+import { logger } from '@/lib/logger';
 
 const ANIMATION_DURATION_MS = 200;
 
@@ -99,7 +100,7 @@ export default function PageBoard() {
         setPages(data);
       }
     } catch (error) {
-      console.error('Failed to fetch pages:', error);
+      logger.error('Failed to fetch pages:', error);
     }
   }, []);
 
@@ -111,7 +112,7 @@ export default function PageBoard() {
         setArchives(data);
       }
     } catch (error) {
-      console.error('Failed to fetch archives:', error);
+      logger.error('Failed to fetch archives:', error);
     }
   }, []);
 
@@ -134,7 +135,7 @@ export default function PageBoard() {
         router.push(`/page/${id}`);
       }
     } catch (error) {
-      console.error('Failed to create page:', error);
+      logger.error('Failed to create page:', error);
     }
   };
 
@@ -165,7 +166,7 @@ export default function PageBoard() {
           setToast({ visible: true, pageId: id, pageTitle: title });
         }
       } catch (error) {
-        console.error('Failed to archive page:', error);
+        logger.error('Failed to archive page:', error);
       } finally {
         setAnimatingItems(prev => prev.filter(item => item.id !== id));
       }
@@ -186,7 +187,7 @@ export default function PageBoard() {
         await Promise.all([fetchPages(), fetchArchives()]);
       }
     } catch (error) {
-      console.error('Failed to cancel archive:', error);
+      logger.error('Failed to cancel archive:', error);
     }
   };
 
@@ -213,7 +214,7 @@ export default function PageBoard() {
           timersRef.current.add(fadeInTimer);
         }
       } catch (error) {
-        console.error('Failed to unarchive page:', error);
+        logger.error('Failed to unarchive page:', error);
         // Only cleanup on error since success case handles its own cleanup
         setAnimatingItems(prev => prev.filter(item => item.id !== id));
       }

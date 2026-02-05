@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import db from '@/lib/db';
+import { logger } from '@/lib/logger';
 
 export async function POST(
   request: Request,
@@ -23,7 +24,7 @@ export async function POST(
     
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Failed to archive page:', error);
+    logger.error('Failed to archive page:', error);
     return NextResponse.json({ error: 'Failed to archive page' }, { status: 500 });
   }
 }
