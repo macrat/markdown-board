@@ -229,12 +229,18 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
           try {
             provider.destroy();
           } catch (e) {
-            logger.error?.('[Editor] Error destroying provider during unmount abort', e);
+            logger.error?.(
+              '[Editor] Error destroying provider during unmount abort',
+              e,
+            );
           }
           try {
             ydoc.destroy();
           } catch (e) {
-            logger.error?.('[Editor] Error destroying ydoc during unmount abort', e);
+            logger.error?.(
+              '[Editor] Error destroying ydoc during unmount abort',
+              e,
+            );
           }
           return;
         }
