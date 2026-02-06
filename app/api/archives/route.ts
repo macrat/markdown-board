@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import db from '@/lib/db';
+import { logger } from '@/lib/logger';
 
 export async function GET() {
   try {
@@ -13,7 +14,7 @@ export async function GET() {
     const pages = stmt.all();
     return NextResponse.json(pages);
   } catch (error) {
-    console.error('Failed to fetch archived pages:', error);
+    logger.error('Failed to fetch archived pages:', error);
     return NextResponse.json({ error: 'Failed to fetch archived pages' }, { status: 500 });
   }
 }
@@ -32,7 +33,7 @@ export async function DELETE() {
     
     return NextResponse.json({ deleted: result.changes });
   } catch (error) {
-    console.error('Failed to clean up old archives:', error);
+    logger.error('Failed to clean up old archives:', error);
     return NextResponse.json({ error: 'Failed to clean up old archives' }, { status: 500 });
   }
 }

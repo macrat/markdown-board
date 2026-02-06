@@ -7,39 +7,13 @@ import { commonmark } from '@milkdown/preset-commonmark';
 import { listener, listenerCtx } from '@milkdown/plugin-listener';
 import { collab, collabServiceCtx } from '@milkdown/plugin-collab';
 import type { Page } from '@/lib/types';
+import { logger } from '@/lib/logger';
 import * as Y from 'yjs';
 import { WebsocketProvider } from 'y-websocket';
 import '../app/milkdown.css';
 
 // Timeout for waiting for Yjs sync to complete (in milliseconds)
 const SYNC_TIMEOUT_MS = 2000;
-
-// Extract title from markdown content
-function extractTitle(content: string): string {
-  if (!content || content.trim() === '') {
-    return 'Untitled';
-  }
-  
-  const firstLine = content.split('\n')[0].trim();
-  
-  if (!firstLine) {
-    return 'Untitled';
-  }
-  
-  // Check if the first line is an ACTUAL heading (not escaped)
-  // Escaped headings like "\# hello" should be treated as plain text "# hello"
-  if (firstLine.startsWith('\\#')) {
-    // This is escaped - it's plain text, so remove the backslash escape
-    return firstLine.replace(/^\\/, '').trim() || 'Untitled';
-  }
-  
-  // If the first line is a real heading (starts with # but not \#), remove the # markers
-  if (firstLine.startsWith('#')) {
-    return firstLine.replace(/^#+\s*/, '').trim() || 'Untitled';
-  }
-  
-  return firstLine;
-}
 
 export default function MarkdownEditor({ pageId }: { pageId: string }) {
   const [page, setPage] = useState<Page | null>(null);
@@ -61,7 +35,7 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
   const handleContentChange = useCallback(async (content: string) => {
     if (!pageRef.current) return;
     
-    console.log('[Editor] Content changed - length:', content.length, 'preview:', content.substring(0, 50));
+    logger.log('[Editor] Content changed - length:', content.length, 'preview:', content.substring(0, 50));
     
     // Clear existing timeout
     if (saveTimeoutRef.current) {
@@ -70,7 +44,7 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
     
     // Debounce save by 1 second
     saveTimeoutRef.current = setTimeout(async () => {
-      console.log('[Editor] Saving content - length:', content.length);
+      logger.log('[Editor] Saving content - length:', content.length);
       setIsSaving(true);
       
       try {
@@ -85,12 +59,12 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
         });
         
         if (!response.ok) {
-          console.error('[Editor] Save failed with status:', response.status);
+          logger.error('[Editor] Save failed with status:', response.status);
         } else {
-          console.log('[Editor] Save successful - content length:', content.length);
+          logger.log('[Editor] Save successful - content length:', content.length);
         }
       } catch (error) {
-        console.error('Failed to save content:', error);
+        logger.error('Failed to save content:', error);
       } finally {
         setIsSaving(false);
       }
@@ -102,11 +76,11 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
     
     // Prevent double initialization
     if (editorInstanceRef.current) {
-      console.log('[Editor] Editor already initialized, skipping');
+      logger.log('[Editor] Editor already initialized, skipping');
       return;
     }
 
-    console.log('[Editor] Initializing editor with SQLite content length:', initialContent?.length || 0);
+    logger.log('[Editor] Initializing editor with SQLite content length:', initialContent?.length || 0);
 
     try {
       // Create Yjs document
@@ -116,13 +90,15 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
       // Connect to WebSocket server for collaborative editing
       const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
       const wsHost = window.location.hostname;
-      const wsPort = '1234'; // WebSocket server always runs on port 1234
+      // NEXT_PUBLIC_WS_PORT (optional): public env var to override the default
+      // y-websocket server port. If not set, port 1234 is used.
+      const wsPort = process.env.NEXT_PUBLIC_WS_PORT || '1234';
       const wsUrl = `${wsProtocol}//${wsHost}:${wsPort}`;
       
       const provider = new WebsocketProvider(wsUrl, pageId, ydoc);
       providerRef.current = provider;
       
-      console.log(`[WebSocket] Connecting to room: ${pageId} at ${wsUrl}`);
+      logger.log(`[WebSocket] Connecting to room: ${pageId} at ${wsUrl}`);
       
       // Wait for initial sync to complete before deciding what to do
       await new Promise<void>((resolve) => {
@@ -134,19 +110,18 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
             const fragment = ydoc.getXmlFragment('prosemirror');
             const isEmpty = fragment.length === 0;
             
-            console.log('[Yjs] Sync complete. Fragment isEmpty:', isEmpty, 'initialContent length:', initialContent?.length || 0);
+            logger.log('[Yjs] Sync complete. Fragment isEmpty:', isEmpty, 'initialContent length:', initialContent?.length || 0);
             
             // If Yjs doc is empty AND we have SQLite content, populate Yjs doc directly
             if (isEmpty && initialContent) {
-              console.log('[Yjs] Populating empty Yjs document with SQLite content');
+              logger.log('[Yjs] Populating empty Yjs document with SQLite content');
               // Import the markdown content into the Yjs document
               // The collab plugin will convert markdown to ProseMirror doc structure
               // For now, we'll use the defaultValueCtx approach but need to ensure
               // it happens before collab syncs again
-              const tempDoc = ydoc.getXmlFragment('prosemirror');
-              console.log('[Yjs] Direct Yjs population - fragment created');
+              logger.log('[Yjs] Direct Yjs population - fragment created');
             } else if (!isEmpty) {
-              console.log('[Yjs] Yjs document has content from another client, ignoring SQLite');
+              logger.log('[Yjs] Yjs document has content from another client, ignoring SQLite');
             }
             
             resolve();
@@ -158,7 +133,7 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
         // Timeout fallback in case sync takes too long
         setTimeout(() => {
           provider.off('sync', handleSync);
-          console.log('[Yjs] Sync timeout, assuming empty document');
+          logger.log('[Yjs] Sync timeout, assuming empty document');
           resolve();
         }, SYNC_TIMEOUT_MS);
       });
@@ -173,10 +148,10 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
           
           // Set initial content from SQLite if Yjs document is empty
           if (shouldUseSQLiteContent) {
-            console.log('[Editor] Setting defaultValueCtx with SQLite content');
+            logger.log('[Editor] Setting defaultValueCtx with SQLite content');
             ctx.set(defaultValueCtx, initialContent);
           } else {
-            console.log('[Editor] NOT setting defaultValueCtx (using Yjs content or empty)');
+            logger.log('[Editor] NOT setting defaultValueCtx (using Yjs content or empty)');
           }
           
           // Listen to changes
@@ -203,7 +178,7 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
 
       editorInstanceRef.current = editor;
     } catch (error) {
-      console.error('Failed to initialize editor:', error);
+      logger.error('Failed to initialize editor:', error);
     }
   }, [pageId, handleContentChange]);
 
@@ -233,7 +208,7 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
           }
         }, 100);
       } catch (error) {
-        console.error('Failed to fetch page:', error);
+        logger.error('Failed to fetch page:', error);
         if (isMounted) router.push('/');
       }
     };
@@ -263,42 +238,33 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <p style={{ color: '#574a46' }}>Loading...</p>
+        <p style={{ color: '#574a46' }}>読み込み中...</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen">
-      <div className="border-b" style={{ borderColor: 'rgba(87, 74, 70, 0.2)' }}>
-        <div className="max-w-5xl mx-auto px-8 py-6">
-          <div className="flex justify-between items-center">
-            <button
-              onClick={() => router.push('/')}
-              className="px-4 py-2 rounded transition-colors text-sm"
-              style={{
-                backgroundColor: '#f5eae6',
-                color: '#574a46',
-                border: '1px solid #574a46',
-              }}
-            >
-              ← Back
-            </button>
-            <div className="flex items-center gap-4">
-              {isSaving && (
-                <span className="text-sm" style={{ color: '#574a46', opacity: 0.6 }}>
-                  Saving...
-                </span>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-      <div className="max-w-5xl mx-auto px-8 py-8">
-        <div 
+    <div className="min-h-screen relative">
+      <div className="h-screen p-8 overflow-auto">
+        <div
           ref={editorRef}
-          className="milkdown"
+          className="milkdown max-w-4xl mx-auto"
         />
+      </div>
+
+      {/* 保存中表示 - 右下に控えめに表示 */}
+      <div
+        role="status"
+        aria-live="polite"
+        className="fixed bottom-4 right-4 text-xs px-3 py-1.5 rounded-full transition-opacity duration-300"
+        style={{
+          color: '#574a46',
+          backgroundColor: 'rgba(245, 234, 230, 0.9)',
+          opacity: isSaving ? 0.8 : 0,
+          pointerEvents: 'none',
+        }}
+      >
+        保存中...
       </div>
     </div>
   );

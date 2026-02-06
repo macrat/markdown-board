@@ -11,7 +11,7 @@ const http = require('http');
 // Import y-websocket server utilities
 const { setupWSConnection } = require('@y/websocket-server/utils');
 
-const PORT = process.env.WS_PORT || 1234;
+const PORT = process.env.NEXT_PUBLIC_WS_PORT || 1234;
 
 const server = http.createServer((request, response) => {
   response.writeHead(200, { 'Content-Type': 'text/plain' });

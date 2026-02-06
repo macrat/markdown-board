@@ -1,32 +1,7 @@
 import { NextResponse } from 'next/server';
 import db from '@/lib/db';
-
-// Extract title from markdown content
-function extractTitle(content: string): string {
-  if (!content || content.trim() === '') {
-    return 'Untitled';
-  }
-  
-  const firstLine = content.split('\n')[0].trim();
-  
-  if (!firstLine) {
-    return 'Untitled';
-  }
-  
-  // Check if the first line is an ACTUAL heading (not escaped)
-  // Escaped headings like "\# hello" should be treated as plain text "# hello"
-  if (firstLine.startsWith('\\#')) {
-    // This is escaped - it's plain text, so remove the backslash escape
-    return firstLine.replace(/^\\/, '').trim() || 'Untitled';
-  }
-  
-  // If the first line is a real heading (starts with # but not \#), remove the # markers
-  if (firstLine.startsWith('#')) {
-    return firstLine.replace(/^#+\s*/, '').trim() || 'Untitled';
-  }
-  
-  return firstLine;
-}
+import { extractTitle } from '@/lib/utils';
+import { logger } from '@/lib/logger';
 
 export async function GET(
   request: Request,
@@ -49,7 +24,7 @@ export async function GET(
     
     return NextResponse.json(page);
   } catch (error) {
-    console.error('Failed to fetch page:', error);
+    logger.error('Failed to fetch page:', error);
     return NextResponse.json({ error: 'Failed to fetch page' }, { status: 500 });
   }
 }
@@ -60,11 +35,45 @@ export async function PATCH(
 ) {
   try {
     const { id } = await params;
-    const body = await request.json();
-    const { content } = body;
+
+    // Parse JSON body with error handling
+    let body: unknown;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
+    }
+
+    // Validate body is an object
+    if (typeof body !== 'object' || body === null || Array.isArray(body)) {
+      return NextResponse.json({ error: 'Request body must be an object' }, { status: 400 });
+    }
+
+    // Validate only expected fields are present
+    const allowedFields = new Set(['content']);
+    const bodyKeys = Object.keys(body);
+    const unexpectedFields = bodyKeys.filter(key => !allowedFields.has(key));
     
+    if (unexpectedFields.length > 0) {
+      return NextResponse.json({ 
+        error: `Unexpected field(s): ${unexpectedFields.join(', ')}. Only 'content' is allowed.` 
+      }, { status: 400 });
+    }
+
+    const { content } = body as { content?: unknown };
+
+    // Validate content is required
+    if (content === undefined) {
+      return NextResponse.json({ error: 'Content is required' }, { status: 400 });
+    }
+
+    // Validate content is a string
+    if (typeof content !== 'string') {
+      return NextResponse.json({ error: 'Content must be a string' }, { status: 400 });
+    }
+
     // Extract title from content
-    const title = extractTitle(content || '');
+    const title = extractTitle(content);
     
     const now = Date.now();
     
@@ -82,7 +91,7 @@ export async function PATCH(
     
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Failed to update page:', error);
+    logger.error('Failed to update page:', error);
     return NextResponse.json({ error: 'Failed to update page' }, { status: 500 });
   }
 }
@@ -107,7 +116,7 @@ export async function DELETE(
     
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Failed to delete page:', error);
+    logger.error('Failed to delete page:', error);
     return NextResponse.json({ error: 'Failed to delete page' }, { status: 500 });
   }
 }
