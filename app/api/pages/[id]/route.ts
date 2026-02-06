@@ -87,6 +87,16 @@ export async function PATCH(
       );
     }
 
+    // Validate content size (10MB limit)
+    const MAX_CONTENT_SIZE = 10 * 1024 * 1024; // 10MB in bytes
+    const contentSize = new TextEncoder().encode(content).byteLength;
+    if (contentSize > MAX_CONTENT_SIZE) {
+      return NextResponse.json(
+        { error: 'Content exceeds maximum size of 10MB' },
+        { status: 413 },
+      );
+    }
+
     // Extract title from content
     const title = extractTitle(content);
 

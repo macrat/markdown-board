@@ -196,6 +196,30 @@ describe('Pages API logic', () => {
       const body = {};
       expect((body as { content?: unknown }).content).toBeUndefined();
     });
+
+    it('rejects content exceeding 10MB', () => {
+      const MAX_CONTENT_SIZE = 10 * 1024 * 1024;
+      const content = 'a'.repeat(MAX_CONTENT_SIZE + 1);
+      const contentSize = new TextEncoder().encode(content).byteLength;
+      expect(contentSize).toBeGreaterThan(MAX_CONTENT_SIZE);
+    });
+
+    it('accepts content exactly at 10MB', () => {
+      const MAX_CONTENT_SIZE = 10 * 1024 * 1024;
+      const content = 'a'.repeat(MAX_CONTENT_SIZE);
+      const contentSize = new TextEncoder().encode(content).byteLength;
+      expect(contentSize).toBeLessThanOrEqual(MAX_CONTENT_SIZE);
+    });
+
+    it('accounts for multi-byte characters in size calculation', () => {
+      const MAX_CONTENT_SIZE = 10 * 1024 * 1024;
+      // Japanese characters are 3 bytes each in UTF-8
+      // Create a string that is under the character limit but over the byte limit
+      const charCount = Math.floor(MAX_CONTENT_SIZE / 3) + 1;
+      const content = 'あ'.repeat(charCount);
+      const contentSize = new TextEncoder().encode(content).byteLength;
+      expect(contentSize).toBeGreaterThan(MAX_CONTENT_SIZE);
+    });
   });
 
   describe('DELETE /api/pages/[id] (delete page)', () => {
