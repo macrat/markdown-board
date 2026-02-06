@@ -6,8 +6,7 @@ import type { PageListItem, ArchiveListItem } from '@/lib/types';
 import Toast from './Toast';
 import { logger } from '@/lib/logger';
 import { logResponseError } from '@/lib/api';
-
-const ANIMATION_DURATION_MS = 200;
+import { ANIMATION_DURATION_MS } from '@/lib/constants';
 
 type Tab = 'latest' | 'archive';
 
@@ -124,6 +123,11 @@ export default function PageBoard() {
       logger.error('[PageBoard FetchArchives] Network error:', error);
     }
   }, []);
+
+  const handleToastClose = useCallback(
+    () => setToast({ visible: false, pageId: '', pageTitle: '' }),
+    [],
+  );
 
   useEffect(() => {
     const loadData = async () => {
@@ -591,9 +595,7 @@ export default function PageBoard() {
         <Toast
           message="アーカイブしました"
           onCancel={cancelArchive}
-          onClose={() =>
-            setToast({ visible: false, pageId: '', pageTitle: '' })
-          }
+          onClose={handleToastClose}
         />
       )}
     </div>
