@@ -11,6 +11,10 @@
           {
             "type": "command",
             "command": "FILE=$(jq -r '.tool_input.file_path // .tool_input.notebook_path // empty') && [ -n \"$FILE\" ] && [ -f \"$FILE\" ] && npx eslint --fix \"$FILE\" 2>/dev/null; true"
+          },
+          {
+            "type": "command",
+            "command": "FILE=$(jq -r '.tool_input.file_path // .tool_input.notebook_path // empty') && [ -n \"$FILE\" ] && [ -f \"$FILE\" ] && npx editorconfig-checker \"$FILE\" 2>/dev/null; true"
           }
         ]
       }
