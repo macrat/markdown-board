@@ -8,6 +8,7 @@ import { listener, listenerCtx } from '@milkdown/plugin-listener';
 import { collab, collabServiceCtx } from '@milkdown/plugin-collab';
 import type { Page } from '@/lib/types';
 import { logger } from '@/lib/logger';
+import { logResponseError } from '@/lib/api';
 import * as Y from 'yjs';
 import { WebsocketProvider } from 'y-websocket';
 import '../app/milkdown.css';
@@ -78,7 +79,7 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
           });
 
           if (!response.ok) {
-            logger.error('[Editor] Save failed with status:', response.status);
+            await logResponseError('Editor Save', response);
             showSaveError(
               response.status === 413
                 ? '保存できませんでした: コンテンツが大きすぎます（上限: 10MB）'
@@ -96,7 +97,7 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
             );
           }
         } catch (error) {
-          logger.error('Failed to save content:', error);
+          logger.error('[Editor Save] Network error:', error);
           showSaveError('保存に失敗しました');
         } finally {
           setIsSaving(false);
@@ -246,6 +247,7 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
       try {
         const response = await fetch(`/api/pages/${pageId}`);
         if (!response.ok) {
+          await logResponseError('Editor FetchPage', response);
           if (isMounted) router.push('/');
           return;
         }
@@ -264,7 +266,7 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
           }
         }, 100);
       } catch (error) {
-        logger.error('Failed to fetch page:', error);
+        logger.error('[Editor FetchPage] Network error:', error);
         if (isMounted) router.push('/');
       }
     };
@@ -304,7 +306,7 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
 
   return (
     <div className="min-h-screen relative">
-      <div className="h-screen p-8 overflow-auto">
+      <div className="h-screen p-4 sm:p-8 overflow-auto">
         <div ref={editorRef} className="milkdown max-w-4xl mx-auto" />
       </div>
 
