@@ -49,6 +49,17 @@ export async function PATCH(
       return NextResponse.json({ error: 'Request body must be an object' }, { status: 400 });
     }
 
+    // Validate only expected fields are present
+    const allowedFields = ['content'];
+    const bodyKeys = Object.keys(body);
+    const unexpectedFields = bodyKeys.filter(key => !allowedFields.includes(key));
+    
+    if (unexpectedFields.length > 0) {
+      return NextResponse.json({ 
+        error: `Unexpected field(s): ${unexpectedFields.join(', ')}. Only 'content' is allowed.` 
+      }, { status: 400 });
+    }
+
     const { content } = body as { content?: unknown };
 
     // Validate content is required
