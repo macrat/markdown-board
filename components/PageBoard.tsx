@@ -324,7 +324,7 @@ export default function PageBoard() {
                     style={{ flex: 1, cursor: 'pointer' }}
                     onClick={() => router.push(`/page/${page.id}`)}
                     onKeyDown={(e) => {
-                      if (e.key === 'Enter' || e.key === ' ' || e.key === 'Space') {
+                      if (e.key === 'Enter' || e.key === ' ') {
                         e.preventDefault();
                         router.push(`/page/${page.id}`);
                       }
