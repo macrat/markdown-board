@@ -74,7 +74,7 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
             );
           }
         } catch (error) {
-          logger.error('Failed to save content:', error);
+          logger.error('[Editor Save] Network error:', error);
         } finally {
           setIsSaving(false);
         }
@@ -242,7 +242,7 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
           }
         }, 100);
       } catch (error) {
-        logger.error('Failed to fetch page:', error);
+        logger.error('[Editor FetchPage] Network error:', error);
         if (isMounted) router.push('/');
       }
     };
