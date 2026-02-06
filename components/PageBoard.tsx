@@ -356,7 +356,7 @@ export default function PageBoard() {
                         margin: 0,
                       }}
                     >
-                      {formatDate(page.updated_at)}
+                      Updated: {formatDate(page.updated_at)}
                     </p>
                   </div>
                   <button
