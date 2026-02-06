@@ -14,6 +14,12 @@ export default function Home() {
           <p className="text-lg" style={{ color: '#574a46', opacity: 0.7 }}>
             Collaborative markdown editing
           </p>
+          <p
+            className="text-sm mt-1"
+            style={{ color: '#574a46', opacity: 0.5 }}
+          >
+            URLを共有するだけで、誰でも一緒に編集できます
+          </p>
         </header>
         <PageBoard />
       </div>
