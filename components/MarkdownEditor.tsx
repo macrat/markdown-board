@@ -29,9 +29,17 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
   const updatePeerCountRef = useRef<(() => void) | null>(null);
   const initTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const syncTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const isMountedRef = useRef(true);
+  const isMountedRef = useRef(false);
   const isInitializingRef = useRef(false);
   const router = useRouter();
+
+  // Track mounted state for cleanup (compatible with React 18+ strict mode)
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   // Keep pageRef in sync with page state
   useEffect(() => {
@@ -192,6 +200,17 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
         if (!isMountedRef.current) {
           logger.log('[Editor] Component unmounted during sync, aborting');
           isInitializingRef.current = false;
+          // Clean up provider and Yjs document to avoid leaks
+          try {
+            provider.destroy();
+          } catch (e) {
+            logger.error?.('[Editor] Error destroying provider during unmount abort', e);
+          }
+          try {
+            ydoc.destroy();
+          } catch (e) {
+            logger.error?.('[Editor] Error destroying ydoc during unmount abort', e);
+          }
           return;
         }
 
@@ -241,6 +260,26 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
         editorInstanceRef.current = editor;
       } catch (error) {
         logger.error('Failed to initialize editor:', error);
+
+        // Cleanup on initialization failure: destroy in reverse dependency order
+        if (editorInstanceRef.current) {
+          editorInstanceRef.current.destroy();
+          editorInstanceRef.current = null;
+        }
+        if (providerRef.current) {
+          if (updatePeerCountRef.current) {
+            providerRef.current.awareness.off(
+              'change',
+              updatePeerCountRef.current,
+            );
+          }
+          providerRef.current.destroy();
+          providerRef.current = null;
+        }
+        if (ydocRef.current) {
+          ydocRef.current.destroy();
+          ydocRef.current = null;
+        }
       } finally {
         isInitializingRef.current = false;
       }
@@ -283,7 +322,6 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
 
     return () => {
       isMounted = false;
-      isMountedRef.current = false;
 
       // Cleanup: destroy in reverse dependency order (editor → provider → ydoc)
       if (initTimeoutRef.current) {
@@ -331,35 +369,35 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
       </div>
 
       {/* 同時編集ユーザー数インジケーター - 右上に控えめに表示 */}
-      <div
-        role="status"
-        aria-live="polite"
-        aria-hidden={peerCount === 0}
-        aria-label={`他に${peerCount}人が接続中`}
-        className="peer-count-indicator"
-        style={{
-          opacity: peerCount > 0 ? 1 : 0,
-          pointerEvents: 'none',
-        }}
-      >
-        <svg
-          width="14"
-          height="14"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          aria-hidden="true"
+      {peerCount > 0 && (
+        <div
+          role="status"
+          aria-live="polite"
+          aria-label={`他に${peerCount}人が接続中`}
+          className="peer-count-indicator"
+          style={{
+            pointerEvents: 'none',
+          }}
         >
-          <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-          <circle cx="9" cy="7" r="4" />
-          <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
-          <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-        </svg>
-        {peerCount}
-      </div>
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+            <circle cx="9" cy="7" r="4" />
+            <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+            <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+          </svg>
+          {peerCount}
+        </div>
+      )}
 
       {/* 保存中表示 - 右下に控えめに表示 */}
       <div
