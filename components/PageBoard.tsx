@@ -442,7 +442,7 @@ export default function PageBoard() {
                         margin: 0,
                       }}
                     >
-                      {page.archived_at ? formatDate(page.archived_at) : '不明'}
+                      {page.archived_at ? formatDate(page.archived_at) : '-'}
                     </p>
                   </div>
                   <button
