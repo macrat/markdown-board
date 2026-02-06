@@ -1,3 +1,4 @@
+import type { Page, PageListItem, ArchiveListItem } from './types';
 import { logger } from './logger';
 
 /**
@@ -19,4 +20,65 @@ export async function logResponseError(
     body,
   );
   return body;
+}
+
+// ---------------------------------------------------------------------------
+// Runtime type guards for API responses
+// ---------------------------------------------------------------------------
+
+function isObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function hasPageListItemShape(item: unknown): item is PageListItem {
+  if (!isObject(item)) return false;
+  return (
+    typeof item.id === 'string' &&
+    typeof item.title === 'string' &&
+    typeof item.created_at === 'number' &&
+    typeof item.updated_at === 'number'
+  );
+}
+
+export function isPageListItemArray(data: unknown): data is PageListItem[] {
+  return Array.isArray(data) && data.every(hasPageListItemShape);
+}
+
+function hasArchiveListItemShape(item: unknown): item is ArchiveListItem {
+  if (!isObject(item)) return false;
+  return (
+    typeof item.id === 'string' &&
+    typeof item.title === 'string' &&
+    typeof item.created_at === 'number' &&
+    typeof item.updated_at === 'number' &&
+    typeof item.archived_at === 'number'
+  );
+}
+
+export function isArchiveListItemArray(
+  data: unknown,
+): data is ArchiveListItem[] {
+  return Array.isArray(data) && data.every(hasArchiveListItemShape);
+}
+
+export function isPage(data: unknown): data is Page {
+  if (!isObject(data)) return false;
+  return (
+    typeof data.id === 'string' &&
+    typeof data.title === 'string' &&
+    typeof data.content === 'string' &&
+    typeof data.created_at === 'number' &&
+    typeof data.updated_at === 'number' &&
+    (data.archived_at === null || typeof data.archived_at === 'number')
+  );
+}
+
+export function isCreatePageResponse(data: unknown): data is { id: string } {
+  return isObject(data) && typeof data.id === 'string';
+}
+
+export function isArchivePageResponse(
+  data: unknown,
+): data is { archived_at: number } {
+  return isObject(data) && typeof data.archived_at === 'number';
 }
