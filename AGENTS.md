@@ -43,6 +43,7 @@ components/           # Reactコンポーネント
 lib/                  # DB初期化、型定義
 server/               # WebSocketサーバー (Yjs同期)
 e2e/                  # Playwright E2Eテスト
+docs/adr/             # ADR (Architecture Decision Records)
 ```
 
 ## 開発コマンド
@@ -81,6 +82,13 @@ npm run test:e2e      # Playwright E2Eテスト実行
 3. **ユーザーの思考を中断させないか？** — 中断させるなら、やり方を変える
 
 迷いが解消しないときは、**追加しない方を選ぶ**。後から足すことはできても、一度増えた複雑さを取り除くのは難しい。
+
+## ADR (Architecture Decision Records)
+
+`docs/adr/` ディレクトリには、アーキテクチャや機能に関する重要な判断の記録が保管されている。特に「実装しない」と決定した機能についての理由が記録されている。
+
+- 新しい機能を提案・実装する前に、ADRに同様の提案が既に却下されていないか確認すること
+- 重要な技術的判断を下した場合は、新しいADRを追加すること
 
 ## アーキテクチャ上の注意点
 
