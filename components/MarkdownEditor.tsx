@@ -6,7 +6,6 @@ import { Editor, rootCtx, defaultValueCtx } from '@milkdown/core';
 import { commonmark } from '@milkdown/preset-commonmark';
 import { listener, listenerCtx } from '@milkdown/plugin-listener';
 import { collab, collabServiceCtx } from '@milkdown/plugin-collab';
-import type { Page } from '@/lib/types';
 import { logger } from '@/lib/logger';
 import { logResponseError } from '@/lib/api';
 import * as Y from 'yjs';
@@ -17,7 +16,6 @@ import '../app/milkdown.css';
 const SYNC_TIMEOUT_MS = 2000;
 
 export default function MarkdownEditor({ pageId }: { pageId: string }) {
-  const [page, setPage] = useState<Page | null>(null);
   const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [peerCount, setPeerCount] = useState(0);
@@ -25,7 +23,6 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
   const editorInstanceRef = useRef<Editor | null>(null);
   const ydocRef = useRef<Y.Doc | null>(null);
   const providerRef = useRef<WebsocketProvider | null>(null);
-  const pageRef = useRef<Page | null>(null);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const updatePeerCountRef = useRef<(() => void) | null>(null);
   const initTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -42,15 +39,8 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
     };
   }, []);
 
-  // Keep pageRef in sync with page state
-  useEffect(() => {
-    pageRef.current = page;
-  }, [page]);
-
   const handleContentChange = useCallback(
     async (content: string) => {
-      if (!pageRef.current) return;
-
       logger.log(
         '[Editor] Content changed - length:',
         content.length,
@@ -193,10 +183,12 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
           }, SYNC_TIMEOUT_MS);
         });
 
-        // Abort if component unmounted during sync wait
+        // If component unmounted during sync, clean up and bail out
         if (!isMountedRef.current) {
           logger.log('[Editor] Component unmounted during sync, aborting');
           isInitializingRef.current = false;
+          provider.destroy();
+          ydoc.destroy();
           return;
         }
 
@@ -237,6 +229,14 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
           })
           .create();
 
+        // If component unmounted during initialization, clean up and bail out
+        if (!isMountedRef.current) {
+          editor.destroy();
+          provider.destroy();
+          ydoc.destroy();
+          return;
+        }
+
         // Connect the collab service AFTER editor is fully created
         // This is critical - calling connect() before the editor is ready will fail
         editor.action((ctx) => {
@@ -267,7 +267,6 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
         const data = await response.json();
         if (!isMountedRef.current) return;
 
-        setPage(data);
         setLoading(false);
 
         // Initialize editor after page is loaded
