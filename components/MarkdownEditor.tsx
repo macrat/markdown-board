@@ -19,7 +19,6 @@ const SYNC_TIMEOUT_MS = 2000;
 export default function MarkdownEditor({ pageId }: { pageId: string }) {
   const [page, setPage] = useState<Page | null>(null);
   const [loading, setLoading] = useState(true);
-  const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const saveErrorTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const editorRef = useRef<HTMLDivElement>(null);
@@ -65,7 +64,6 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
       // Debounce save by 1 second
       saveTimeoutRef.current = setTimeout(async () => {
         logger.log('[Editor] Saving content - length:', content.length);
-        setIsSaving(true);
 
         try {
           const response = await fetch(`/api/pages/${pageId}`, {
@@ -99,16 +97,18 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
         } catch (error) {
           logger.error('[Editor Save] Network error:', error);
           showSaveError('保存に失敗しました');
-        } finally {
-          setIsSaving(false);
         }
       }, 1000);
     },
     [pageId, showSaveError],
   );
 
-  const initEditor = useCallback(
-    async (initialContent: string) => {
+  useEffect(() => {
+    // Fetch page data and initialize editor - only once on mount
+    let isMounted = true;
+    let initTimerId: NodeJS.Timeout | null = null;
+
+    const initEditor = async (initialContent: string) => {
       if (!editorRef.current) return;
 
       // Prevent double initialization
@@ -235,13 +235,7 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
       } catch (error) {
         logger.error('Failed to initialize editor:', error);
       }
-    },
-    [pageId, handleContentChange],
-  );
-
-  useEffect(() => {
-    // Fetch page data and initialize editor - only once on mount
-    let isMounted = true;
+    };
 
     const fetchPage = async () => {
       try {
@@ -260,7 +254,7 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
 
         // Initialize editor after page is loaded
         // Small delay to ensure DOM is ready
-        setTimeout(() => {
+        initTimerId = setTimeout(() => {
           if (isMounted) {
             initEditor(data.content);
           }
@@ -277,6 +271,9 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
       isMounted = false;
 
       // Cleanup
+      if (initTimerId) {
+        clearTimeout(initTimerId);
+      }
       if (saveTimeoutRef.current) {
         clearTimeout(saveTimeoutRef.current);
       }
@@ -294,7 +291,8 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
         ydocRef.current.destroy();
       }
     };
-  }, [pageId, router, initEditor]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pageId, router]);
 
   if (loading) {
     return (
@@ -308,21 +306,6 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
     <div className="min-h-screen relative">
       <div className="h-screen p-4 sm:p-8 overflow-auto">
         <div ref={editorRef} className="milkdown max-w-4xl mx-auto" />
-      </div>
-
-      {/* 保存中表示 - 右下に控えめに表示 */}
-      <div
-        role="status"
-        aria-live="polite"
-        className="fixed bottom-4 right-4 text-xs px-3 py-1.5 rounded-full transition-opacity duration-300"
-        style={{
-          color: '#574a46',
-          backgroundColor: 'rgba(245, 234, 230, 0.9)',
-          opacity: isSaving ? 0.8 : 0,
-          pointerEvents: 'none',
-        }}
-      >
-        保存中...
       </div>
 
       {/* 保存エラー表示 */}
