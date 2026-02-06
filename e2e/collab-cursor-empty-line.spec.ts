@@ -59,6 +59,16 @@ test.describe('Collaborative Cursor on Empty Line', () => {
     // Wait for content to sync
     await user1Page.waitForTimeout(2000);
 
+    // Get the Y coordinate of line 3 BEFORE collaborator joins
+    const editorContent = await user1Page.locator('.ProseMirror').first();
+    const paragraphsBeforeCollab = await editorContent.locator('p').all();
+    expect(paragraphsBeforeCollab.length).toBe(3);
+    const line3BeforeCollab = await paragraphsBeforeCollab[2].boundingBox();
+    expect(line3BeforeCollab).not.toBeNull();
+    const line3YBeforeCollab = line3BeforeCollab!.y;
+    
+    console.log(`[Test] Line 3 Y coordinate WITHOUT collaborator: ${line3YBeforeCollab}`);
+
     // User 2: Open the same page
     await user2Page.goto(`/page/${pageId}`);
     await user2Page.waitForLoadState('networkidle');
@@ -78,7 +88,7 @@ test.describe('Collaborative Cursor on Empty Line', () => {
     await user2Page.keyboard.press('ArrowDown'); // Move from line 1 to line 2
 
     // Wait a moment for cursor position to sync
-    await user1Page.waitForTimeout(1000);
+    await user1Page.waitForTimeout(1500);
 
     // Take a screenshot from User 1's perspective
     await user1Page.screenshot({
@@ -86,31 +96,28 @@ test.describe('Collaborative Cursor on Empty Line', () => {
       fullPage: true,
     });
 
-    // User 1: Check that there's no excessive spacing
-    // Get the editor content area
-    const editorContent = await user1Page.locator('.ProseMirror').first();
-
-    // Get all paragraphs
-    const paragraphs = await editorContent.locator('p').all();
-    expect(paragraphs.length).toBe(3); // Line 1, empty line, Line 3
-
-    // Check that the empty line (paragraph 2) doesn't have excessive height
-    const emptyLineBoundingBox = await paragraphs[1].boundingBox();
-    expect(emptyLineBoundingBox).not.toBeNull();
-
-    // The empty line should have a reasonable height (not more than 2x normal line height)
-    // A normal empty line in this editor is around 28-40px
-    // If the bug exists, it would be much larger (60px+)
-    if (emptyLineBoundingBox) {
-      expect(emptyLineBoundingBox.height).toBeLessThan(60);
-      expect(emptyLineBoundingBox.height).toBeGreaterThan(20);
-    }
+    // Get the Y coordinate of line 3 AFTER collaborator's cursor is on line 2
+    const paragraphsAfterCollab = await editorContent.locator('p').all();
+    expect(paragraphsAfterCollab.length).toBe(3);
+    const line3AfterCollab = await paragraphsAfterCollab[2].boundingBox();
+    expect(line3AfterCollab).not.toBeNull();
+    const line3YAfterCollab = line3AfterCollab!.y;
+    
+    console.log(`[Test] Line 3 Y coordinate WITH collaborator on line 2: ${line3YAfterCollab}`);
+    console.log(`[Test] Y coordinate difference: ${line3YAfterCollab - line3YBeforeCollab}px`);
 
     // Verify that the collaborative cursor is visible
     const collabCursor = await user1Page
       .locator('.ProseMirror-yjs-cursor')
       .first();
     await expect(collabCursor).toBeVisible();
+
+    // CRITICAL TEST: Line 3's Y position should NOT change when collaborator's cursor appears on line 2
+    // If Y coordinate increases, it means extra spacing is being added below the empty line
+    // With the buggy CSS (.ProseMirror-yjs-cursor + .ProseMirror-trailingBreak), 
+    // the Y coordinate would increase because the trailing break in the empty line gets hidden,
+    // causing layout issues
+    expect(line3YAfterCollab).toBe(line3YBeforeCollab);
   });
 
   test('should properly handle cursor on line with text', async () => {
