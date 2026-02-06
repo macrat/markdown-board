@@ -8,7 +8,7 @@ import { listener, listenerCtx } from '@milkdown/plugin-listener';
 import { collab, collabServiceCtx } from '@milkdown/plugin-collab';
 import type { Page } from '@/lib/types';
 import { logger } from '@/lib/logger';
-import { logResponseError } from '@/lib/api';
+import { logResponseError, isPage } from '@/lib/api';
 import * as Y from 'yjs';
 import { WebsocketProvider } from 'y-websocket';
 import '../app/milkdown.css';
@@ -77,6 +77,8 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
 
       // Debounce save by 1 second
       saveTimeoutRef.current = setTimeout(async () => {
+        if (!isMountedRef.current) return;
+
         logger.log('[Editor] Saving content - length:', content.length);
 
         try {
@@ -92,17 +94,21 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
 
           if (!response.ok) {
             await logResponseError('Editor Save', response);
-            showSaveError(
-              response.status === 413
-                ? '保存できませんでした: コンテンツが大きすぎます（上限: 10MB）'
-                : '保存に失敗しました',
-            );
-          } else {
-            if (saveErrorTimeoutRef.current) {
-              clearTimeout(saveErrorTimeoutRef.current);
-              saveErrorTimeoutRef.current = null;
+            if (isMountedRef.current) {
+              showSaveError(
+                response.status === 413
+                  ? '保存できませんでした: コンテンツが大きすぎます（上限: 10MB）'
+                  : '保存に失敗しました',
+              );
             }
-            setSaveError(null);
+          } else {
+            if (isMountedRef.current) {
+              if (saveErrorTimeoutRef.current) {
+                clearTimeout(saveErrorTimeoutRef.current);
+                saveErrorTimeoutRef.current = null;
+              }
+              setSaveError(null);
+            }
             logger.log(
               '[Editor] Save successful - content length:',
               content.length,
@@ -110,15 +116,20 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
           }
         } catch (error) {
           logger.error('[Editor Save] Network error:', error);
-          showSaveError('保存に失敗しました');
+          if (isMountedRef.current) {
+            showSaveError('保存に失敗しました');
+          }
         }
       }, 1000);
     },
     [pageId, showSaveError],
   );
 
-  const initEditor = useCallback(
-    async (initialContent: string) => {
+  useEffect(() => {
+    // Fetch page data and initialize editor - only once on mount
+    let isMounted = true;
+
+    const initEditor = async (initialContent: string) => {
       if (!editorRef.current) return;
 
       // Prevent double initialization
@@ -168,12 +179,6 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
           const handleSync = (isSynced: boolean) => {
             if (isSynced) {
               provider.off('sync', handleSync);
-              if (syncTimeoutRef.current) {
-                clearTimeout(syncTimeoutRef.current);
-                syncTimeoutRef.current = null;
-              }
-
-              // Clear the timeout since sync completed successfully
               if (syncTimeoutRef.current) {
                 clearTimeout(syncTimeoutRef.current);
                 syncTimeoutRef.current = null;
@@ -282,6 +287,36 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
           })
           .create();
 
+        // If component unmounted during initialization, clean up and bail out
+        if (!isMountedRef.current) {
+          logger.log(
+            '[Editor] Component unmounted during editor creation, cleaning up',
+          );
+          isInitializingRef.current = false;
+          try {
+            editor.destroy();
+          } catch (e) {
+            logger.error?.(
+              '[Editor] Error destroying editor during unmount',
+              e,
+            );
+          }
+          try {
+            provider.destroy();
+          } catch (e) {
+            logger.error?.(
+              '[Editor] Error destroying provider during unmount',
+              e,
+            );
+          }
+          try {
+            ydoc.destroy();
+          } catch (e) {
+            logger.error?.('[Editor] Error destroying ydoc during unmount', e);
+          }
+          return;
+        }
+
         // Connect the collab service AFTER editor is fully created
         // This is critical - calling connect() before the editor is ready will fail
         editor.action((ctx) => {
@@ -314,13 +349,7 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
       } finally {
         isInitializingRef.current = false;
       }
-    },
-    [pageId, handleContentChange],
-  );
-
-  useEffect(() => {
-    // Fetch page data and initialize editor - only once on mount
-    let isMounted = true;
+    };
 
     const fetchPage = async () => {
       try {
@@ -331,8 +360,14 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
           return;
         }
 
-        const data = await response.json();
+        const data: unknown = await response.json();
         if (!isMounted) return;
+
+        if (!isPage(data)) {
+          logger.error('[Editor FetchPage] Unexpected response shape:', data);
+          if (isMounted) router.push('/');
+          return;
+        }
 
         setPage(data);
         setLoading(false);
@@ -388,7 +423,8 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
         ydocRef.current = null;
       }
     };
-  }, [pageId, router, initEditor]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pageId, router]);
 
   if (loading) {
     return (

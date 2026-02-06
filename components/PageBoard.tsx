@@ -5,7 +5,13 @@ import { useRouter } from 'next/navigation';
 import type { PageListItem, ArchiveListItem } from '@/lib/types';
 import Toast from './Toast';
 import { logger } from '@/lib/logger';
-import { logResponseError } from '@/lib/api';
+import {
+  logResponseError,
+  isPageListItemArray,
+  isArchiveListItemArray,
+  isCreatePageResponse,
+  isArchivePageResponse,
+} from '@/lib/api';
 import { ANIMATION_DURATION_MS } from '@/lib/constants';
 
 type Tab = 'latest' | 'archive';
@@ -103,7 +109,11 @@ export default function PageBoard() {
         await logResponseError('PageBoard FetchPages', response);
         return;
       }
-      const data = await response.json();
+      const data: unknown = await response.json();
+      if (!isPageListItemArray(data)) {
+        logger.error('[PageBoard FetchPages] Unexpected response shape:', data);
+        return;
+      }
       setPages(data);
     } catch (error) {
       logger.error('[PageBoard FetchPages] Network error:', error);
@@ -117,7 +127,14 @@ export default function PageBoard() {
         await logResponseError('PageBoard FetchArchives', response);
         return;
       }
-      const data = await response.json();
+      const data: unknown = await response.json();
+      if (!isArchiveListItemArray(data)) {
+        logger.error(
+          '[PageBoard FetchArchives] Unexpected response shape:',
+          data,
+        );
+        return;
+      }
       setArchives(data);
     } catch (error) {
       logger.error('[PageBoard FetchArchives] Network error:', error);
@@ -147,8 +164,12 @@ export default function PageBoard() {
         await logResponseError('PageBoard CreatePage', response);
         return;
       }
-      const { id } = await response.json();
-      router.push(`/page/${id}`);
+      const data: unknown = await response.json();
+      if (!isCreatePageResponse(data)) {
+        logger.error('[PageBoard CreatePage] Unexpected response shape:', data);
+        return;
+      }
+      router.push(`/page/${data.id}`);
     } catch (error) {
       logger.error('[PageBoard CreatePage] Network error:', error);
     }
@@ -172,7 +193,14 @@ export default function PageBoard() {
           return;
         }
         // Get the server-provided archived_at timestamp
-        const data = await response.json();
+        const data: unknown = await response.json();
+        if (!isArchivePageResponse(data)) {
+          logger.error(
+            '[PageBoard ArchivePage] Unexpected response shape:',
+            data,
+          );
+          return;
+        }
         const archivedAt = data.archived_at;
 
         // Update local state
@@ -201,18 +229,40 @@ export default function PageBoard() {
     const { pageId } = toast;
     setToast({ visible: false, pageId: '', pageTitle: '' });
 
+    // Restore local state immediately for responsiveness
+    const archivedPage = archives.find((p) => p.id === pageId);
+    if (archivedPage) {
+      const restoredPage: PageListItem = {
+        id: archivedPage.id,
+        title: archivedPage.title,
+        created_at: archivedPage.created_at,
+        updated_at: archivedPage.updated_at,
+      };
+      setPages((prev) => [restoredPage, ...prev]);
+      setArchives((prev) => prev.filter((p) => p.id !== pageId));
+
+      // Add fade in animation for the restored item
+      setAnimatingItems((prev) => [...prev, { id: pageId, type: 'fadeIn' }]);
+      const fadeInTimer = setTimeout(() => {
+        timersRef.current.delete(fadeInTimer);
+        setAnimatingItems((prev) => prev.filter((item) => item.id !== pageId));
+      }, ANIMATION_DURATION_MS);
+      timersRef.current.add(fadeInTimer);
+    }
+
     try {
       const response = await fetch(`/api/pages/${pageId}/unarchive`, {
         method: 'POST',
       });
       if (!response.ok) {
         await logResponseError('PageBoard CancelArchive', response);
-        return;
+        // Revert local state on error
+        await Promise.all([fetchPages(), fetchArchives()]);
       }
-      // Refresh both lists
-      await Promise.all([fetchPages(), fetchArchives()]);
     } catch (error) {
       logger.error('[PageBoard CancelArchive] Network error:', error);
+      // Revert local state on error
+      await Promise.all([fetchPages(), fetchArchives()]);
     }
   };
 
@@ -451,6 +501,16 @@ export default function PageBoard() {
           id="tabpanel-archive"
           aria-labelledby="tab-archive"
         >
+          <p
+            style={{
+              color: '#574a46',
+              opacity: 0.4,
+              fontSize: '12px',
+              margin: '0 0 16px 0',
+            }}
+          >
+            30日間保持されます
+          </p>
           {archives.length === 0 ? (
             <p style={{ color: '#574a46', opacity: 0.7 }}>
               アーカイブされたページはありません。
