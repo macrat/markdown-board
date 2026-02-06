@@ -15,30 +15,43 @@ export default function Toast({ message, onCancel, onClose, duration = 5000 }: T
   const [isVisible, setIsVisible] = useState(false);
   const [isExiting, setIsExiting] = useState(false);
   const isMountedRef = useRef(true);
+  const exitTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Track mounted state for cleanup
   useEffect(() => {
     isMountedRef.current = true;
     return () => {
       isMountedRef.current = false;
+      if (exitTimeoutRef.current !== null) {
+        clearTimeout(exitTimeoutRef.current);
+        exitTimeoutRef.current = null;
+      }
     };
   }, []);
 
   const handleClose = useCallback(() => {
     setIsExiting(true);
-    setTimeout(() => {
+    if (exitTimeoutRef.current !== null) {
+      clearTimeout(exitTimeoutRef.current);
+    }
+    exitTimeoutRef.current = setTimeout(() => {
       if (isMountedRef.current) {
         onClose();
       }
+      exitTimeoutRef.current = null;
     }, ANIMATION_DURATION_MS);
   }, [onClose]);
 
   const handleCancel = useCallback(() => {
     setIsExiting(true);
-    setTimeout(() => {
+    if (exitTimeoutRef.current !== null) {
+      clearTimeout(exitTimeoutRef.current);
+    }
+    exitTimeoutRef.current = setTimeout(() => {
       if (isMountedRef.current) {
         onCancel();
       }
+      exitTimeoutRef.current = null;
     }, ANIMATION_DURATION_MS);
   }, [onCancel]);
 
