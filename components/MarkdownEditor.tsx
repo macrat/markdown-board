@@ -277,7 +277,7 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
 
   return (
     <div className="min-h-screen relative">
-      <div className="h-screen p-8 overflow-auto">
+      <div className="h-screen p-4 sm:p-8 overflow-auto">
         <div ref={editorRef} className="milkdown max-w-4xl mx-auto" />
       </div>
 
