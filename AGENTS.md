@@ -72,7 +72,7 @@ npm run test:e2e:headed # Playwright E2Eテストをヘッドモードで実行
 - 機能追加の前に「本当に必要か」を問う
 - シンプルさを維持する
 - ユーザーの思考の流れを妨げないUXを心がける
-- 変更後は `npm run lint` と `npm test` と `npm run test:e2e` で品質を確認する
+- 変更後は `npm run format` でコードを整形し、`npm run lint` と `npm test` と `npm run test:e2e` で品質を確認する
 
 ### やってはいけないこと
 
