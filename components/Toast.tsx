@@ -1,8 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback, useRef } from 'react';
-
-const ANIMATION_DURATION_MS = 200;
+import { ANIMATION_DURATION_MS } from '@/lib/constants';
 
 interface ToastProps {
   message: string;
@@ -112,6 +111,7 @@ export default function Toast({
       <span>{message}</span>
       <button
         onClick={handleCancel}
+        className="toast-cancel-button"
         style={{
           backgroundColor: 'transparent',
           color: '#e893c2',
@@ -126,6 +126,12 @@ export default function Toast({
           e.currentTarget.style.backgroundColor = 'rgba(232, 147, 194, 0.2)';
         }}
         onMouseLeave={(e) => {
+          e.currentTarget.style.backgroundColor = 'transparent';
+        }}
+        onFocus={(e) => {
+          e.currentTarget.style.backgroundColor = 'rgba(232, 147, 194, 0.2)';
+        }}
+        onBlur={(e) => {
           e.currentTarget.style.backgroundColor = 'transparent';
         }}
       >

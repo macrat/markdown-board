@@ -12,8 +12,7 @@ import {
   isCreatePageResponse,
   isArchivePageResponse,
 } from '@/lib/api';
-
-const ANIMATION_DURATION_MS = 200;
+import { ANIMATION_DURATION_MS } from '@/lib/constants';
 
 type Tab = 'latest' | 'archive';
 
@@ -141,6 +140,11 @@ export default function PageBoard() {
       logger.error('[PageBoard FetchArchives] Network error:', error);
     }
   }, []);
+
+  const handleToastClose = useCallback(
+    () => setToast({ visible: false, pageId: '', pageTitle: '' }),
+    [],
+  );
 
   useEffect(() => {
     const loadData = async () => {
@@ -329,6 +333,7 @@ export default function PageBoard() {
         <button
           id="tab-latest"
           role="tab"
+          className="tab-button"
           aria-selected={activeTab === 'latest'}
           aria-controls="tabpanel-latest"
           onClick={() => setActiveTab('latest')}
@@ -352,6 +357,7 @@ export default function PageBoard() {
         <button
           id="tab-archive"
           role="tab"
+          className="tab-button"
           aria-selected={activeTab === 'archive'}
           aria-controls="tabpanel-archive"
           onClick={() => setActiveTab('archive')}
@@ -404,6 +410,8 @@ export default function PageBoard() {
                   <div
                     role="button"
                     tabIndex={0}
+                    aria-label={`${page.title}を開く`}
+                    className="page-list-item-button"
                     style={{ flex: 1, cursor: 'pointer' }}
                     onClick={() => router.push(`/page/${page.id}`)}
                     onKeyDown={(e) => {
@@ -440,6 +448,7 @@ export default function PageBoard() {
                       e.stopPropagation();
                       archivePage(page.id, page.title);
                     }}
+                    className="archive-button"
                     aria-label="アーカイブする"
                     title="アーカイブ"
                     style={{
@@ -461,6 +470,16 @@ export default function PageBoard() {
                       e.currentTarget.style.borderColor = '#574a46';
                     }}
                     onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = 'transparent';
+                      e.currentTarget.style.borderColor =
+                        'rgba(87, 74, 70, 0.3)';
+                    }}
+                    onFocus={(e) => {
+                      e.currentTarget.style.backgroundColor =
+                        'rgba(87, 74, 70, 0.1)';
+                      e.currentTarget.style.borderColor = '#574a46';
+                    }}
+                    onBlur={(e) => {
                       e.currentTarget.style.backgroundColor = 'transparent';
                       e.currentTarget.style.borderColor =
                         'rgba(87, 74, 70, 0.3)';
@@ -541,6 +560,7 @@ export default function PageBoard() {
                   </div>
                   <button
                     onClick={() => unarchivePage(page.id)}
+                    className="unarchive-button"
                     aria-label="アーカイブを解除する"
                     title="アーカイブを解除"
                     style={{
@@ -566,6 +586,16 @@ export default function PageBoard() {
                       e.currentTarget.style.borderColor =
                         'rgba(87, 74, 70, 0.3)';
                     }}
+                    onFocus={(e) => {
+                      e.currentTarget.style.backgroundColor =
+                        'rgba(87, 74, 70, 0.1)';
+                      e.currentTarget.style.borderColor = '#574a46';
+                    }}
+                    onBlur={(e) => {
+                      e.currentTarget.style.backgroundColor = 'transparent';
+                      e.currentTarget.style.borderColor =
+                        'rgba(87, 74, 70, 0.3)';
+                    }}
                   >
                     <UnarchiveIcon />
                   </button>
@@ -579,6 +609,7 @@ export default function PageBoard() {
       {/* Floating Action Button */}
       <button
         onClick={createPage}
+        className="fab-button"
         aria-label="新しいページを作成"
         title="新しいページを作成"
         style={{
@@ -607,6 +638,14 @@ export default function PageBoard() {
           e.currentTarget.style.backgroundColor = '#c42776';
           e.currentTarget.style.transform = 'scale(1)';
         }}
+        onFocus={(e) => {
+          e.currentTarget.style.backgroundColor = '#e893c2';
+          e.currentTarget.style.transform = 'scale(1.05)';
+        }}
+        onBlur={(e) => {
+          e.currentTarget.style.backgroundColor = '#c42776';
+          e.currentTarget.style.transform = 'scale(1)';
+        }}
       >
         <PlusIcon />
       </button>
@@ -616,9 +655,7 @@ export default function PageBoard() {
         <Toast
           message="アーカイブしました"
           onCancel={cancelArchive}
-          onClose={() =>
-            setToast({ visible: false, pageId: '', pageTitle: '' })
-          }
+          onClose={handleToastClose}
         />
       )}
     </div>

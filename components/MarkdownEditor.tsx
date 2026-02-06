@@ -14,7 +14,7 @@ import { WebsocketProvider } from 'y-websocket';
 import '../app/milkdown.css';
 
 // Timeout for waiting for Yjs sync to complete (in milliseconds)
-const SYNC_TIMEOUT_MS = 2000;
+const SYNC_TIMEOUT_MS = 500;
 
 export default function MarkdownEditor({ pageId }: { pageId: string }) {
   const [page, setPage] = useState<Page | null>(null);
