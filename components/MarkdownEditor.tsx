@@ -139,7 +139,7 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
           const handleSync = (isSynced: boolean) => {
             if (isSynced) {
               provider.off('sync', handleSync);
-              
+
               // Clear the timeout since sync completed successfully
               if (syncTimeoutRef.current) {
                 clearTimeout(syncTimeoutRef.current);
