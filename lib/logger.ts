@@ -7,7 +7,7 @@ export const logger = {
     }
   },
   error: (...args: unknown[]) => {
-    // エラーは本番でも出力（監視用）
+    // Errors are logged in production for monitoring purposes
     console.error(...args);
   },
   warn: (...args: unknown[]) => {
