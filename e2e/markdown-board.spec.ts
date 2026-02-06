@@ -991,10 +991,7 @@ Russian: Привет мир`;
   // ==================== EDGE CASES ====================
 
   test('should handle rapid navigation without data loss', async ({ page }) => {
-    await createPageWithContent(
-      page,
-      '# Rapid Test\n\nContent to preserve',
-    );
+    await createPageWithContent(page, '# Rapid Test\n\nContent to preserve');
 
     // Rapidly navigate back and forth
     await page.goto('/');
