@@ -319,8 +319,16 @@ export default function PageBoard() {
                   }}
                 >
                   <div
+                    role="button"
+                    tabIndex={0}
                     style={{ flex: 1, cursor: 'pointer' }}
                     onClick={() => router.push(`/page/${page.id}`)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        router.push(`/page/${page.id}`);
+                      }
+                    }}
                   >
                     <h3
                       style={{
