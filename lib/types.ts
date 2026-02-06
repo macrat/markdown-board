@@ -13,3 +13,11 @@ export interface PageListItem {
   created_at: number;
   updated_at: number;
 }
+
+export interface ArchiveListItem {
+  id: string;
+  title: string;
+  created_at: number;
+  updated_at: number;
+  archived_at: number;
+}

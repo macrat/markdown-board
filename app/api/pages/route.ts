@@ -35,7 +35,7 @@ export async function POST() {
 
     stmt.run(id, 'Untitled', '', now, now);
 
-    return NextResponse.json({ id }, { status: 201 });
+    return NextResponse.json({ success: true, id }, { status: 201 });
   } catch (error) {
     logger.error('Failed to create page:', error);
     return NextResponse.json(

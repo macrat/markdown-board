@@ -34,7 +34,7 @@ export async function DELETE() {
 
     const result = stmt.run(thirtyDaysAgo);
 
-    return NextResponse.json({ deleted: result.changes });
+    return NextResponse.json({ success: true, deleted: result.changes });
   } catch (error) {
     logger.error('Failed to clean up old archives:', error);
     return NextResponse.json(

@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import type { PageListItem, Page } from '@/lib/types';
+import type { PageListItem, ArchiveListItem } from '@/lib/types';
 import Toast from './Toast';
 import { logger } from '@/lib/logger';
 import { logResponseError } from '@/lib/api';
@@ -77,7 +77,7 @@ const PlusIcon = () => (
 export default function PageBoard() {
   const [activeTab, setActiveTab] = useState<Tab>('latest');
   const [pages, setPages] = useState<PageListItem[]>([]);
-  const [archives, setArchives] = useState<Page[]>([]);
+  const [archives, setArchives] = useState<ArchiveListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [animatingItems, setAnimatingItems] = useState<AnimatingItem[]>([]);
   const [toast, setToast] = useState<ToastState>({
@@ -169,15 +169,14 @@ export default function PageBoard() {
         }
         // Get the server-provided archived_at timestamp
         const data = await response.json();
-        const archivedAt = data.archived_at ?? Date.now(); // Fallback to client time if not provided
+        const archivedAt = data.archived_at;
 
         // Update local state
         const archivedPage = pages.find((p) => p.id === id);
         if (archivedPage) {
           setPages((prev) => prev.filter((p) => p.id !== id));
-          const newArchive: Page = {
+          const newArchive: ArchiveListItem = {
             ...archivedPage,
-            content: '',
             archived_at: archivedAt,
           };
           setArchives((prev) => [newArchive, ...prev]);
@@ -477,7 +476,7 @@ export default function PageBoard() {
                         margin: 0,
                       }}
                     >
-                      {page.archived_at ? formatDate(page.archived_at) : '-'}
+                      {formatDate(page.archived_at)}
                     </p>
                   </div>
                   <button
