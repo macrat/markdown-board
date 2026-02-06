@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import Database from 'better-sqlite3';
 import { createTestDb, insertPage } from './helpers/db';
 
@@ -13,10 +13,6 @@ let db: Database.Database;
 
 beforeEach(() => {
   db = createTestDb();
-});
-
-afterEach(() => {
-  db.close();
 });
 
 describe('cleanupOldArchives', () => {
@@ -183,7 +179,7 @@ describe('startPeriodicCleanup', () => {
     vi.useFakeTimers();
     const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
 
-    const intervalId = startPeriodicCleanup(() => db);
+    const intervalId = startPeriodicCleanup(() => createTestDb());
 
     expect(consoleSpy).toHaveBeenCalledWith(
       '[cleanup] Starting periodic archive cleanup (every 1 hour)',
