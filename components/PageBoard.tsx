@@ -150,6 +150,10 @@ export default function PageBoard() {
           method: 'POST',
         });
         if (response.ok) {
+          // Get the server-provided archived_at timestamp
+          const data = await response.json();
+          const archivedAt = data.archived_at ?? Date.now(); // Fallback to client time if not provided
+          
           // Update local state
           const archivedPage = pages.find(p => p.id === id);
           if (archivedPage) {
@@ -157,7 +161,7 @@ export default function PageBoard() {
             const newArchive: Page = {
               ...archivedPage,
               content: '',
-              archived_at: Date.now(),
+              archived_at: archivedAt,
             };
             setArchives(prev => [newArchive, ...prev]);
           }
