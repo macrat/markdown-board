@@ -19,6 +19,7 @@ const SYNC_TIMEOUT_MS = 2000;
 export default function MarkdownEditor({ pageId }: { pageId: string }) {
   const [page, setPage] = useState<Page | null>(null);
   const [loading, setLoading] = useState(true);
+  const [peerCount, setPeerCount] = useState(0);
   const [saveError, setSaveError] = useState<string | null>(null);
   const saveErrorTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const editorRef = useRef<HTMLDivElement>(null);
@@ -27,9 +28,20 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
   const providerRef = useRef<WebsocketProvider | null>(null);
   const pageRef = useRef<Page | null>(null);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const updatePeerCountRef = useRef<(() => void) | null>(null);
   const initTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const syncTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const isMountedRef = useRef(false);
+  const isInitializingRef = useRef(false);
   const router = useRouter();
+
+  // Track mounted state for cleanup (compatible with React 18+ strict mode)
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   // Keep pageRef in sync with page state
   useEffect(() => {
@@ -110,10 +122,13 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
       if (!editorRef.current) return;
 
       // Prevent double initialization
-      if (editorInstanceRef.current) {
-        logger.log('[Editor] Editor already initialized, skipping');
+      if (editorInstanceRef.current || isInitializingRef.current) {
+        logger.log(
+          '[Editor] Editor already initialized or initializing, skipping',
+        );
         return;
       }
+      isInitializingRef.current = true;
 
       logger.log(
         '[Editor] Initializing editor with SQLite content length:',
@@ -137,6 +152,15 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
         const provider = new WebsocketProvider(wsUrl, pageId, ydoc);
         providerRef.current = provider;
 
+        // Track peer count via Awareness API
+        const updatePeerCount = () => {
+          const states = provider.awareness.getStates();
+          setPeerCount(Math.max(0, states.size - 1));
+        };
+        updatePeerCountRef.current = updatePeerCount;
+        provider.awareness.on('change', updatePeerCount);
+        updatePeerCount();
+
         logger.log(`[WebSocket] Connecting to room: ${pageId} at ${wsUrl}`);
 
         // Wait for initial sync to complete before deciding what to do
@@ -144,6 +168,12 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
           const handleSync = (isSynced: boolean) => {
             if (isSynced) {
               provider.off('sync', handleSync);
+              if (syncTimeoutRef.current) {
+                clearTimeout(syncTimeoutRef.current);
+                syncTimeoutRef.current = null;
+              }
+
+              // Clear the timeout since sync completed successfully
               if (syncTimeoutRef.current) {
                 clearTimeout(syncTimeoutRef.current);
                 syncTimeoutRef.current = null;
@@ -191,6 +221,30 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
           }, SYNC_TIMEOUT_MS);
         });
 
+        // Abort if component unmounted during sync wait
+        if (!isMountedRef.current) {
+          logger.log('[Editor] Component unmounted during sync, aborting');
+          isInitializingRef.current = false;
+          // Clean up provider and Yjs document to avoid leaks
+          try {
+            provider.destroy();
+          } catch (e) {
+            logger.error?.(
+              '[Editor] Error destroying provider during unmount abort',
+              e,
+            );
+          }
+          try {
+            ydoc.destroy();
+          } catch (e) {
+            logger.error?.(
+              '[Editor] Error destroying ydoc during unmount abort',
+              e,
+            );
+          }
+          return;
+        }
+
         // Determine if we should use SQLite content
         const fragment = ydoc.getXmlFragment('prosemirror');
         const shouldUseSQLiteContent =
@@ -237,6 +291,28 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
         editorInstanceRef.current = editor;
       } catch (error) {
         logger.error('Failed to initialize editor:', error);
+
+        // Cleanup on initialization failure: destroy in reverse dependency order
+        if (editorInstanceRef.current) {
+          editorInstanceRef.current.destroy();
+          editorInstanceRef.current = null;
+        }
+        if (providerRef.current) {
+          if (updatePeerCountRef.current) {
+            providerRef.current.awareness.off(
+              'change',
+              updatePeerCountRef.current,
+            );
+          }
+          providerRef.current.destroy();
+          providerRef.current = null;
+        }
+        if (ydocRef.current) {
+          ydocRef.current.destroy();
+          ydocRef.current = null;
+        }
+      } finally {
+        isInitializingRef.current = false;
       }
     },
     [pageId, handleContentChange],
@@ -280,12 +356,12 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
     return () => {
       isMounted = false;
 
-      // Cleanup
-      if (syncTimeoutRef.current) {
-        clearTimeout(syncTimeoutRef.current);
-      }
+      // Cleanup: destroy in reverse dependency order (editor → provider → ydoc)
       if (initTimeoutRef.current) {
         clearTimeout(initTimeoutRef.current);
+      }
+      if (syncTimeoutRef.current) {
+        clearTimeout(syncTimeoutRef.current);
       }
       if (saveTimeoutRef.current) {
         clearTimeout(saveTimeoutRef.current);
@@ -293,15 +369,23 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
       if (saveErrorTimeoutRef.current) {
         clearTimeout(saveErrorTimeoutRef.current);
       }
-      if (providerRef.current) {
-        providerRef.current.destroy();
-      }
       if (editorInstanceRef.current) {
         editorInstanceRef.current.destroy();
         editorInstanceRef.current = null;
       }
+      if (providerRef.current) {
+        if (updatePeerCountRef.current) {
+          providerRef.current.awareness.off(
+            'change',
+            updatePeerCountRef.current,
+          );
+        }
+        providerRef.current.destroy();
+        providerRef.current = null;
+      }
       if (ydocRef.current) {
         ydocRef.current.destroy();
+        ydocRef.current = null;
       }
     };
   }, [pageId, router, initEditor]);
@@ -319,6 +403,37 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
       <div className="h-screen p-4 sm:p-8 overflow-auto">
         <div ref={editorRef} className="milkdown max-w-4xl mx-auto" />
       </div>
+
+      {/* 同時編集ユーザー数インジケーター - 右上に控えめに表示 */}
+      {peerCount > 0 && (
+        <div
+          role="status"
+          aria-live="polite"
+          aria-label={`他に${peerCount}人が接続中`}
+          className="peer-count-indicator"
+          style={{
+            pointerEvents: 'none',
+          }}
+        >
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+            <circle cx="9" cy="7" r="4" />
+            <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+            <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+          </svg>
+          {peerCount}
+        </div>
+      )}
 
       {/* 保存エラー表示 */}
       {saveError && (
