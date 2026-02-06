@@ -19,6 +19,7 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
   const [page, setPage] = useState<Page | null>(null);
   const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [peerCount, setPeerCount] = useState(0);
   const editorRef = useRef<HTMLDivElement>(null);
   const editorInstanceRef = useRef<Editor | null>(null);
   const ydocRef = useRef<Y.Doc | null>(null);
@@ -113,6 +114,14 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
 
         const provider = new WebsocketProvider(wsUrl, pageId, ydoc);
         providerRef.current = provider;
+
+        // Track peer count via Awareness API
+        const updatePeerCount = () => {
+          const states = provider.awareness.getStates();
+          setPeerCount(Math.max(0, states.size - 1));
+        };
+        provider.awareness.on('change', updatePeerCount);
+        updatePeerCount();
 
         logger.log(`[WebSocket] Connecting to room: ${pageId} at ${wsUrl}`);
 
@@ -279,6 +288,36 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
     <div className="min-h-screen relative">
       <div className="h-screen p-8 overflow-auto">
         <div ref={editorRef} className="milkdown max-w-4xl mx-auto" />
+      </div>
+
+      {/* 同時編集ユーザー数インジケーター - 右上に控えめに表示 */}
+      <div
+        role="status"
+        aria-live="polite"
+        aria-label={`他に${peerCount}人が閲覧中`}
+        className="peer-count-indicator"
+        style={{
+          opacity: peerCount > 0 ? 1 : 0,
+          pointerEvents: 'none',
+        }}
+      >
+        <svg
+          width="14"
+          height="14"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden="true"
+        >
+          <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+          <circle cx="9" cy="7" r="4" />
+          <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+          <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+        </svg>
+        {peerCount}
       </div>
 
       {/* 保存中表示 - 右下に控えめに表示 */}
