@@ -35,7 +35,8 @@ Markdown Board は、開いた瞬間から書き始められるミニマルな�
 
 ```
 app/                  # Next.js App Router
-  api/pages/          # REST API (CRUD + アーカイブ)
+  api/pages/          # REST API (CRUD operations)
+  api/archives/       # アーカイブ関連API
   page/[id]/          # エディタページ
   archives/           # アーカイブ一覧ページ
 components/           # Reactコンポーネント
