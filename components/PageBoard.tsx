@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import type { PageListItem, Page } from '@/lib/types';
 import Toast from './Toast';
 import { logger } from '@/lib/logger';
+import { logResponseError } from '@/lib/api';
 
 const ANIMATION_DURATION_MS = 200;
 
@@ -99,24 +100,28 @@ export default function PageBoard() {
   const fetchPages = useCallback(async () => {
     try {
       const response = await fetch('/api/pages');
-      if (response.ok) {
-        const data = await response.json();
-        setPages(data);
+      if (!response.ok) {
+        await logResponseError('PageBoard FetchPages', response);
+        return;
       }
+      const data = await response.json();
+      setPages(data);
     } catch (error) {
-      logger.error('Failed to fetch pages:', error);
+      logger.error('[PageBoard FetchPages] Network error:', error);
     }
   }, []);
 
   const fetchArchives = useCallback(async () => {
     try {
       const response = await fetch('/api/archives');
-      if (response.ok) {
-        const data = await response.json();
-        setArchives(data);
+      if (!response.ok) {
+        await logResponseError('PageBoard FetchArchives', response);
+        return;
       }
+      const data = await response.json();
+      setArchives(data);
     } catch (error) {
-      logger.error('Failed to fetch archives:', error);
+      logger.error('[PageBoard FetchArchives] Network error:', error);
     }
   }, []);
 
@@ -134,12 +139,14 @@ export default function PageBoard() {
       const response = await fetch('/api/pages', {
         method: 'POST',
       });
-      if (response.ok) {
-        const { id } = await response.json();
-        router.push(`/page/${id}`);
+      if (!response.ok) {
+        await logResponseError('PageBoard CreatePage', response);
+        return;
       }
+      const { id } = await response.json();
+      router.push(`/page/${id}`);
     } catch (error) {
-      logger.error('Failed to create page:', error);
+      logger.error('[PageBoard CreatePage] Network error:', error);
     }
   };
 
@@ -156,28 +163,30 @@ export default function PageBoard() {
         const response = await fetch(`/api/pages/${id}/archive`, {
           method: 'POST',
         });
-        if (response.ok) {
-          // Get the server-provided archived_at timestamp
-          const data = await response.json();
-          const archivedAt = data.archived_at ?? Date.now(); // Fallback to client time if not provided
-
-          // Update local state
-          const archivedPage = pages.find((p) => p.id === id);
-          if (archivedPage) {
-            setPages((prev) => prev.filter((p) => p.id !== id));
-            const newArchive: Page = {
-              ...archivedPage,
-              content: '',
-              archived_at: archivedAt,
-            };
-            setArchives((prev) => [newArchive, ...prev]);
-          }
-
-          // Show toast
-          setToast({ visible: true, pageId: id, pageTitle: title });
+        if (!response.ok) {
+          await logResponseError('PageBoard ArchivePage', response);
+          return;
         }
+        // Get the server-provided archived_at timestamp
+        const data = await response.json();
+        const archivedAt = data.archived_at ?? Date.now(); // Fallback to client time if not provided
+
+        // Update local state
+        const archivedPage = pages.find((p) => p.id === id);
+        if (archivedPage) {
+          setPages((prev) => prev.filter((p) => p.id !== id));
+          const newArchive: Page = {
+            ...archivedPage,
+            content: '',
+            archived_at: archivedAt,
+          };
+          setArchives((prev) => [newArchive, ...prev]);
+        }
+
+        // Show toast
+        setToast({ visible: true, pageId: id, pageTitle: title });
       } catch (error) {
-        logger.error('Failed to archive page:', error);
+        logger.error('[PageBoard ArchivePage] Network error:', error);
       } finally {
         setAnimatingItems((prev) => prev.filter((item) => item.id !== id));
       }
@@ -193,12 +202,14 @@ export default function PageBoard() {
       const response = await fetch(`/api/pages/${pageId}/unarchive`, {
         method: 'POST',
       });
-      if (response.ok) {
-        // Refresh both lists
-        await Promise.all([fetchPages(), fetchArchives()]);
+      if (!response.ok) {
+        await logResponseError('PageBoard CancelArchive', response);
+        return;
       }
+      // Refresh both lists
+      await Promise.all([fetchPages(), fetchArchives()]);
     } catch (error) {
-      logger.error('Failed to cancel archive:', error);
+      logger.error('[PageBoard CancelArchive] Network error:', error);
     }
   };
 
@@ -212,23 +223,26 @@ export default function PageBoard() {
         const response = await fetch(`/api/pages/${id}/unarchive`, {
           method: 'POST',
         });
-        if (response.ok) {
-          // Refresh both lists to get updated data
-          await Promise.all([fetchPages(), fetchArchives()]);
-
-          // Add fade in animation for the unarchived item
-          setAnimatingItems((prev) => [
-            ...prev.filter((item) => item.id !== id),
-            { id, type: 'fadeIn' },
-          ]);
-          const fadeInTimer = setTimeout(() => {
-            timersRef.current.delete(fadeInTimer);
-            setAnimatingItems((prev) => prev.filter((item) => item.id !== id));
-          }, ANIMATION_DURATION_MS);
-          timersRef.current.add(fadeInTimer);
+        if (!response.ok) {
+          await logResponseError('PageBoard UnarchivePage', response);
+          setAnimatingItems((prev) => prev.filter((item) => item.id !== id));
+          return;
         }
+        // Refresh both lists to get updated data
+        await Promise.all([fetchPages(), fetchArchives()]);
+
+        // Add fade in animation for the unarchived item
+        setAnimatingItems((prev) => [
+          ...prev.filter((item) => item.id !== id),
+          { id, type: 'fadeIn' },
+        ]);
+        const fadeInTimer = setTimeout(() => {
+          timersRef.current.delete(fadeInTimer);
+          setAnimatingItems((prev) => prev.filter((item) => item.id !== id));
+        }, ANIMATION_DURATION_MS);
+        timersRef.current.add(fadeInTimer);
       } catch (error) {
-        logger.error('Failed to unarchive page:', error);
+        logger.error('[PageBoard UnarchivePage] Network error:', error);
         // Only cleanup on error since success case handles its own cleanup
         setAnimatingItems((prev) => prev.filter((item) => item.id !== id));
       }
@@ -383,8 +397,8 @@ export default function PageBoard() {
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      width: '36px',
-                      height: '36px',
+                      width: '44px',
+                      height: '44px',
                       backgroundColor: 'transparent',
                       border: '1px solid rgba(87, 74, 70, 0.3)',
                       borderRadius: '8px',
@@ -474,8 +488,8 @@ export default function PageBoard() {
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      width: '36px',
-                      height: '36px',
+                      width: '44px',
+                      height: '44px',
                       backgroundColor: 'transparent',
                       border: '1px solid rgba(87, 74, 70, 0.3)',
                       borderRadius: '8px',
@@ -510,8 +524,8 @@ export default function PageBoard() {
         title="Create new page"
         style={{
           position: 'fixed',
-          bottom: '32px',
-          right: '32px',
+          bottom: 'max(16px, calc(env(safe-area-inset-bottom, 0px) + 16px))',
+          right: 'max(16px, calc(env(safe-area-inset-right, 0px) + 16px))',
           width: '56px',
           height: '56px',
           borderRadius: '50%',
