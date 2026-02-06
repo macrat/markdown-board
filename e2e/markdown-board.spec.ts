@@ -924,8 +924,18 @@ Also test <img> and <a> tags`;
     await page.waitForLoadState('networkidle');
     await page.waitForTimeout(500);
     
-    // Check that "Updated:" timestamp is visible - use first() to handle multiple matches
-    await expect(page.locator('text=Updated:').first()).toBeVisible();
+    // Check that timestamp is visible (formatted date without label)
+    // Find the page item and verify it has a timestamp
+    const pageListItem = page.locator('h3').filter({ hasText: 'Timestamp Test' }).first();
+    await expect(pageListItem).toBeVisible();
+    
+    // The timestamp <p> is a sibling of the <h3>, get parent and find the <p>
+    const timestampText = pageListItem.locator('..').locator('p').first();
+    await expect(timestampText).toBeVisible();
+    const text = await timestampText.textContent();
+    // Check that it contains numbers typical of date/time (but no "Updated:" label)
+    expect(text).toMatch(/\d/);
+    expect(text).not.toContain('Updated:');
   });
 
   // ==================== TAB UI TESTS ====================
