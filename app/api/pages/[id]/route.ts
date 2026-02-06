@@ -50,9 +50,9 @@ export async function PATCH(
     }
 
     // Validate only expected fields are present
-    const allowedFields = ['content'];
+    const allowedFields = new Set(['content']);
     const bodyKeys = Object.keys(body);
-    const unexpectedFields = bodyKeys.filter(key => !allowedFields.includes(key));
+    const unexpectedFields = bodyKeys.filter(key => !allowedFields.has(key));
     
     if (unexpectedFields.length > 0) {
       return NextResponse.json({ 
