@@ -356,7 +356,7 @@ export default function PageBoard() {
                         margin: 0,
                       }}
                     >
-                      Updated: {formatDate(page.updated_at)}
+                      {formatDate(page.updated_at)}
                     </p>
                   </div>
                   <button
@@ -442,7 +442,7 @@ export default function PageBoard() {
                         margin: 0,
                       }}
                     >
-                      アーカイブ日時: {page.archived_at ? formatDate(page.archived_at) : '不明'}
+                      {page.archived_at ? formatDate(page.archived_at) : '不明'}
                     </p>
                   </div>
                   <button
