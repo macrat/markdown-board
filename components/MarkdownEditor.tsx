@@ -292,17 +292,25 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
 
         // If component unmounted during initialization, clean up and bail out
         if (!isMountedRef.current) {
-          logger.log('[Editor] Component unmounted during editor creation, cleaning up');
+          logger.log(
+            '[Editor] Component unmounted during editor creation, cleaning up',
+          );
           isInitializingRef.current = false;
           try {
             editor.destroy();
           } catch (e) {
-            logger.error?.('[Editor] Error destroying editor during unmount', e);
+            logger.error?.(
+              '[Editor] Error destroying editor during unmount',
+              e,
+            );
           }
           try {
             provider.destroy();
           } catch (e) {
-            logger.error?.('[Editor] Error destroying provider during unmount', e);
+            logger.error?.(
+              '[Editor] Error destroying provider during unmount',
+              e,
+            );
           }
           try {
             ydoc.destroy();
