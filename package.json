@@ -7,6 +7,8 @@
     "build": "next build",
     "start": "concurrently \"next start\" \"node server/websocket.js\"",
     "lint": "eslint",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
     "test": "echo \"No unit tests yet\"",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
@@ -43,6 +45,8 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.1.6",
+    "eslint-config-prettier": "^10.1.8",
+    "prettier": "^3.8.1",
     "tailwindcss": "^4",
     "typescript": "5.9.3"
   }

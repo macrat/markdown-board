@@ -25,13 +25,13 @@ console.log(`✓ WebSocket server running on ws://localhost:${PORT}`);
 wss.on('connection', (conn, req) => {
   const roomName = req.url?.slice(1) || 'default';
   console.log(`Client connected to room: ${roomName}`);
-  
+
   setupWSConnection(conn, req, {
     // Add custom logging
     docName: roomName,
-    gc: true // Enable garbage collection
+    gc: true, // Enable garbage collection
   });
-  
+
   conn.on('close', () => {
     console.log(`Client disconnected from room: ${roomName}`);
   });
@@ -55,4 +55,3 @@ const shutdown = () => {
 
 process.on('SIGTERM', shutdown);
 process.on('SIGINT', shutdown);
-

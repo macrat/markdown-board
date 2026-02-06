@@ -25,12 +25,16 @@ async function cleanupOldArchives() {
     });
 
     if (!response.ok) {
-      console.error(`Failed to clean up archives: ${response.status} ${response.statusText}`);
+      console.error(
+        `Failed to clean up archives: ${response.status} ${response.statusText}`,
+      );
       process.exit(1);
     }
 
     const result = await response.json();
-    console.log(`Cleaned up ${result.deleted} archived pages older than 30 days`);
+    console.log(
+      `Cleaned up ${result.deleted} archived pages older than 30 days`,
+    );
   } catch (error) {
     console.error('Error cleaning up archives:', error.message || error);
     process.exit(1);

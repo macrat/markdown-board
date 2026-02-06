@@ -11,11 +11,18 @@ interface ToastProps {
   duration?: number;
 }
 
-export default function Toast({ message, onCancel, onClose, duration = 5000 }: ToastProps) {
+export default function Toast({
+  message,
+  onCancel,
+  onClose,
+  duration = 5000,
+}: ToastProps) {
   const [isVisible, setIsVisible] = useState(false);
   const [isExiting, setIsExiting] = useState(false);
   const isMountedRef = useRef(true);
-  const animationTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const animationTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
   const autoCloseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Track mounted state for cleanup
@@ -40,7 +47,7 @@ export default function Toast({ message, onCancel, onClose, duration = 5000 }: T
       clearTimeout(autoCloseTimerRef.current);
       autoCloseTimerRef.current = null;
     }
-    
+
     setIsExiting(true);
     if (animationTimeoutRef.current !== null) {
       clearTimeout(animationTimeoutRef.current);

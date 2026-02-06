@@ -79,7 +79,11 @@ export default function PageBoard() {
   const [archives, setArchives] = useState<Page[]>([]);
   const [loading, setLoading] = useState(true);
   const [animatingItems, setAnimatingItems] = useState<AnimatingItem[]>([]);
-  const [toast, setToast] = useState<ToastState>({ visible: false, pageId: '', pageTitle: '' });
+  const [toast, setToast] = useState<ToastState>({
+    visible: false,
+    pageId: '',
+    pageTitle: '',
+  });
   const router = useRouter();
   const timersRef = useRef<Set<NodeJS.Timeout>>(new Set());
 
@@ -87,7 +91,7 @@ export default function PageBoard() {
   useEffect(() => {
     const timers = timersRef.current;
     return () => {
-      timers.forEach(timer => clearTimeout(timer));
+      timers.forEach((timer) => clearTimeout(timer));
       timers.clear();
     };
   }, []);
@@ -144,7 +148,7 @@ export default function PageBoard() {
     setToast({ visible: false, pageId: '', pageTitle: '' });
 
     // Start fade out animation
-    setAnimatingItems(prev => [...prev, { id, type: 'fadeOut' }]);
+    setAnimatingItems((prev) => [...prev, { id, type: 'fadeOut' }]);
 
     const timer = setTimeout(async () => {
       timersRef.current.delete(timer);
@@ -156,17 +160,17 @@ export default function PageBoard() {
           // Get the server-provided archived_at timestamp
           const data = await response.json();
           const archivedAt = data.archived_at ?? Date.now(); // Fallback to client time if not provided
-          
+
           // Update local state
-          const archivedPage = pages.find(p => p.id === id);
+          const archivedPage = pages.find((p) => p.id === id);
           if (archivedPage) {
-            setPages(prev => prev.filter(p => p.id !== id));
+            setPages((prev) => prev.filter((p) => p.id !== id));
             const newArchive: Page = {
               ...archivedPage,
               content: '',
               archived_at: archivedAt,
             };
-            setArchives(prev => [newArchive, ...prev]);
+            setArchives((prev) => [newArchive, ...prev]);
           }
 
           // Show toast
@@ -175,7 +179,7 @@ export default function PageBoard() {
       } catch (error) {
         logger.error('Failed to archive page:', error);
       } finally {
-        setAnimatingItems(prev => prev.filter(item => item.id !== id));
+        setAnimatingItems((prev) => prev.filter((item) => item.id !== id));
       }
     }, ANIMATION_DURATION_MS);
     timersRef.current.add(timer);
@@ -200,7 +204,7 @@ export default function PageBoard() {
 
   const unarchivePage = async (id: string) => {
     // Start fade out animation
-    setAnimatingItems(prev => [...prev, { id, type: 'fadeOut' }]);
+    setAnimatingItems((prev) => [...prev, { id, type: 'fadeOut' }]);
 
     const timer = setTimeout(async () => {
       timersRef.current.delete(timer);
@@ -213,17 +217,20 @@ export default function PageBoard() {
           await Promise.all([fetchPages(), fetchArchives()]);
 
           // Add fade in animation for the unarchived item
-          setAnimatingItems(prev => [...prev.filter(item => item.id !== id), { id, type: 'fadeIn' }]);
+          setAnimatingItems((prev) => [
+            ...prev.filter((item) => item.id !== id),
+            { id, type: 'fadeIn' },
+          ]);
           const fadeInTimer = setTimeout(() => {
             timersRef.current.delete(fadeInTimer);
-            setAnimatingItems(prev => prev.filter(item => item.id !== id));
+            setAnimatingItems((prev) => prev.filter((item) => item.id !== id));
           }, ANIMATION_DURATION_MS);
           timersRef.current.add(fadeInTimer);
         }
       } catch (error) {
         logger.error('Failed to unarchive page:', error);
         // Only cleanup on error since success case handles its own cleanup
-        setAnimatingItems(prev => prev.filter(item => item.id !== id));
+        setAnimatingItems((prev) => prev.filter((item) => item.id !== id));
       }
     }, ANIMATION_DURATION_MS);
     timersRef.current.add(timer);
@@ -234,16 +241,14 @@ export default function PageBoard() {
   };
 
   const getItemOpacity = (id: string) => {
-    const animating = animatingItems.find(item => item.id === id);
+    const animating = animatingItems.find((item) => item.id === id);
     if (!animating) return 1;
     return animating.type === 'fadeOut' ? 0 : 1;
   };
 
   if (loading) {
     return (
-      <div style={{ color: '#574a46', padding: '20px' }}>
-        読み込み中...
-      </div>
+      <div style={{ color: '#574a46', padding: '20px' }}>読み込み中...</div>
     );
   }
 
@@ -268,7 +273,10 @@ export default function PageBoard() {
             padding: '12px 24px',
             backgroundColor: 'transparent',
             border: 'none',
-            borderBottom: activeTab === 'latest' ? '2px solid #c42776' : '2px solid transparent',
+            borderBottom:
+              activeTab === 'latest'
+                ? '2px solid #c42776'
+                : '2px solid transparent',
             color: activeTab === 'latest' ? '#c42776' : '#574a46',
             fontWeight: activeTab === 'latest' ? '600' : '400',
             cursor: 'pointer',
@@ -288,7 +296,10 @@ export default function PageBoard() {
             padding: '12px 24px',
             backgroundColor: 'transparent',
             border: 'none',
-            borderBottom: activeTab === 'archive' ? '2px solid #c42776' : '2px solid transparent',
+            borderBottom:
+              activeTab === 'archive'
+                ? '2px solid #c42776'
+                : '2px solid transparent',
             color: activeTab === 'archive' ? '#c42776' : '#574a46',
             fontWeight: activeTab === 'archive' ? '600' : '400',
             cursor: 'pointer',
@@ -308,7 +319,9 @@ export default function PageBoard() {
               ページがありません。新しいページを作成しましょう。
             </p>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <div
+              style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}
+            >
               {pages.map((page) => (
                 <div
                   key={page.id}
@@ -380,12 +393,14 @@ export default function PageBoard() {
                       transition: 'all 0.15s ease',
                     }}
                     onMouseEnter={(e) => {
-                      e.currentTarget.style.backgroundColor = 'rgba(87, 74, 70, 0.1)';
+                      e.currentTarget.style.backgroundColor =
+                        'rgba(87, 74, 70, 0.1)';
                       e.currentTarget.style.borderColor = '#574a46';
                     }}
                     onMouseLeave={(e) => {
                       e.currentTarget.style.backgroundColor = 'transparent';
-                      e.currentTarget.style.borderColor = 'rgba(87, 74, 70, 0.3)';
+                      e.currentTarget.style.borderColor =
+                        'rgba(87, 74, 70, 0.3)';
                     }}
                   >
                     <ArchiveIcon />
@@ -399,13 +414,19 @@ export default function PageBoard() {
 
       {/* Archive Tab Content */}
       {activeTab === 'archive' && (
-        <div role="tabpanel" id="tabpanel-archive" aria-labelledby="tab-archive">
+        <div
+          role="tabpanel"
+          id="tabpanel-archive"
+          aria-labelledby="tab-archive"
+        >
           {archives.length === 0 ? (
             <p style={{ color: '#574a46', opacity: 0.7 }}>
               アーカイブされたページはありません。
             </p>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <div
+              style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}
+            >
               {archives.map((page) => (
                 <div
                   key={page.id}
@@ -463,12 +484,14 @@ export default function PageBoard() {
                       transition: 'all 0.15s ease',
                     }}
                     onMouseEnter={(e) => {
-                      e.currentTarget.style.backgroundColor = 'rgba(87, 74, 70, 0.1)';
+                      e.currentTarget.style.backgroundColor =
+                        'rgba(87, 74, 70, 0.1)';
                       e.currentTarget.style.borderColor = '#574a46';
                     }}
                     onMouseLeave={(e) => {
                       e.currentTarget.style.backgroundColor = 'transparent';
-                      e.currentTarget.style.borderColor = 'rgba(87, 74, 70, 0.3)';
+                      e.currentTarget.style.borderColor =
+                        'rgba(87, 74, 70, 0.3)';
                     }}
                   >
                     <UnarchiveIcon />
@@ -520,7 +543,9 @@ export default function PageBoard() {
         <Toast
           message="アーカイブしました"
           onCancel={cancelArchive}
-          onClose={() => setToast({ visible: false, pageId: '', pageTitle: '' })}
+          onClose={() =>
+            setToast({ visible: false, pageId: '', pageTitle: '' })
+          }
         />
       )}
     </div>
