@@ -1,31 +1,15 @@
 'use client';
 
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import type { PageListItem, ArchiveListItem } from '@/lib/types';
 import Toast from './Toast';
-import { logger } from '@/lib/logger';
-import {
-  logResponseError,
-  isPageListItemArray,
-  isArchiveListItemArray,
-  isCreatePageResponse,
-  isArchivePageResponse,
-} from '@/lib/api';
-import { ANIMATION_DURATION_MS } from '@/lib/constants';
+import { usePageList } from '@/hooks/usePageList';
+import { useArchives } from '@/hooks/useArchives';
+import { useAnimatingItems } from '@/hooks/useAnimatingItems';
+import { useArchiveToast } from '@/hooks/useArchiveToast';
 
 type Tab = 'latest' | 'archive';
-
-interface AnimatingItem {
-  id: string;
-  type: 'fadeOut' | 'fadeIn';
-}
-
-interface ToastState {
-  visible: boolean;
-  pageId: string;
-  pageTitle: string;
-}
 
 // SVG Icons
 const ArchiveIcon = () => (
@@ -81,70 +65,23 @@ const PlusIcon = () => (
 
 export default function PageBoard() {
   const [activeTab, setActiveTab] = useState<Tab>('latest');
-  const [pages, setPages] = useState<PageListItem[]>([]);
-  const [archives, setArchives] = useState<ArchiveListItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [animatingItems, setAnimatingItems] = useState<AnimatingItem[]>([]);
-  const [toast, setToast] = useState<ToastState>({
-    visible: false,
-    pageId: '',
-    pageTitle: '',
-  });
   const router = useRouter();
-  const timersRef = useRef<Set<NodeJS.Timeout>>(new Set());
 
-  // Cleanup timers on unmount to prevent memory leaks
-  useEffect(() => {
-    const timers = timersRef.current;
-    return () => {
-      timers.forEach((timer) => clearTimeout(timer));
-      timers.clear();
-    };
-  }, []);
-
-  const fetchPages = useCallback(async () => {
-    try {
-      const response = await fetch('/api/pages');
-      if (!response.ok) {
-        await logResponseError('PageBoard FetchPages', response);
-        return;
-      }
-      const data: unknown = await response.json();
-      if (!isPageListItemArray(data)) {
-        logger.error('[PageBoard FetchPages] Unexpected response shape:', data);
-        return;
-      }
-      setPages(data);
-    } catch (error) {
-      logger.error('[PageBoard FetchPages] Network error:', error);
-    }
-  }, []);
-
-  const fetchArchives = useCallback(async () => {
-    try {
-      const response = await fetch('/api/archives');
-      if (!response.ok) {
-        await logResponseError('PageBoard FetchArchives', response);
-        return;
-      }
-      const data: unknown = await response.json();
-      if (!isArchiveListItemArray(data)) {
-        logger.error(
-          '[PageBoard FetchArchives] Unexpected response shape:',
-          data,
-        );
-        return;
-      }
-      setArchives(data);
-    } catch (error) {
-      logger.error('[PageBoard FetchArchives] Network error:', error);
-    }
-  }, []);
-
-  const handleToastClose = useCallback(
-    () => setToast({ visible: false, pageId: '', pageTitle: '' }),
-    [],
-  );
+  const { pages, fetchPages, createPage, removePage, addPage, findPage } =
+    usePageList();
+  const {
+    archives,
+    fetchArchives,
+    archivePage: archivePageApi,
+    unarchivePage: unarchivePageApi,
+    addArchive,
+    removeArchive,
+    findArchive,
+  } = useArchives();
+  const { startFadeOut, startFadeIn, clearAnimation, getItemOpacity } =
+    useAnimatingItems();
+  const { toast, showToast, hideToast } = useArchiveToast();
 
   useEffect(() => {
     const loadData = async () => {
@@ -155,82 +92,51 @@ export default function PageBoard() {
     loadData();
   }, [fetchPages, fetchArchives]);
 
-  const createPage = async () => {
-    try {
-      const response = await fetch('/api/pages', {
-        method: 'POST',
-      });
-      if (!response.ok) {
-        await logResponseError('PageBoard CreatePage', response);
-        return;
-      }
-      const data: unknown = await response.json();
-      if (!isCreatePageResponse(data)) {
-        logger.error('[PageBoard CreatePage] Unexpected response shape:', data);
-        return;
-      }
-      router.push(`/page/${data.id}`);
-    } catch (error) {
-      logger.error('[PageBoard CreatePage] Network error:', error);
+  const handleCreatePage = async () => {
+    const id = await createPage();
+    if (id) {
+      router.push(`/page/${id}`);
     }
   };
 
-  const archivePage = async (id: string, title: string) => {
-    // Dismiss any existing toast immediately when archiving a new page
-    setToast({ visible: false, pageId: '', pageTitle: '' });
+  const handleArchivePage = useCallback(
+    (id: string, title: string) => {
+      hideToast();
 
-    // Start fade out animation
-    setAnimatingItems((prev) => [...prev, { id, type: 'fadeOut' }]);
-
-    const timer = setTimeout(async () => {
-      timersRef.current.delete(timer);
-      try {
-        const response = await fetch(`/api/pages/${id}/archive`, {
-          method: 'POST',
-        });
-        if (!response.ok) {
-          await logResponseError('PageBoard ArchivePage', response);
-          return;
+      startFadeOut(id, async () => {
+        const archivedAt = await archivePageApi(id);
+        if (archivedAt !== null) {
+          const archivedPage = findPage(id);
+          if (archivedPage) {
+            removePage(id);
+            const newArchive: ArchiveListItem = {
+              ...archivedPage,
+              archived_at: archivedAt,
+            };
+            addArchive(newArchive);
+          }
+          showToast(id, title);
         }
-        // Get the server-provided archived_at timestamp
-        const data: unknown = await response.json();
-        if (!isArchivePageResponse(data)) {
-          logger.error(
-            '[PageBoard ArchivePage] Unexpected response shape:',
-            data,
-          );
-          return;
-        }
-        const archivedAt = data.archived_at;
+        clearAnimation(id);
+      });
+    },
+    [
+      hideToast,
+      startFadeOut,
+      archivePageApi,
+      findPage,
+      removePage,
+      addArchive,
+      showToast,
+      clearAnimation,
+    ],
+  );
 
-        // Update local state
-        const archivedPage = pages.find((p) => p.id === id);
-        if (archivedPage) {
-          setPages((prev) => prev.filter((p) => p.id !== id));
-          const newArchive: ArchiveListItem = {
-            ...archivedPage,
-            archived_at: archivedAt,
-          };
-          setArchives((prev) => [newArchive, ...prev]);
-        }
-
-        // Show toast
-        setToast({ visible: true, pageId: id, pageTitle: title });
-      } catch (error) {
-        logger.error('[PageBoard ArchivePage] Network error:', error);
-      } finally {
-        setAnimatingItems((prev) => prev.filter((item) => item.id !== id));
-      }
-    }, ANIMATION_DURATION_MS);
-    timersRef.current.add(timer);
-  };
-
-  const cancelArchive = async () => {
+  const handleCancelArchive = useCallback(async () => {
     const { pageId } = toast;
-    setToast({ visible: false, pageId: '', pageTitle: '' });
+    hideToast();
 
-    // Restore local state immediately for responsiveness
-    const archivedPage = archives.find((p) => p.id === pageId);
+    const archivedPage = findArchive(pageId);
     if (archivedPage) {
       const restoredPage: PageListItem = {
         id: archivedPage.id,
@@ -238,79 +144,51 @@ export default function PageBoard() {
         created_at: archivedPage.created_at,
         updated_at: archivedPage.updated_at,
       };
-      setPages((prev) => [restoredPage, ...prev]);
-      setArchives((prev) => prev.filter((p) => p.id !== pageId));
-
-      // Add fade in animation for the restored item
-      setAnimatingItems((prev) => [...prev, { id: pageId, type: 'fadeIn' }]);
-      const fadeInTimer = setTimeout(() => {
-        timersRef.current.delete(fadeInTimer);
-        setAnimatingItems((prev) => prev.filter((item) => item.id !== pageId));
-      }, ANIMATION_DURATION_MS);
-      timersRef.current.add(fadeInTimer);
+      addPage(restoredPage);
+      removeArchive(pageId);
+      startFadeIn(pageId);
     }
 
-    try {
-      const response = await fetch(`/api/pages/${pageId}/unarchive`, {
-        method: 'POST',
-      });
-      if (!response.ok) {
-        await logResponseError('PageBoard CancelArchive', response);
-        // Revert local state on error
-        await Promise.all([fetchPages(), fetchArchives()]);
-      }
-    } catch (error) {
-      logger.error('[PageBoard CancelArchive] Network error:', error);
-      // Revert local state on error
+    const success = await unarchivePageApi(pageId);
+    if (!success) {
       await Promise.all([fetchPages(), fetchArchives()]);
     }
-  };
+  }, [
+    toast,
+    hideToast,
+    findArchive,
+    addPage,
+    removeArchive,
+    startFadeIn,
+    unarchivePageApi,
+    fetchPages,
+    fetchArchives,
+  ]);
 
-  const unarchivePage = async (id: string) => {
-    // Start fade out animation
-    setAnimatingItems((prev) => [...prev, { id, type: 'fadeOut' }]);
-
-    const timer = setTimeout(async () => {
-      timersRef.current.delete(timer);
-      try {
-        const response = await fetch(`/api/pages/${id}/unarchive`, {
-          method: 'POST',
-        });
-        if (!response.ok) {
-          await logResponseError('PageBoard UnarchivePage', response);
-          setAnimatingItems((prev) => prev.filter((item) => item.id !== id));
+  const handleUnarchivePage = useCallback(
+    (id: string) => {
+      startFadeOut(id, async () => {
+        const success = await unarchivePageApi(id);
+        if (!success) {
+          clearAnimation(id);
           return;
         }
-        // Refresh both lists to get updated data
         await Promise.all([fetchPages(), fetchArchives()]);
-
-        // Add fade in animation for the unarchived item
-        setAnimatingItems((prev) => [
-          ...prev.filter((item) => item.id !== id),
-          { id, type: 'fadeIn' },
-        ]);
-        const fadeInTimer = setTimeout(() => {
-          timersRef.current.delete(fadeInTimer);
-          setAnimatingItems((prev) => prev.filter((item) => item.id !== id));
-        }, ANIMATION_DURATION_MS);
-        timersRef.current.add(fadeInTimer);
-      } catch (error) {
-        logger.error('[PageBoard UnarchivePage] Network error:', error);
-        // Only cleanup on error since success case handles its own cleanup
-        setAnimatingItems((prev) => prev.filter((item) => item.id !== id));
-      }
-    }, ANIMATION_DURATION_MS);
-    timersRef.current.add(timer);
-  };
+        startFadeIn(id);
+      });
+    },
+    [
+      startFadeOut,
+      unarchivePageApi,
+      clearAnimation,
+      fetchPages,
+      fetchArchives,
+      startFadeIn,
+    ],
+  );
 
   const formatDate = (timestamp: number) => {
     return new Date(timestamp).toLocaleString();
-  };
-
-  const getItemOpacity = (id: string) => {
-    const animating = animatingItems.find((item) => item.id === id);
-    if (!animating) return 1;
-    return animating.type === 'fadeOut' ? 0 : 1;
   };
 
   if (loading) {
@@ -446,7 +324,7 @@ export default function PageBoard() {
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      archivePage(page.id, page.title);
+                      handleArchivePage(page.id, page.title);
                     }}
                     className="archive-button"
                     aria-label="アーカイブする"
@@ -559,7 +437,7 @@ export default function PageBoard() {
                     </p>
                   </div>
                   <button
-                    onClick={() => unarchivePage(page.id)}
+                    onClick={() => handleUnarchivePage(page.id)}
                     className="unarchive-button"
                     aria-label="アーカイブを解除する"
                     title="アーカイブを解除"
@@ -608,7 +486,7 @@ export default function PageBoard() {
 
       {/* Floating Action Button */}
       <button
-        onClick={createPage}
+        onClick={handleCreatePage}
         className="fab-button"
         aria-label="新しいページを作成"
         title="新しいページを作成"
@@ -654,8 +532,8 @@ export default function PageBoard() {
       {toast.visible && (
         <Toast
           message="アーカイブしました"
-          onCancel={cancelArchive}
-          onClose={handleToastClose}
+          onCancel={handleCancelArchive}
+          onClose={hideToast}
         />
       )}
     </div>
