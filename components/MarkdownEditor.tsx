@@ -19,7 +19,6 @@ const SYNC_TIMEOUT_MS = 2000;
 export default function MarkdownEditor({ pageId }: { pageId: string }) {
   const [page, setPage] = useState<Page | null>(null);
   const [loading, setLoading] = useState(true);
-  const [isSaving, setIsSaving] = useState(false);
   const [peerCount, setPeerCount] = useState(0);
   const [saveError, setSaveError] = useState<string | null>(null);
   const saveErrorTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -79,7 +78,6 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
       // Debounce save by 1 second
       saveTimeoutRef.current = setTimeout(async () => {
         logger.log('[Editor] Saving content - length:', content.length);
-        setIsSaving(true);
 
         try {
           const response = await fetch(`/api/pages/${pageId}`, {
@@ -113,8 +111,6 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
         } catch (error) {
           logger.error('[Editor Save] Network error:', error);
           showSaveError('保存に失敗しました');
-        } finally {
-          setIsSaving(false);
         }
       }, 1000);
     },
@@ -172,6 +168,10 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
           const handleSync = (isSynced: boolean) => {
             if (isSynced) {
               provider.off('sync', handleSync);
+              if (syncTimeoutRef.current) {
+                clearTimeout(syncTimeoutRef.current);
+                syncTimeoutRef.current = null;
+              }
 
               // Clear the timeout since sync completed successfully
               if (syncTimeoutRef.current) {
@@ -214,8 +214,8 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
 
           // Timeout fallback in case sync takes too long
           syncTimeoutRef.current = setTimeout(() => {
-            provider.off('sync', handleSync);
             syncTimeoutRef.current = null;
+            provider.off('sync', handleSync);
             logger.log('[Yjs] Sync timeout, assuming empty document');
             resolve();
           }, SYNC_TIMEOUT_MS);
@@ -340,6 +340,7 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
         // Initialize editor after page is loaded
         // Small delay to ensure DOM is ready
         initTimeoutRef.current = setTimeout(() => {
+          initTimeoutRef.current = null;
           if (isMounted) {
             initEditor(data.content);
           }
@@ -434,20 +435,6 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
         </div>
       )}
 
-      {/* 保存中表示 - 右下に控えめに表示 */}
-      <div
-        role="status"
-        aria-live="polite"
-        className="fixed bottom-4 right-4 text-xs px-3 py-1.5 rounded-full transition-opacity duration-300"
-        style={{
-          color: '#574a46',
-          backgroundColor: 'rgba(245, 234, 230, 0.9)',
-          opacity: isSaving ? 0.8 : 0,
-          pointerEvents: 'none',
-        }}
-      >
-        保存中...
-      </div>
 
       {/* 保存エラー表示 */}
       {saveError && (
