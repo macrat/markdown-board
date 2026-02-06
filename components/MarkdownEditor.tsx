@@ -125,8 +125,11 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
     [pageId, showSaveError],
   );
 
-  const initEditor = useCallback(
-    async (initialContent: string) => {
+  useEffect(() => {
+    // Fetch page data and initialize editor - only once on mount
+    let isMounted = true;
+
+    const initEditor = async (initialContent: string) => {
       if (!editorRef.current) return;
 
       // Prevent double initialization
@@ -176,12 +179,6 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
           const handleSync = (isSynced: boolean) => {
             if (isSynced) {
               provider.off('sync', handleSync);
-              if (syncTimeoutRef.current) {
-                clearTimeout(syncTimeoutRef.current);
-                syncTimeoutRef.current = null;
-              }
-
-              // Clear the timeout since sync completed successfully
               if (syncTimeoutRef.current) {
                 clearTimeout(syncTimeoutRef.current);
                 syncTimeoutRef.current = null;
@@ -352,13 +349,7 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
       } finally {
         isInitializingRef.current = false;
       }
-    },
-    [pageId, handleContentChange],
-  );
-
-  useEffect(() => {
-    // Fetch page data and initialize editor - only once on mount
-    let isMounted = true;
+    };
 
     const fetchPage = async () => {
       try {
@@ -432,7 +423,8 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
         ydocRef.current = null;
       }
     };
-  }, [pageId, router, initEditor]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pageId, router]);
 
   if (loading) {
     return (
