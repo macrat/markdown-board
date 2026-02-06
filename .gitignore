@@ -43,9 +43,6 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# claude agent memory
-.claude/agent-memory/
-
 # database
 /data
 *.db
@@ -53,4 +50,4 @@ next-env.d.ts
 *.db-wal
 
 # claude
-.claude/agent-memory/
+.claude/
