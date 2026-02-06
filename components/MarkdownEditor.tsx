@@ -8,6 +8,7 @@ import { listener, listenerCtx } from '@milkdown/plugin-listener';
 import { collab, collabServiceCtx } from '@milkdown/plugin-collab';
 import type { Page } from '@/lib/types';
 import { logger } from '@/lib/logger';
+import { logResponseError } from '@/lib/api';
 import * as Y from 'yjs';
 import { WebsocketProvider } from 'y-websocket';
 import '../app/milkdown.css';
@@ -20,6 +21,8 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
   const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [peerCount, setPeerCount] = useState(0);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const saveErrorTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const editorRef = useRef<HTMLDivElement>(null);
   const editorInstanceRef = useRef<Editor | null>(null);
   const ydocRef = useRef<Y.Doc | null>(null);
@@ -45,6 +48,17 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
   useEffect(() => {
     pageRef.current = page;
   }, [page]);
+
+  const showSaveError = useCallback((message: string) => {
+    setSaveError(message);
+    if (saveErrorTimeoutRef.current) {
+      clearTimeout(saveErrorTimeoutRef.current);
+    }
+    saveErrorTimeoutRef.current = setTimeout(() => {
+      setSaveError(null);
+      saveErrorTimeoutRef.current = null;
+    }, 5000);
+  }, []);
 
   const handleContentChange = useCallback(
     async (content: string) => {
@@ -79,21 +93,32 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
           });
 
           if (!response.ok) {
-            logger.error('[Editor] Save failed with status:', response.status);
+            await logResponseError('Editor Save', response);
+            showSaveError(
+              response.status === 413
+                ? '保存できませんでした: コンテンツが大きすぎます（上限: 10MB）'
+                : '保存に失敗しました',
+            );
           } else {
+            if (saveErrorTimeoutRef.current) {
+              clearTimeout(saveErrorTimeoutRef.current);
+              saveErrorTimeoutRef.current = null;
+            }
+            setSaveError(null);
             logger.log(
               '[Editor] Save successful - content length:',
               content.length,
             );
           }
         } catch (error) {
-          logger.error('Failed to save content:', error);
+          logger.error('[Editor Save] Network error:', error);
+          showSaveError('保存に失敗しました');
         } finally {
           setIsSaving(false);
         }
       }, 1000);
     },
-    [pageId],
+    [pageId, showSaveError],
   );
 
   const initEditor = useCallback(
@@ -295,6 +320,7 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
       try {
         const response = await fetch(`/api/pages/${pageId}`);
         if (!response.ok) {
+          await logResponseError('Editor FetchPage', response);
           if (isMounted) router.push('/');
           return;
         }
@@ -313,7 +339,7 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
           }
         }, 100);
       } catch (error) {
-        logger.error('Failed to fetch page:', error);
+        logger.error('[Editor FetchPage] Network error:', error);
         if (isMounted) router.push('/');
       }
     };
@@ -332,6 +358,9 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
       }
       if (saveTimeoutRef.current) {
         clearTimeout(saveTimeoutRef.current);
+      }
+      if (saveErrorTimeoutRef.current) {
+        clearTimeout(saveErrorTimeoutRef.current);
       }
       if (editorInstanceRef.current) {
         editorInstanceRef.current.destroy();
@@ -364,7 +393,7 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
 
   return (
     <div className="min-h-screen relative">
-      <div className="h-screen p-8 overflow-auto">
+      <div className="h-screen p-4 sm:p-8 overflow-auto">
         <div ref={editorRef} className="milkdown max-w-4xl mx-auto" />
       </div>
 
@@ -413,6 +442,21 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
       >
         保存中...
       </div>
+
+      {/* 保存エラー表示 */}
+      {saveError && (
+        <div
+          role="alert"
+          aria-live="assertive"
+          className="fixed bottom-4 left-1/2 -translate-x-1/2 text-sm px-5 py-3 rounded-lg shadow-lg transition-opacity duration-300"
+          style={{
+            color: '#f5eae6',
+            backgroundColor: '#574a46',
+          }}
+        >
+          {saveError}
+        </div>
+      )}
     </div>
   );
 }

@@ -49,5 +49,5 @@ next-env.d.ts
 *.db-shm
 *.db-wal
 
-# claude agent memory
+# claude
 .claude/agent-memory/

@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import db from '@/lib/db';
 import { logger } from '@/lib/logger';
 
+const { cleanupOldArchives } = require('@/server/cleanup-archives'); // eslint-disable-line @typescript-eslint/no-require-imports
+
 export async function GET() {
   try {
     const stmt = db.prepare(`
@@ -24,17 +26,9 @@ export async function GET() {
 
 export async function DELETE() {
   try {
-    // Delete archived pages older than 30 days
-    const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
+    const deleted = cleanupOldArchives(db);
 
-    const stmt = db.prepare(`
-      DELETE FROM pages
-      WHERE archived_at IS NOT NULL AND archived_at < ?
-    `);
-
-    const result = stmt.run(thirtyDaysAgo);
-
-    return NextResponse.json({ deleted: result.changes });
+    return NextResponse.json({ success: true, deleted });
   } catch (error) {
     logger.error('Failed to clean up old archives:', error);
     return NextResponse.json(
