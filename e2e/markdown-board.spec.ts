@@ -2,7 +2,7 @@ import { test, expect, Page } from '@playwright/test';
 
 // Helper function to create a new page with content
 async function createPageWithContent(page: Page, content: string) {
-  await page.click('button[title="Create new page"]');
+  await page.click('button[title="新しいページを作成"]');
   await page.waitForURL(/\/page\/.+/);
   await page.waitForSelector('.milkdown', { timeout: 10000 });
 
@@ -38,7 +38,7 @@ test.describe('Markdown Board E2E Tests', () => {
     page,
   }) => {
     // Step 1: Create a new page
-    await page.click('button[title="Create new page"]');
+    await page.click('button[title="新しいページを作成"]');
     await page.waitForURL(/\/page\/.+/);
 
     // Wait for editor to load
@@ -103,7 +103,7 @@ test.describe('Markdown Board E2E Tests', () => {
 
   test('should handle escaped heading markers correctly', async ({ page }) => {
     // Create a new page
-    await page.click('button[title="Create new page"]');
+    await page.click('button[title="新しいページを作成"]');
     await page.waitForURL(/\/page\/.+/);
     await page.waitForSelector('.milkdown', { timeout: 10000 });
 
@@ -153,7 +153,7 @@ test.describe('Markdown Board E2E Tests', () => {
     await page1.waitForLoadState('networkidle');
 
     // Create new page in Tab A
-    await page1.click('button[title="Create new page"]');
+    await page1.click('button[title="新しいページを作成"]');
     await page1.waitForURL(/\/page\/.+/);
     const pageUrl = page1.url();
     const pageId = pageUrl.split('/page/')[1];
@@ -217,7 +217,7 @@ test.describe('Markdown Board E2E Tests', () => {
     page,
   }) => {
     // Step 1: Create a new page with content
-    await page.click('button[title="Create new page"]');
+    await page.click('button[title="新しいページを作成"]');
     await page.waitForURL(/\/page\/.+/);
     await page.waitForSelector('.milkdown', { timeout: 10000 });
 
@@ -271,7 +271,7 @@ test.describe('Markdown Board E2E Tests', () => {
   // ==================== EMPTY CONTENT HANDLING ====================
 
   test('should handle empty page creation correctly', async ({ page }) => {
-    await page.click('button[title="Create new page"]');
+    await page.click('button[title="新しいページを作成"]');
     await page.waitForURL(/\/page\/.+/);
     await page.waitForSelector('.milkdown', { timeout: 10000 });
 
@@ -289,7 +289,7 @@ test.describe('Markdown Board E2E Tests', () => {
   });
 
   test('should handle page with only whitespace', async ({ page }) => {
-    await page.click('button[title="Create new page"]');
+    await page.click('button[title="新しいページを作成"]');
     await page.waitForURL(/\/page\/.+/);
     await page.waitForSelector('.milkdown', { timeout: 10000 });
 
@@ -316,7 +316,7 @@ test.describe('Markdown Board E2E Tests', () => {
   test('should handle very long content without performance issues', async ({
     page,
   }) => {
-    await page.click('button[title="Create new page"]');
+    await page.click('button[title="新しいページを作成"]');
     await page.waitForURL(/\/page\/.+/);
     await page.waitForSelector('.milkdown', { timeout: 10000 });
 
@@ -540,7 +540,7 @@ Russian: Привет мир`;
   test('should render text formatting (bold, italic, strikethrough)', async ({
     page,
   }) => {
-    await page.click('button[title="Create new page"]');
+    await page.click('button[title="新しいページを作成"]');
     await page.waitForURL(/\/page\/.+/);
     await page.waitForSelector('.milkdown', { timeout: 10000 });
 
@@ -576,7 +576,7 @@ Russian: Привет мир`;
   });
 
   test('should render unordered and ordered lists', async ({ page }) => {
-    await page.click('button[title="Create new page"]');
+    await page.click('button[title="新しいページを作成"]');
     await page.waitForURL(/\/page\/.+/);
     await page.waitForSelector('.milkdown', { timeout: 10000 });
 
@@ -612,7 +612,7 @@ Russian: Привет мир`;
   });
 
   test('should render nested lists', async ({ page }) => {
-    await page.click('button[title="Create new page"]');
+    await page.click('button[title="新しいページを作成"]');
     await page.waitForURL(/\/page\/.+/);
     await page.waitForSelector('.milkdown', { timeout: 10000 });
 
@@ -640,7 +640,7 @@ Russian: Привет мир`;
   });
 
   test('should render links', async ({ page }) => {
-    await page.click('button[title="Create new page"]');
+    await page.click('button[title="新しいページを作成"]');
     await page.waitForURL(/\/page\/.+/);
     await page.waitForSelector('.milkdown', { timeout: 10000 });
 
@@ -662,7 +662,7 @@ Russian: Привет мир`;
   });
 
   test('should render inline code and code blocks', async ({ page }) => {
-    await page.click('button[title="Create new page"]');
+    await page.click('button[title="新しいページを作成"]');
     await page.waitForURL(/\/page\/.+/);
     await page.waitForSelector('.milkdown', { timeout: 10000 });
 
@@ -704,7 +704,7 @@ Russian: Привет мир`;
   });
 
   test('should render blockquotes', async ({ page }) => {
-    await page.click('button[title="Create new page"]');
+    await page.click('button[title="新しいページを作成"]');
     await page.waitForURL(/\/page\/.+/);
     await page.waitForSelector('.milkdown', { timeout: 10000 });
 
@@ -729,7 +729,7 @@ Russian: Привет мир`;
   });
 
   test('should render horizontal rules', async ({ page }) => {
-    await page.click('button[title="Create new page"]');
+    await page.click('button[title="新しいページを作成"]');
     await page.waitForURL(/\/page\/.+/);
     await page.waitForSelector('.milkdown', { timeout: 10000 });
 
@@ -754,7 +754,7 @@ Russian: Привет мир`;
   });
 
   test('should render tables', async ({ page }) => {
-    await page.click('button[title="Create new page"]');
+    await page.click('button[title="新しいページを作成"]');
     await page.waitForURL(/\/page\/.+/);
     await page.waitForSelector('.milkdown', { timeout: 10000 });
 
@@ -789,12 +789,12 @@ Russian: Привет мир`;
     await expect(page.locator('h1')).toContainText('Markdown Board');
 
     // Check button accessibility
-    const newPageButton = page.locator('button[title="Create new page"]');
+    const newPageButton = page.locator('button[title="新しいページを作成"]');
     await expect(newPageButton).toBeVisible();
     await expect(newPageButton).toBeEnabled();
 
     // Create a page and check editor accessibility
-    await page.click('button[title="Create new page"]');
+    await page.click('button[title="新しいページを作成"]');
     await page.waitForURL(/\/page\/.+/);
     await page.waitForSelector('.milkdown', { timeout: 10000 });
 
@@ -816,7 +816,7 @@ Russian: Привет мир`;
     expect(focusedElement).toBeTruthy();
 
     // Test keyboard navigation in editor
-    await page.click('button[title="Create new page"]');
+    await page.click('button[title="新しいページを作成"]');
     await page.waitForURL(/\/page\/.+/);
     await page.waitForSelector('.milkdown', { timeout: 10000 });
 
@@ -836,7 +836,7 @@ Russian: Привет мир`;
   });
 
   test('should have visible focus indicators', async ({ page }) => {
-    const newPageButton = page.locator('button[title="Create new page"]');
+    const newPageButton = page.locator('button[title="新しいページを作成"]');
 
     // Focus the button with keyboard
     await newPageButton.focus();
@@ -887,7 +887,9 @@ Russian: Привет мир`;
 
     // Check if main elements are visible
     await expect(page.locator('h1')).toBeVisible();
-    await expect(page.locator('button[title="Create new page"]')).toBeVisible();
+    await expect(
+      page.locator('button[title="新しいページを作成"]'),
+    ).toBeVisible();
   });
 
   test('should be responsive on tablet viewport', async ({ page }) => {
@@ -898,7 +900,9 @@ Russian: Привет мир`;
     await page.waitForLoadState('networkidle');
 
     await expect(page.locator('h1')).toBeVisible();
-    await expect(page.locator('button[title="Create new page"]')).toBeVisible();
+    await expect(
+      page.locator('button[title="新しいページを作成"]'),
+    ).toBeVisible();
   });
 
   // ==================== EDGE CASES ====================
@@ -1019,7 +1023,7 @@ Also test <img> and <a> tags`;
     await expect(pageItem).toBeVisible();
 
     // Archive the page using the archive icon
-    const archiveButton = pageItem.locator('button[title="Archive"]');
+    const archiveButton = pageItem.locator('button[title="アーカイブ"]');
     await archiveButton.click();
     await page.waitForTimeout(1000);
 
@@ -1042,7 +1046,7 @@ Also test <img> and <a> tags`;
 
   test('should create new page via FAB button', async ({ page }) => {
     // Click the FAB (Floating Action Button) to create a new page
-    const fabButton = page.locator('button[title="Create new page"]');
+    const fabButton = page.locator('button[title="新しいページを作成"]');
     await expect(fabButton).toBeVisible();
     await fabButton.click();
 
@@ -1091,7 +1095,7 @@ Also test <img> and <a> tags`;
     await expect(pageItem).toBeVisible();
 
     // Click archive icon on the page item
-    const archiveButton = pageItem.locator('button[title="Archive"]');
+    const archiveButton = pageItem.locator('button[title="アーカイブ"]');
     await archiveButton.click();
     await page.waitForTimeout(1000);
 
@@ -1108,7 +1112,9 @@ Also test <img> and <a> tags`;
     await expect(archiveItem).toBeVisible();
 
     // Click unarchive icon
-    const unarchiveButton = archiveItem.locator('button[title="Unarchive"]');
+    const unarchiveButton = archiveItem.locator(
+      'button[title="アーカイブを解除"]',
+    );
     await unarchiveButton.click();
     await page.waitForTimeout(1000);
 
@@ -1144,7 +1150,7 @@ Also test <img> and <a> tags`;
     await expect(pageItem).toBeVisible();
 
     // Click archive icon
-    const archiveButton = pageItem.locator('button[title="Archive"]');
+    const archiveButton = pageItem.locator('button[title="アーカイブ"]');
     await archiveButton.click();
 
     // Verify toast notification appears
