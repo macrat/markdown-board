@@ -26,6 +26,10 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
   const providerRef = useRef<WebsocketProvider | null>(null);
   const pageRef = useRef<Page | null>(null);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const updatePeerCountRef = useRef<(() => void) | null>(null);
+  const initTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const isMountedRef = useRef(true);
+  const isInitializingRef = useRef(false);
   const router = useRouter();
 
   // Keep pageRef in sync with page state
@@ -88,10 +92,13 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
       if (!editorRef.current) return;
 
       // Prevent double initialization
-      if (editorInstanceRef.current) {
-        logger.log('[Editor] Editor already initialized, skipping');
+      if (editorInstanceRef.current || isInitializingRef.current) {
+        logger.log(
+          '[Editor] Editor already initialized or initializing, skipping',
+        );
         return;
       }
+      isInitializingRef.current = true;
 
       logger.log(
         '[Editor] Initializing editor with SQLite content length:',
@@ -120,6 +127,7 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
           const states = provider.awareness.getStates();
           setPeerCount(Math.max(0, states.size - 1));
         };
+        updatePeerCountRef.current = updatePeerCount;
         provider.awareness.on('change', updatePeerCount);
         updatePeerCount();
 
@@ -172,6 +180,13 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
           }, SYNC_TIMEOUT_MS);
         });
 
+        // Abort if component unmounted during sync wait
+        if (!isMountedRef.current) {
+          logger.log('[Editor] Component unmounted during sync, aborting');
+          isInitializingRef.current = false;
+          return;
+        }
+
         // Determine if we should use SQLite content
         const fragment = ydoc.getXmlFragment('prosemirror');
         const shouldUseSQLiteContent =
@@ -218,6 +233,8 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
         editorInstanceRef.current = editor;
       } catch (error) {
         logger.error('Failed to initialize editor:', error);
+      } finally {
+        isInitializingRef.current = false;
       }
     },
     [pageId, handleContentChange],
@@ -243,7 +260,7 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
 
         // Initialize editor after page is loaded
         // Small delay to ensure DOM is ready
-        setTimeout(() => {
+        initTimeoutRef.current = setTimeout(() => {
           if (isMounted) {
             initEditor(data.content);
           }
@@ -258,20 +275,32 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
 
     return () => {
       isMounted = false;
+      isMountedRef.current = false;
 
-      // Cleanup
+      // Cleanup: destroy in reverse dependency order (editor → provider → ydoc)
+      if (initTimeoutRef.current) {
+        clearTimeout(initTimeoutRef.current);
+      }
       if (saveTimeoutRef.current) {
         clearTimeout(saveTimeoutRef.current);
-      }
-      if (providerRef.current) {
-        providerRef.current.destroy();
       }
       if (editorInstanceRef.current) {
         editorInstanceRef.current.destroy();
         editorInstanceRef.current = null;
       }
+      if (providerRef.current) {
+        if (updatePeerCountRef.current) {
+          providerRef.current.awareness.off(
+            'change',
+            updatePeerCountRef.current,
+          );
+        }
+        providerRef.current.destroy();
+        providerRef.current = null;
+      }
       if (ydocRef.current) {
         ydocRef.current.destroy();
+        ydocRef.current = null;
       }
     };
   }, [pageId, router, initEditor]);
@@ -294,7 +323,8 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
       <div
         role="status"
         aria-live="polite"
-        aria-label={`他に${peerCount}人が閲覧中`}
+        aria-hidden={peerCount === 0}
+        aria-label={`他に${peerCount}人が接続中`}
         className="peer-count-indicator"
         style={{
           opacity: peerCount > 0 ? 1 : 0,
