@@ -30,9 +30,17 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
   const updatePeerCountRef = useRef<(() => void) | null>(null);
   const initTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const syncTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const isMountedRef = useRef(true);
+  const isMountedRef = useRef(false);
   const isInitializingRef = useRef(false);
   const router = useRouter();
+
+  // Track mounted state for cleanup
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   // Keep pageRef in sync with page state
   useEffect(() => {
@@ -57,6 +65,7 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
 
       // Debounce save by 1 second
       saveTimeoutRef.current = setTimeout(async () => {
+        if (!isMountedRef.current) return;
         logger.log('[Editor] Saving content - length:', content.length);
         setIsSaving(true);
 
@@ -82,7 +91,9 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
         } catch (error) {
           logger.error('[Editor Save] Network error:', error);
         } finally {
-          setIsSaving(false);
+          if (isMountedRef.current) {
+            setIsSaving(false);
+          }
         }
       }, 1000);
     },
@@ -244,19 +255,17 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
 
   useEffect(() => {
     // Fetch page data and initialize editor - only once on mount
-    let isMounted = true;
-
     const fetchPage = async () => {
       try {
         const response = await fetch(`/api/pages/${pageId}`);
         if (!response.ok) {
           await logResponseError('Editor FetchPage', response);
-          if (isMounted) router.push('/');
+          if (isMountedRef.current) router.push('/');
           return;
         }
 
         const data = await response.json();
-        if (!isMounted) return;
+        if (!isMountedRef.current) return;
 
         setPage(data);
         setLoading(false);
@@ -264,22 +273,19 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
         // Initialize editor after page is loaded
         // Small delay to ensure DOM is ready
         initTimeoutRef.current = setTimeout(() => {
-          if (isMounted) {
+          if (isMountedRef.current) {
             initEditor(data.content);
           }
         }, 100);
       } catch (error) {
         logger.error('[Editor FetchPage] Network error:', error);
-        if (isMounted) router.push('/');
+        if (isMountedRef.current) router.push('/');
       }
     };
 
     fetchPage();
 
     return () => {
-      isMounted = false;
-      isMountedRef.current = false;
-
       // Cleanup: destroy in reverse dependency order (editor → provider → ydoc)
       if (initTimeoutRef.current) {
         clearTimeout(initTimeoutRef.current);
