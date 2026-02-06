@@ -182,6 +182,7 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
           // Timeout fallback in case sync takes too long
           syncTimeoutRef.current = setTimeout(() => {
             provider.off('sync', handleSync);
+            syncTimeoutRef.current = null;
             logger.log('[Yjs] Sync timeout, assuming empty document');
             resolve();
           }, SYNC_TIMEOUT_MS);
