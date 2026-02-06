@@ -15,45 +15,40 @@ export default function Toast({ message, onCancel, onClose, duration = 5000 }: T
   const [isVisible, setIsVisible] = useState(false);
   const [isExiting, setIsExiting] = useState(false);
   const isMountedRef = useRef(true);
-  const exitTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const animationTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Track mounted state for cleanup
   useEffect(() => {
     isMountedRef.current = true;
     return () => {
       isMountedRef.current = false;
-      if (exitTimeoutRef.current !== null) {
-        clearTimeout(exitTimeoutRef.current);
-        exitTimeoutRef.current = null;
+      if (animationTimeoutRef.current !== null) {
+        clearTimeout(animationTimeoutRef.current);
+        animationTimeoutRef.current = null;
       }
     };
   }, []);
 
-  const handleClose = useCallback(() => {
+  const scheduleAnimationTimeout = useCallback((callback: () => void) => {
     setIsExiting(true);
-    if (exitTimeoutRef.current !== null) {
-      clearTimeout(exitTimeoutRef.current);
+    if (animationTimeoutRef.current !== null) {
+      clearTimeout(animationTimeoutRef.current);
     }
-    exitTimeoutRef.current = setTimeout(() => {
+    animationTimeoutRef.current = setTimeout(() => {
       if (isMountedRef.current) {
-        onClose();
+        callback();
       }
-      exitTimeoutRef.current = null;
+      animationTimeoutRef.current = null;
     }, ANIMATION_DURATION_MS);
-  }, [onClose]);
+  }, []);
+
+  const handleClose = useCallback(() => {
+    scheduleAnimationTimeout(onClose);
+  }, [onClose, scheduleAnimationTimeout]);
 
   const handleCancel = useCallback(() => {
-    setIsExiting(true);
-    if (exitTimeoutRef.current !== null) {
-      clearTimeout(exitTimeoutRef.current);
-    }
-    exitTimeoutRef.current = setTimeout(() => {
-      if (isMountedRef.current) {
-        onCancel();
-      }
-      exitTimeoutRef.current = null;
-    }, ANIMATION_DURATION_MS);
-  }, [onCancel]);
+    scheduleAnimationTimeout(onCancel);
+  }, [onCancel, scheduleAnimationTimeout]);
 
   useEffect(() => {
     // Trigger fade in
