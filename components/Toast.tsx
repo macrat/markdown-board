@@ -16,6 +16,7 @@ export default function Toast({ message, onCancel, onClose, duration = 5000 }: T
   const [isExiting, setIsExiting] = useState(false);
   const isMountedRef = useRef(true);
   const animationTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const autoCloseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Track mounted state for cleanup
   useEffect(() => {
@@ -26,10 +27,20 @@ export default function Toast({ message, onCancel, onClose, duration = 5000 }: T
         clearTimeout(animationTimeoutRef.current);
         animationTimeoutRef.current = null;
       }
+      if (autoCloseTimerRef.current !== null) {
+        clearTimeout(autoCloseTimerRef.current);
+        autoCloseTimerRef.current = null;
+      }
     };
   }, []);
 
   const scheduleAnimationTimeout = useCallback((callback: () => void) => {
+    // Clear auto-close timer to prevent race condition
+    if (autoCloseTimerRef.current !== null) {
+      clearTimeout(autoCloseTimerRef.current);
+      autoCloseTimerRef.current = null;
+    }
+    
     setIsExiting(true);
     if (animationTimeoutRef.current !== null) {
       clearTimeout(animationTimeoutRef.current);
@@ -56,11 +67,16 @@ export default function Toast({ message, onCancel, onClose, duration = 5000 }: T
       setIsVisible(true);
     });
 
-    const timer = setTimeout(() => {
+    autoCloseTimerRef.current = setTimeout(() => {
       handleClose();
     }, duration);
 
-    return () => clearTimeout(timer);
+    return () => {
+      if (autoCloseTimerRef.current !== null) {
+        clearTimeout(autoCloseTimerRef.current);
+        autoCloseTimerRef.current = null;
+      }
+    };
   }, [duration, handleClose]);
 
   return (
