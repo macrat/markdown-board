@@ -36,7 +36,7 @@ async function cleanupOldArchives() {
       `Cleaned up ${result.deleted} archived pages older than 30 days`,
     );
   } catch (error) {
-    console.error('Error cleaning up archives:', error.message || error);
+    console.error('Error cleaning up archives:', error);
     process.exit(1);
   }
 }

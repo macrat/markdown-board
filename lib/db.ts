@@ -15,6 +15,7 @@ db.exec(`
 
   CREATE INDEX IF NOT EXISTS idx_pages_archived_at ON pages(archived_at);
   CREATE INDEX IF NOT EXISTS idx_pages_created_at ON pages(created_at);
+  CREATE INDEX IF NOT EXISTS idx_pages_updated_at ON pages(updated_at);
 `);
 
 export default db;
