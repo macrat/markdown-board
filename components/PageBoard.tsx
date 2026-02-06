@@ -140,6 +140,9 @@ export default function PageBoard() {
   };
 
   const archivePage = async (id: string, title: string) => {
+    // Dismiss any existing toast immediately when archiving a new page
+    setToast({ visible: false, pageId: '', pageTitle: '' });
+
     // Start fade out animation
     setAnimatingItems(prev => [...prev, { id, type: 'fadeOut' }]);
 
