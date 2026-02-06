@@ -1,5 +1,5 @@
 ---
-name: code-review
+name: review-and-fix
 description: code-reviewer と ux-reviewer による自動レビュー＆修正サイクル。両レビュアーにコードをレビューさせ、指摘事項をサブエージェントに修正させる。指摘が無くなるまで繰り返し実行する。コード変更後にプロアクティブに使用すること。
 ---
 
