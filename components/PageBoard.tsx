@@ -510,8 +510,8 @@ export default function PageBoard() {
         title="Create new page"
         style={{
           position: 'fixed',
-          bottom: 'max(16px, env(safe-area-inset-bottom, 0px) + 16px)',
-          right: 'max(16px, env(safe-area-inset-right, 0px) + 16px)',
+          bottom: 'max(16px, calc(env(safe-area-inset-bottom, 0px) + 16px))',
+          right: 'max(16px, calc(env(safe-area-inset-right, 0px) + 16px))',
           width: '56px',
           height: '56px',
           borderRadius: '50%',
