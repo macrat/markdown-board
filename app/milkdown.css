@@ -137,7 +137,9 @@
 /* Fix collaborative cursor positioning without breaking line breaks */
 /* Only hide trailing breaks after collaborative cursors in non-empty paragraphs */
 /* Empty paragraphs need the trailing break for proper line height */
-.milkdown .ProseMirror-yjs-cursor:not(:first-child) + .ProseMirror-trailingBreak {
+.milkdown
+  .ProseMirror-yjs-cursor:not(:first-child)
+  + .ProseMirror-trailingBreak {
   visibility: hidden;
   line-height: 0;
   height: 0;
