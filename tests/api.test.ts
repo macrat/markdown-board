@@ -1,7 +1,11 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import Database from 'better-sqlite3';
 import { createTestDb, insertPage } from './helpers/db';
-import { extractTitle } from '@/lib/utils';
+import {
+  extractTitle,
+  MAX_CONTENT_SIZE,
+  getContentByteSize,
+} from '@/lib/utils';
 
 // We test the API logic (DB queries + validation) directly rather than going
 // through Next.js route wrappers, since that would require mocking NextResponse.
@@ -195,6 +199,24 @@ describe('Pages API logic', () => {
     it('rejects missing content field', () => {
       const body = {};
       expect((body as { content?: unknown }).content).toBeUndefined();
+    });
+
+    it('rejects content exceeding 10MB', () => {
+      const content = 'a'.repeat(MAX_CONTENT_SIZE + 1);
+      expect(getContentByteSize(content)).toBeGreaterThan(MAX_CONTENT_SIZE);
+    });
+
+    it('accepts content exactly at 10MB', () => {
+      const content = 'a'.repeat(MAX_CONTENT_SIZE);
+      expect(getContentByteSize(content)).toBeLessThanOrEqual(MAX_CONTENT_SIZE);
+    });
+
+    it('accounts for multi-byte characters in size calculation', () => {
+      // Japanese characters are 3 bytes each in UTF-8
+      // Create a string that is under the character limit but over the byte limit
+      const charCount = Math.floor(MAX_CONTENT_SIZE / 3) + 1;
+      const content = 'あ'.repeat(charCount);
+      expect(getContentByteSize(content)).toBeGreaterThan(MAX_CONTENT_SIZE);
     });
   });
 

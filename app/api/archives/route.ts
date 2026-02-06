@@ -28,7 +28,7 @@ export async function DELETE() {
   try {
     const deleted = cleanupOldArchives(db);
 
-    return NextResponse.json({ deleted });
+    return NextResponse.json({ success: true, deleted });
   } catch (error) {
     logger.error('Failed to clean up old archives:', error);
     return NextResponse.json(

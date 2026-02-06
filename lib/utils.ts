@@ -1,3 +1,13 @@
+/** Maximum allowed content size in bytes (10MB) */
+export const MAX_CONTENT_SIZE = 10 * 1024 * 1024;
+
+/**
+ * Returns the byte size of a string encoded as UTF-8.
+ */
+export function getContentByteSize(content: string): number {
+  return new TextEncoder().encode(content).byteLength;
+}
+
 /**
  * Extracts a title from markdown content.
  *
