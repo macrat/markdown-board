@@ -5,7 +5,13 @@ import { useRouter } from 'next/navigation';
 import type { PageListItem, ArchiveListItem } from '@/lib/types';
 import Toast from './Toast';
 import { logger } from '@/lib/logger';
-import { logResponseError } from '@/lib/api';
+import {
+  logResponseError,
+  isPageListItemArray,
+  isArchiveListItemArray,
+  isCreatePageResponse,
+  isArchivePageResponse,
+} from '@/lib/api';
 
 const ANIMATION_DURATION_MS = 200;
 
@@ -104,7 +110,11 @@ export default function PageBoard() {
         await logResponseError('PageBoard FetchPages', response);
         return;
       }
-      const data = await response.json();
+      const data: unknown = await response.json();
+      if (!isPageListItemArray(data)) {
+        logger.error('[PageBoard FetchPages] Unexpected response shape:', data);
+        return;
+      }
       setPages(data);
     } catch (error) {
       logger.error('[PageBoard FetchPages] Network error:', error);
@@ -118,7 +128,14 @@ export default function PageBoard() {
         await logResponseError('PageBoard FetchArchives', response);
         return;
       }
-      const data = await response.json();
+      const data: unknown = await response.json();
+      if (!isArchiveListItemArray(data)) {
+        logger.error(
+          '[PageBoard FetchArchives] Unexpected response shape:',
+          data,
+        );
+        return;
+      }
       setArchives(data);
     } catch (error) {
       logger.error('[PageBoard FetchArchives] Network error:', error);
@@ -143,8 +160,12 @@ export default function PageBoard() {
         await logResponseError('PageBoard CreatePage', response);
         return;
       }
-      const { id } = await response.json();
-      router.push(`/page/${id}`);
+      const data: unknown = await response.json();
+      if (!isCreatePageResponse(data)) {
+        logger.error('[PageBoard CreatePage] Unexpected response shape:', data);
+        return;
+      }
+      router.push(`/page/${data.id}`);
     } catch (error) {
       logger.error('[PageBoard CreatePage] Network error:', error);
     }
@@ -168,7 +189,14 @@ export default function PageBoard() {
           return;
         }
         // Get the server-provided archived_at timestamp
-        const data = await response.json();
+        const data: unknown = await response.json();
+        if (!isArchivePageResponse(data)) {
+          logger.error(
+            '[PageBoard ArchivePage] Unexpected response shape:',
+            data,
+          );
+          return;
+        }
         const archivedAt = data.archived_at;
 
         // Update local state

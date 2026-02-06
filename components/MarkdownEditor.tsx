@@ -378,8 +378,6 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
           return;
         }
 
-        if (!isMounted) return;
-
         setPage(data);
         setLoading(false);
 
