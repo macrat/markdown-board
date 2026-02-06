@@ -27,6 +27,8 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
   const providerRef = useRef<WebsocketProvider | null>(null);
   const pageRef = useRef<Page | null>(null);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const initTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const syncTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const router = useRouter();
 
   // Keep pageRef in sync with page state
@@ -106,7 +108,6 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
   useEffect(() => {
     // Fetch page data and initialize editor - only once on mount
     let isMounted = true;
-    let initTimerId: NodeJS.Timeout | null = null;
 
     const initEditor = async (initialContent: string) => {
       if (!editorRef.current) return;
@@ -146,6 +147,10 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
           const handleSync = (isSynced: boolean) => {
             if (isSynced) {
               provider.off('sync', handleSync);
+              if (syncTimeoutRef.current) {
+                clearTimeout(syncTimeoutRef.current);
+                syncTimeoutRef.current = null;
+              }
 
               // Check if Yjs document is empty after sync
               const fragment = ydoc.getXmlFragment('prosemirror');
@@ -181,7 +186,8 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
           provider.on('sync', handleSync);
 
           // Timeout fallback in case sync takes too long
-          setTimeout(() => {
+          syncTimeoutRef.current = setTimeout(() => {
+            syncTimeoutRef.current = null;
             provider.off('sync', handleSync);
             logger.log('[Yjs] Sync timeout, assuming empty document');
             resolve();
@@ -254,7 +260,8 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
 
         // Initialize editor after page is loaded
         // Small delay to ensure DOM is ready
-        initTimerId = setTimeout(() => {
+        initTimeoutRef.current = setTimeout(() => {
+          initTimeoutRef.current = null;
           if (isMounted) {
             initEditor(data.content);
           }
@@ -271,8 +278,11 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
       isMounted = false;
 
       // Cleanup
-      if (initTimerId) {
-        clearTimeout(initTimerId);
+      if (syncTimeoutRef.current) {
+        clearTimeout(syncTimeoutRef.current);
+      }
+      if (initTimeoutRef.current) {
+        clearTimeout(initTimeoutRef.current);
       }
       if (saveTimeoutRef.current) {
         clearTimeout(saveTimeoutRef.current);
