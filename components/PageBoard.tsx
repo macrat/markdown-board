@@ -1,20 +1,16 @@
 'use client';
 
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import type { PageListItem, ArchiveListItem } from '@/lib/types';
+import type { ArchiveListItem } from '@/lib/types';
+import { usePageList } from '@/hooks/usePageList';
+import { useArchiveList } from '@/hooks/useArchiveList';
+import { useItemAnimation } from '@/hooks/useItemAnimation';
 import Toast from './Toast';
 import { logger } from '@/lib/logger';
 import { logResponseError } from '@/lib/api';
 
-const ANIMATION_DURATION_MS = 200;
-
 type Tab = 'latest' | 'archive';
-
-interface AnimatingItem {
-  id: string;
-  type: 'fadeOut' | 'fadeIn';
-}
 
 interface ToastState {
   visible: boolean;
@@ -76,54 +72,23 @@ const PlusIcon = () => (
 
 export default function PageBoard() {
   const [activeTab, setActiveTab] = useState<Tab>('latest');
-  const [pages, setPages] = useState<PageListItem[]>([]);
-  const [archives, setArchives] = useState<ArchiveListItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [animatingItems, setAnimatingItems] = useState<AnimatingItem[]>([]);
   const [toast, setToast] = useState<ToastState>({
     visible: false,
     pageId: '',
     pageTitle: '',
   });
   const router = useRouter();
-  const timersRef = useRef<Set<NodeJS.Timeout>>(new Set());
 
-  // Cleanup timers on unmount to prevent memory leaks
-  useEffect(() => {
-    const timers = timersRef.current;
-    return () => {
-      timers.forEach((timer) => clearTimeout(timer));
-      timers.clear();
-    };
-  }, []);
-
-  const fetchPages = useCallback(async () => {
-    try {
-      const response = await fetch('/api/pages');
-      if (!response.ok) {
-        await logResponseError('PageBoard FetchPages', response);
-        return;
-      }
-      const data = await response.json();
-      setPages(data);
-    } catch (error) {
-      logger.error('[PageBoard FetchPages] Network error:', error);
-    }
-  }, []);
-
-  const fetchArchives = useCallback(async () => {
-    try {
-      const response = await fetch('/api/archives');
-      if (!response.ok) {
-        await logResponseError('PageBoard FetchArchives', response);
-        return;
-      }
-      const data = await response.json();
-      setArchives(data);
-    } catch (error) {
-      logger.error('[PageBoard FetchArchives] Network error:', error);
-    }
-  }, []);
+  const { pages, fetchPages, removePage } = usePageList();
+  const { archives, fetchArchives, addArchive } = useArchiveList();
+  const {
+    getItemOpacity,
+    startFadeOut,
+    startFadeIn,
+    clearAnimation,
+    scheduleAfterAnimation,
+  } = useItemAnimation();
 
   useEffect(() => {
     const loadData = async () => {
@@ -155,10 +120,9 @@ export default function PageBoard() {
     setToast({ visible: false, pageId: '', pageTitle: '' });
 
     // Start fade out animation
-    setAnimatingItems((prev) => [...prev, { id, type: 'fadeOut' }]);
+    startFadeOut(id);
 
-    const timer = setTimeout(async () => {
-      timersRef.current.delete(timer);
+    scheduleAfterAnimation(async () => {
       try {
         const response = await fetch(`/api/pages/${id}/archive`, {
           method: 'POST',
@@ -174,12 +138,12 @@ export default function PageBoard() {
         // Update local state
         const archivedPage = pages.find((p) => p.id === id);
         if (archivedPage) {
-          setPages((prev) => prev.filter((p) => p.id !== id));
+          removePage(id);
           const newArchive: ArchiveListItem = {
             ...archivedPage,
             archived_at: archivedAt,
           };
-          setArchives((prev) => [newArchive, ...prev]);
+          addArchive(newArchive);
         }
 
         // Show toast
@@ -187,10 +151,9 @@ export default function PageBoard() {
       } catch (error) {
         logger.error('[PageBoard ArchivePage] Network error:', error);
       } finally {
-        setAnimatingItems((prev) => prev.filter((item) => item.id !== id));
+        clearAnimation(id);
       }
-    }, ANIMATION_DURATION_MS);
-    timersRef.current.add(timer);
+    });
   };
 
   const cancelArchive = async () => {
@@ -214,49 +177,36 @@ export default function PageBoard() {
 
   const unarchivePage = async (id: string) => {
     // Start fade out animation
-    setAnimatingItems((prev) => [...prev, { id, type: 'fadeOut' }]);
+    startFadeOut(id);
 
-    const timer = setTimeout(async () => {
-      timersRef.current.delete(timer);
+    scheduleAfterAnimation(async () => {
       try {
         const response = await fetch(`/api/pages/${id}/unarchive`, {
           method: 'POST',
         });
         if (!response.ok) {
           await logResponseError('PageBoard UnarchivePage', response);
-          setAnimatingItems((prev) => prev.filter((item) => item.id !== id));
+          clearAnimation(id);
           return;
         }
         // Refresh both lists to get updated data
         await Promise.all([fetchPages(), fetchArchives()]);
 
         // Add fade in animation for the unarchived item
-        setAnimatingItems((prev) => [
-          ...prev.filter((item) => item.id !== id),
-          { id, type: 'fadeIn' },
-        ]);
-        const fadeInTimer = setTimeout(() => {
-          timersRef.current.delete(fadeInTimer);
-          setAnimatingItems((prev) => prev.filter((item) => item.id !== id));
-        }, ANIMATION_DURATION_MS);
-        timersRef.current.add(fadeInTimer);
+        startFadeIn(id);
+        scheduleAfterAnimation(() => {
+          clearAnimation(id);
+        });
       } catch (error) {
         logger.error('[PageBoard UnarchivePage] Network error:', error);
         // Only cleanup on error since success case handles its own cleanup
-        setAnimatingItems((prev) => prev.filter((item) => item.id !== id));
+        clearAnimation(id);
       }
-    }, ANIMATION_DURATION_MS);
-    timersRef.current.add(timer);
+    });
   };
 
   const formatDate = (timestamp: number) => {
     return new Date(timestamp).toLocaleString();
-  };
-
-  const getItemOpacity = (id: string) => {
-    const animating = animatingItems.find((item) => item.id === id);
-    if (!animating) return 1;
-    return animating.type === 'fadeOut' ? 0 : 1;
   };
 
   if (loading) {

@@ -1,8 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback, useRef } from 'react';
-
-const ANIMATION_DURATION_MS = 200;
+import { ANIMATION_DURATION_MS } from '@/lib/constants';
 
 interface ToastProps {
   message: string;
