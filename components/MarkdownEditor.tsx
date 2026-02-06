@@ -8,7 +8,7 @@ import { listener, listenerCtx } from '@milkdown/plugin-listener';
 import { collab, collabServiceCtx } from '@milkdown/plugin-collab';
 import type { Page } from '@/lib/types';
 import { logger } from '@/lib/logger';
-import { logResponseError } from '@/lib/api';
+import { logResponseError, isPage } from '@/lib/api';
 import * as Y from 'yjs';
 import { WebsocketProvider } from 'y-websocket';
 import '../app/milkdown.css';
@@ -331,8 +331,14 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
           return;
         }
 
-        const data = await response.json();
+        const data: unknown = await response.json();
         if (!isMounted) return;
+
+        if (!isPage(data)) {
+          logger.error('[Editor FetchPage] Unexpected response shape:', data);
+          router.push('/');
+          return;
+        }
 
         setPage(data);
         setLoading(false);
