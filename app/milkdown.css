@@ -142,3 +142,19 @@
   line-height: 0;
   height: 0;
 }
+
+/* Peer count indicator */
+.peer-count-indicator {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.75rem;
+  color: #574a46;
+  background-color: rgba(245, 234, 230, 0.9);
+  padding: 0.25rem 0.5rem;
+  border-radius: 9999px;
+  transition: opacity 0.3s ease;
+}

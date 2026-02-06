@@ -20,12 +20,18 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
   const [page, setPage] = useState<Page | null>(null);
   const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [peerCount, setPeerCount] = useState(0);
   const editorRef = useRef<HTMLDivElement>(null);
   const editorInstanceRef = useRef<Editor | null>(null);
   const ydocRef = useRef<Y.Doc | null>(null);
   const providerRef = useRef<WebsocketProvider | null>(null);
   const pageRef = useRef<Page | null>(null);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const updatePeerCountRef = useRef<(() => void) | null>(null);
+  const initTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const syncTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const isMountedRef = useRef(true);
+  const isInitializingRef = useRef(false);
   const router = useRouter();
 
   // Keep pageRef in sync with page state
@@ -88,10 +94,13 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
       if (!editorRef.current) return;
 
       // Prevent double initialization
-      if (editorInstanceRef.current) {
-        logger.log('[Editor] Editor already initialized, skipping');
+      if (editorInstanceRef.current || isInitializingRef.current) {
+        logger.log(
+          '[Editor] Editor already initialized or initializing, skipping',
+        );
         return;
       }
+      isInitializingRef.current = true;
 
       logger.log(
         '[Editor] Initializing editor with SQLite content length:',
@@ -114,6 +123,15 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
 
         const provider = new WebsocketProvider(wsUrl, pageId, ydoc);
         providerRef.current = provider;
+
+        // Track peer count via Awareness API
+        const updatePeerCount = () => {
+          const states = provider.awareness.getStates();
+          setPeerCount(Math.max(0, states.size - 1));
+        };
+        updatePeerCountRef.current = updatePeerCount;
+        provider.awareness.on('change', updatePeerCount);
+        updatePeerCount();
 
         logger.log(`[WebSocket] Connecting to room: ${pageId} at ${wsUrl}`);
 
@@ -157,12 +175,19 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
           provider.on('sync', handleSync);
 
           // Timeout fallback in case sync takes too long
-          setTimeout(() => {
+          syncTimeoutRef.current = setTimeout(() => {
             provider.off('sync', handleSync);
             logger.log('[Yjs] Sync timeout, assuming empty document');
             resolve();
           }, SYNC_TIMEOUT_MS);
         });
+
+        // Abort if component unmounted during sync wait
+        if (!isMountedRef.current) {
+          logger.log('[Editor] Component unmounted during sync, aborting');
+          isInitializingRef.current = false;
+          return;
+        }
 
         // Determine if we should use SQLite content
         const fragment = ydoc.getXmlFragment('prosemirror');
@@ -210,6 +235,8 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
         editorInstanceRef.current = editor;
       } catch (error) {
         logger.error('Failed to initialize editor:', error);
+      } finally {
+        isInitializingRef.current = false;
       }
     },
     [pageId, handleContentChange],
@@ -236,7 +263,7 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
 
         // Initialize editor after page is loaded
         // Small delay to ensure DOM is ready
-        setTimeout(() => {
+        initTimeoutRef.current = setTimeout(() => {
           if (isMounted) {
             initEditor(data.content);
           }
@@ -251,20 +278,35 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
 
     return () => {
       isMounted = false;
+      isMountedRef.current = false;
 
-      // Cleanup
+      // Cleanup: destroy in reverse dependency order (editor → provider → ydoc)
+      if (initTimeoutRef.current) {
+        clearTimeout(initTimeoutRef.current);
+      }
+      if (syncTimeoutRef.current) {
+        clearTimeout(syncTimeoutRef.current);
+      }
       if (saveTimeoutRef.current) {
         clearTimeout(saveTimeoutRef.current);
-      }
-      if (providerRef.current) {
-        providerRef.current.destroy();
       }
       if (editorInstanceRef.current) {
         editorInstanceRef.current.destroy();
         editorInstanceRef.current = null;
       }
+      if (providerRef.current) {
+        if (updatePeerCountRef.current) {
+          providerRef.current.awareness.off(
+            'change',
+            updatePeerCountRef.current,
+          );
+        }
+        providerRef.current.destroy();
+        providerRef.current = null;
+      }
       if (ydocRef.current) {
         ydocRef.current.destroy();
+        ydocRef.current = null;
       }
     };
   }, [pageId, router, initEditor]);
@@ -281,6 +323,37 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
     <div className="min-h-screen relative">
       <div className="h-screen p-4 sm:p-8 overflow-auto">
         <div ref={editorRef} className="milkdown max-w-4xl mx-auto" />
+      </div>
+
+      {/* 同時編集ユーザー数インジケーター - 右上に控えめに表示 */}
+      <div
+        role="status"
+        aria-live="polite"
+        aria-hidden={peerCount === 0}
+        aria-label={`他に${peerCount}人が接続中`}
+        className="peer-count-indicator"
+        style={{
+          opacity: peerCount > 0 ? 1 : 0,
+          pointerEvents: 'none',
+        }}
+      >
+        <svg
+          width="14"
+          height="14"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden="true"
+        >
+          <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+          <circle cx="9" cy="7" r="4" />
+          <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+          <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+        </svg>
+        {peerCount}
       </div>
 
       {/* 保存中表示 - 右下に控えめに表示 */}
