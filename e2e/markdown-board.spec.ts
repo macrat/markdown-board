@@ -65,10 +65,6 @@ test.describe('Markdown Board E2E Tests', () => {
     // Wait for auto-save (debounce is 1 second)
     await page.waitForTimeout(2000);
 
-    // Extract the page ID from URL
-    const url = page.url();
-    const pageId = url.split('/page/')[1];
-
     // Step 3: Go back to home
     await page.goto('/');
     await page.waitForLoadState('networkidle');
@@ -141,94 +137,7 @@ test.describe('Markdown Board E2E Tests', () => {
     expect(titleText).toContain('# hello');
   });
 
-  test('should extract title from first line correctly', async ({ page }) => {
-    // Test 1: Heading as first line (with #)
-    await page.click('button[title="Create new page"]');
-    await page.waitForURL(/\/page\/.+/);
-    await page.waitForSelector('.milkdown', { timeout: 10000 });
-
-    const editor1 = page
-      .locator('.milkdown')
-      .locator('div[contenteditable="true"]')
-      .first();
-    await editor1.click();
-    // Type naturally to trigger markdown parsing
-    await editor1.type('# My Heading Title');
-    await editor1.press('Enter');
-    await editor1.press('Enter');
-    await editor1.type('Content below');
-
-    await page.waitForTimeout(2000); // Wait for save
-
-    await page.goto('/');
-    await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(500);
-
-    // Title should be "My Heading Title" (without #)
-    const title1 = page
-      .locator('h3')
-      .filter({ hasText: 'My Heading Title' })
-      .first();
-    await expect(title1).toBeVisible();
-    const title1Text = await title1.textContent();
-    expect(title1Text).not.toContain('#');
-
-    // Test 2: Regular text as first line
-    await page.click('button[title="Create new page"]');
-    await page.waitForURL(/\/page\/.+/);
-    await page.waitForSelector('.milkdown', { timeout: 10000 });
-
-    const editor2 = page
-      .locator('.milkdown')
-      .locator('div[contenteditable="true"]')
-      .first();
-    await editor2.click();
-    await editor2.type('Plain text title');
-    await editor2.press('Enter');
-    await editor2.press('Enter');
-    await editor2.type('More content');
-
-    await page.waitForTimeout(2000); // Wait for save
-
-    await page.goto('/');
-    await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(500);
-
-    // Title should be "Plain text title"
-    await expect(
-      page.locator('h3').filter({ hasText: 'Plain text title' }).first(),
-    ).toBeVisible();
-
-    // Test 3: Multiple # in heading
-    await page.click('button[title="Create new page"]');
-    await page.waitForURL(/\/page\/.+/);
-    await page.waitForSelector('.milkdown', { timeout: 10000 });
-
-    const editor3 = page
-      .locator('.milkdown')
-      .locator('div[contenteditable="true"]')
-      .first();
-    await editor3.click();
-    await editor3.type('### Level 3 Heading');
-    await editor3.press('Enter');
-    await editor3.press('Enter');
-    await editor3.type('Content');
-
-    await page.waitForTimeout(2000); // Wait for save
-
-    await page.goto('/');
-    await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(500);
-
-    // Title should be "Level 3 Heading" (without ###)
-    const title3 = page
-      .locator('h3')
-      .filter({ hasText: 'Level 3 Heading' })
-      .first();
-    await expect(title3).toBeVisible();
-    const title3Text = await title3.textContent();
-    expect(title3Text).not.toContain('#');
-  });
+  // Title extraction logic is now covered by unit tests (tests/utils.test.ts)
 
   test('should synchronize data across multiple tabs in real-time', async ({
     browser,
@@ -311,10 +220,6 @@ test.describe('Markdown Board E2E Tests', () => {
     await page.click('button[title="Create new page"]');
     await page.waitForURL(/\/page\/.+/);
     await page.waitForSelector('.milkdown', { timeout: 10000 });
-
-    // Extract page ID
-    const pageUrl = page.url();
-    const pageId = pageUrl.split('/page/')[1];
 
     // Add content
     const editor = page
@@ -462,7 +367,7 @@ Math symbols: ∑∏∫∂∞≈≠≤≥±×÷
 Arrows: ←→↑↓↔↕⇐⇒⇑⇓
 Currency: $€£¥₹₽`;
 
-    const pageId = await createPageWithContent(page, specialContent);
+    await createPageWithContent(page, specialContent);
 
     // Go back and return
     await page.goto('/');
@@ -500,7 +405,7 @@ Hebrew: שלום עולם
 Chinese: 你好世界
 Russian: Привет мир`;
 
-    const pageId = await createPageWithContent(page, unicodeContent);
+    await createPageWithContent(page, unicodeContent);
 
     await page.goto('/');
     await page.waitForLoadState('networkidle');
@@ -562,7 +467,7 @@ Russian: Привет мир`;
   }) => {
     const timestamp = Date.now();
     // Create first page
-    const pageId1 = await createPageWithContent(
+    await createPageWithContent(
       page,
       `# First Page ${timestamp}\n\nContent of first page`,
     );
@@ -571,7 +476,7 @@ Russian: Привет мир`;
     await page.waitForTimeout(500);
 
     // Create second page
-    const pageId2 = await createPageWithContent(
+    await createPageWithContent(
       page,
       `# Second Page ${timestamp}\n\nContent of second page`,
     );
@@ -618,7 +523,7 @@ Russian: Привет мир`;
 ##### Heading 5
 ###### Heading 6`;
 
-    const pageId = await createPageWithContent(page, content);
+    await createPageWithContent(page, content);
 
     await page.waitForTimeout(1000);
     const editorArea = page.locator('.milkdown .ProseMirror').first();
@@ -999,10 +904,7 @@ Russian: Привет мир`;
   // ==================== EDGE CASES ====================
 
   test('should handle rapid navigation without data loss', async ({ page }) => {
-    const pageId = await createPageWithContent(
-      page,
-      '# Rapid Test\n\nContent to preserve',
-    );
+    await createPageWithContent(page, '# Rapid Test\n\nContent to preserve');
 
     // Rapidly navigate back and forth
     await page.goto('/');
@@ -1037,7 +939,7 @@ Russian: Привет мир`;
 Text with <div> and <script> tags should be escaped
 Also test <img> and <a> tags`;
 
-    const pageId = await createPageWithContent(page, content);
+    await createPageWithContent(page, content);
 
     await page.waitForTimeout(1000);
     const editorArea = page.locator('.milkdown .ProseMirror').first();
