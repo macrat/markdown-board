@@ -111,7 +111,7 @@
 }
 
 .milkdown .ProseMirror p.is-editor-empty:first-child::before {
-  content: 'Start writing...';
+  content: 'ここに入力...';
   color: rgba(87, 74, 70, 0.4);
   pointer-events: none;
   height: 0;

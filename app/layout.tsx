@@ -3,7 +3,7 @@ import './globals.css';
 
 export const metadata: Metadata = {
   title: 'Markdown Board',
-  description: 'Collaborative markdown editing board',
+  description: '共同編集できるMarkdownメモボード',
 };
 
 export default function RootLayout({
@@ -12,7 +12,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="ja">
       <body className="antialiased">{children}</body>
     </html>
   );
