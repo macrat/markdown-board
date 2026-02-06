@@ -65,10 +65,6 @@ test.describe('Markdown Board E2E Tests', () => {
     // Wait for auto-save (debounce is 1 second)
     await page.waitForTimeout(2000);
 
-    // Extract the page ID from URL
-    const url = page.url();
-    const pageId = url.split('/page/')[1];
-
     // Step 3: Go back to home
     await page.goto('/');
     await page.waitForLoadState('networkidle');
@@ -312,10 +308,6 @@ test.describe('Markdown Board E2E Tests', () => {
     await page.waitForURL(/\/page\/.+/);
     await page.waitForSelector('.milkdown', { timeout: 10000 });
 
-    // Extract page ID
-    const pageUrl = page.url();
-    const pageId = pageUrl.split('/page/')[1];
-
     // Add content
     const editor = page
       .locator('.milkdown')
@@ -462,7 +454,7 @@ Math symbols: ∑∏∫∂∞≈≠≤≥±×÷
 Arrows: ←→↑↓↔↕⇐⇒⇑⇓
 Currency: $€£¥₹₽`;
 
-    const pageId = await createPageWithContent(page, specialContent);
+    await createPageWithContent(page, specialContent);
 
     // Go back and return
     await page.goto('/');
@@ -500,7 +492,7 @@ Hebrew: שלום עולם
 Chinese: 你好世界
 Russian: Привет мир`;
 
-    const pageId = await createPageWithContent(page, unicodeContent);
+    await createPageWithContent(page, unicodeContent);
 
     await page.goto('/');
     await page.waitForLoadState('networkidle');
@@ -562,7 +554,7 @@ Russian: Привет мир`;
   }) => {
     const timestamp = Date.now();
     // Create first page
-    const pageId1 = await createPageWithContent(
+    await createPageWithContent(
       page,
       `# First Page ${timestamp}\n\nContent of first page`,
     );
@@ -571,7 +563,7 @@ Russian: Привет мир`;
     await page.waitForTimeout(500);
 
     // Create second page
-    const pageId2 = await createPageWithContent(
+    await createPageWithContent(
       page,
       `# Second Page ${timestamp}\n\nContent of second page`,
     );
@@ -618,7 +610,7 @@ Russian: Привет мир`;
 ##### Heading 5
 ###### Heading 6`;
 
-    const pageId = await createPageWithContent(page, content);
+    await createPageWithContent(page, content);
 
     await page.waitForTimeout(1000);
     const editorArea = page.locator('.milkdown .ProseMirror').first();
@@ -999,7 +991,7 @@ Russian: Привет мир`;
   // ==================== EDGE CASES ====================
 
   test('should handle rapid navigation without data loss', async ({ page }) => {
-    const pageId = await createPageWithContent(
+    await createPageWithContent(
       page,
       '# Rapid Test\n\nContent to preserve',
     );
@@ -1037,7 +1029,7 @@ Russian: Привет мир`;
 Text with <div> and <script> tags should be escaped
 Also test <img> and <a> tags`;
 
-    const pageId = await createPageWithContent(page, content);
+    await createPageWithContent(page, content);
 
     await page.waitForTimeout(1000);
     const editorArea = page.locator('.milkdown .ProseMirror').first();
