@@ -11,6 +11,7 @@ const http = require('http');
 // Import y-websocket server utilities
 const { setupWSConnection } = require('@y/websocket-server/utils');
 const { startPeriodicCleanup } = require('./cleanup-archives');
+const { openDatabase } = require('./db-config');
 
 const PORT = process.env.NEXT_PUBLIC_WS_PORT || 1234;
 
@@ -41,7 +42,7 @@ wss.on('connection', (conn, req) => {
 server.listen(PORT);
 
 // Start periodic cleanup of old archived pages
-const cleanupInterval = startPeriodicCleanup();
+const cleanupInterval = startPeriodicCleanup(openDatabase);
 
 // Graceful shutdown
 const shutdown = () => {

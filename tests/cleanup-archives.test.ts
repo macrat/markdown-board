@@ -4,6 +4,8 @@ import { createTestDb, insertPage } from './helpers/db';
 
 const {
   cleanupOldArchives,
+  runCleanupCycle,
+  startPeriodicCleanup,
   THIRTY_DAYS_MS,
 } = require('../server/cleanup-archives'); // eslint-disable-line @typescript-eslint/no-require-imports
 
@@ -131,28 +133,86 @@ describe('cleanupOldArchives', () => {
   });
 });
 
-describe('startPeriodicCleanup', () => {
-  it('runs cleanup immediately and sets up interval', () => {
-    vi.useFakeTimers();
+describe('runCleanupCycle', () => {
+  it('logs deletion count when old archives are deleted', () => {
+    const thirtyOneDaysAgo = Date.now() - 31 * 24 * 60 * 60 * 1000;
+    insertPage(db, {
+      id: 'old-archive',
+      title: 'Old',
+      archived_at: thirtyOneDaysAgo,
+    });
 
-    // Mock the module to avoid actual DB access
     const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+    runCleanupCycle(() => db);
+
+    expect(consoleSpy).toHaveBeenCalledWith(
+      '[cleanup] Deleted 1 archived page(s) older than 30 days',
+    );
+    consoleSpy.mockRestore();
+  });
+
+  it('logs message when no old archives exist', () => {
+    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+    runCleanupCycle(() => db);
+
+    expect(consoleSpy).toHaveBeenCalledWith(
+      '[cleanup] No old archived pages to delete',
+    );
+    consoleSpy.mockRestore();
+  });
+
+  it('catches and logs errors without crashing', () => {
     const consoleErrorSpy = vi
       .spyOn(console, 'error')
       .mockImplementation(() => {});
+    const brokenFactory = () => {
+      throw new Error('DB connection failed');
+    };
 
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const { startPeriodicCleanup } = require('../server/cleanup-archives');
-    const intervalId = startPeriodicCleanup();
+    expect(() => runCleanupCycle(brokenFactory)).not.toThrow();
+    expect(consoleErrorSpy).toHaveBeenCalledWith(
+      '[cleanup] Failed to clean up old archives:',
+      expect.any(Error),
+    );
+    consoleErrorSpy.mockRestore();
+  });
+});
 
-    // Should have logged the startup message and a cleanup result
+describe('startPeriodicCleanup', () => {
+  it('runs cleanup immediately and sets up interval', () => {
+    vi.useFakeTimers();
+    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+    const intervalId = startPeriodicCleanup(() => db);
+
     expect(consoleSpy).toHaveBeenCalledWith(
-      expect.stringContaining('[cleanup] Starting periodic archive cleanup'),
+      '[cleanup] Starting periodic archive cleanup (every 1 hour)',
+    );
+    expect(consoleSpy).toHaveBeenCalledWith(
+      '[cleanup] No old archived pages to delete',
     );
 
     clearInterval(intervalId);
     consoleSpy.mockRestore();
-    consoleErrorSpy.mockRestore();
+    vi.useRealTimers();
+  });
+
+  it('runs cleanup again after one hour', () => {
+    vi.useFakeTimers();
+    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+    // Factory creates a fresh DB each cycle (runCleanupCycle closes it after use)
+    const intervalId = startPeriodicCleanup(() => createTestDb());
+    consoleSpy.mockClear();
+
+    vi.advanceTimersByTime(60 * 60 * 1000);
+
+    expect(consoleSpy).toHaveBeenCalledWith(
+      '[cleanup] No old archived pages to delete',
+    );
+
+    clearInterval(intervalId);
+    consoleSpy.mockRestore();
     vi.useRealTimers();
   });
 });

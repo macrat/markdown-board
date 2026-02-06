@@ -1,13 +1,7 @@
-#!/usr/bin/env node
-
 /**
  * Periodic cleanup of archived pages older than 30 days.
  * Designed to be started from the WebSocket server process.
  */
-
-const Database = require('better-sqlite3');
-const path = require('path');
-const fs = require('fs');
 
 const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
 const ONE_HOUR_MS = 60 * 60 * 1000;
@@ -27,27 +21,12 @@ function cleanupOldArchives(db) {
 }
 
 /**
- * Open the application database.
- * @returns {import('better-sqlite3').Database}
- */
-function openDb() {
-  const dbDir = path.join(process.cwd(), 'data');
-  const dbPath = path.join(dbDir, 'markdown-board.db');
-
-  if (!fs.existsSync(dbDir)) {
-    fs.mkdirSync(dbDir, { recursive: true });
-  }
-
-  const db = new Database(dbPath);
-  db.pragma('foreign_keys = ON');
-  return db;
-}
-
-/**
- * Run a single cleanup cycle: open DB, delete old archives, close DB.
+ * Run a single cleanup cycle using the provided DB factory.
+ * Opens a connection, runs cleanup, then closes the connection.
  * Errors are caught and logged without crashing the process.
+ * @param {() => import('better-sqlite3').Database} openDb - Factory function to open a database connection
  */
-function runCleanupCycle() {
+function runCleanupCycle(openDb) {
   let db;
   try {
     db = openDb();
@@ -65,8 +44,8 @@ function runCleanupCycle() {
     if (db) {
       try {
         db.close();
-      } catch {
-        // ignore close errors
+      } catch (closeError) {
+        console.warn('[cleanup] Failed to close DB:', closeError);
       }
     }
   }
@@ -75,18 +54,19 @@ function runCleanupCycle() {
 /**
  * Start the periodic cleanup task.
  * Runs immediately on start and then every hour.
+ * @param {() => import('better-sqlite3').Database} openDb - Factory function to open a database connection
  * @returns {NodeJS.Timeout} The interval ID (for stopping in tests or shutdown)
  */
-function startPeriodicCleanup() {
+function startPeriodicCleanup(openDb) {
   console.log('[cleanup] Starting periodic archive cleanup (every 1 hour)');
-  runCleanupCycle();
-  return setInterval(runCleanupCycle, ONE_HOUR_MS);
+  runCleanupCycle(openDb);
+  return setInterval(() => runCleanupCycle(openDb), ONE_HOUR_MS);
 }
 
 module.exports = {
   cleanupOldArchives,
   startPeriodicCleanup,
-  // Exported for testing
+  runCleanupCycle,
   THIRTY_DAYS_MS,
   ONE_HOUR_MS,
 };
