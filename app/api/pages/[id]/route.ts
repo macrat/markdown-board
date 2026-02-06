@@ -1,6 +1,10 @@
 import { NextResponse } from 'next/server';
 import db from '@/lib/db';
-import { extractTitle } from '@/lib/utils';
+import {
+  extractTitle,
+  MAX_CONTENT_SIZE,
+  getContentByteSize,
+} from '@/lib/utils';
 import { logger } from '@/lib/logger';
 
 export async function GET(
@@ -88,9 +92,7 @@ export async function PATCH(
     }
 
     // Validate content size (10MB limit)
-    const MAX_CONTENT_SIZE = 10 * 1024 * 1024; // 10MB in bytes
-    const contentSize = new TextEncoder().encode(content).byteLength;
-    if (contentSize > MAX_CONTENT_SIZE) {
+    if (getContentByteSize(content) > MAX_CONTENT_SIZE) {
       return NextResponse.json(
         { error: 'Content exceeds maximum size of 10MB' },
         { status: 413 },
