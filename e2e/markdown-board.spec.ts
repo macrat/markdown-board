@@ -456,7 +456,7 @@ test.describe('Markdown Board E2E Tests', () => {
 
   test('should handle special characters correctly', async ({ page }) => {
     const specialContent = `# Special Characters Test
-    
+
 Special chars: !@#$%^&*()_+-={}[]|\\:";'<>?,./
 Math symbols: ∑∏∫∂∞≈≠≤≥±×÷
 Arrows: ←→↑↓↔↕⇐⇒⇑⇓
@@ -492,7 +492,7 @@ Currency: $€£¥₹₽`;
   }) => {
     const timestamp = Date.now();
     const unicodeContent = `# Unicode Test ${timestamp} 🌍
-    
+
 Emoji: 😀😃😄😁🎉🎊🎈🎁
 Japanese: こんにちは世界
 Arabic: مرحبا بالعالم
@@ -1033,7 +1033,7 @@ Russian: Привет мир`;
     page,
   }) => {
     const content = `# HTML Tags Test
-    
+
 Text with <div> and <script> tags should be escaped
 Also test <img> and <a> tags`;
 
