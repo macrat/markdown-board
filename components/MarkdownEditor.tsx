@@ -28,6 +28,7 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const updatePeerCountRef = useRef<(() => void) | null>(null);
   const initTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const syncTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isMountedRef = useRef(true);
   const isInitializingRef = useRef(false);
   const router = useRouter();
@@ -173,7 +174,7 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
           provider.on('sync', handleSync);
 
           // Timeout fallback in case sync takes too long
-          setTimeout(() => {
+          syncTimeoutRef.current = setTimeout(() => {
             provider.off('sync', handleSync);
             logger.log('[Yjs] Sync timeout, assuming empty document');
             resolve();
@@ -280,6 +281,9 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
       // Cleanup: destroy in reverse dependency order (editor → provider → ydoc)
       if (initTimeoutRef.current) {
         clearTimeout(initTimeoutRef.current);
+      }
+      if (syncTimeoutRef.current) {
+        clearTimeout(syncTimeoutRef.current);
       }
       if (saveTimeoutRef.current) {
         clearTimeout(saveTimeoutRef.current);
