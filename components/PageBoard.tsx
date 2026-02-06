@@ -391,7 +391,7 @@ export default function PageBoard() {
                       archivePage(page.id, page.title);
                     }}
                     aria-label="アーカイブする"
-                    title="Archive"
+                    title="アーカイブ"
                     style={{
                       display: 'flex',
                       alignItems: 'center',
@@ -482,7 +482,7 @@ export default function PageBoard() {
                   <button
                     onClick={() => unarchivePage(page.id)}
                     aria-label="アーカイブを解除する"
-                    title="Unarchive"
+                    title="アーカイブを解除"
                     style={{
                       display: 'flex',
                       alignItems: 'center',
@@ -520,7 +520,7 @@ export default function PageBoard() {
       <button
         onClick={createPage}
         aria-label="新しいページを作成"
-        title="Create new page"
+        title="新しいページを作成"
         style={{
           position: 'fixed',
           bottom: 'max(16px, calc(env(safe-area-inset-bottom, 0px) + 16px))',

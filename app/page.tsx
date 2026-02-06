@@ -12,7 +12,7 @@ export default function Home() {
             Markdown Board
           </h1>
           <p className="text-lg" style={{ color: '#574a46', opacity: 0.7 }}>
-            Collaborative markdown editing
+            共同編集できるMarkdownメモ
           </p>
           <p
             className="text-sm mt-1"
