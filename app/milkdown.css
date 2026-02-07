@@ -40,7 +40,12 @@
 
 /* Ensure all paragraphs have consistent height */
 .milkdown .ProseMirror p {
-  /* Set explicit height to prevent collapse */
+  /* Set explicit height to ensure empty lines have the same height as text lines.
+   * This is necessary because empty paragraphs with only <br> tags would otherwise
+   * collapse to zero height, while paragraphs with text respect line-height.
+   * Note: height (not min-height) is required because min-height doesn't prevent
+   * collapse when the only content is a collapsed <br> element.
+   * Multi-line content is allowed to overflow with overflow: visible. */
   height: 1.7em;
   overflow: visible;
 }
