@@ -28,8 +28,8 @@ Markdown Board は、開いた瞬間から書き始められるミニマルな�
 - **共同編集**: Yjs (CRDT) + WebSocket
 - **データベース**: SQLite (better-sqlite3)
 - **スタイリング**: Tailwind CSS
-- **テスト**: Playwright (E2Eテスト)
-- **リンター**: ESLint
+- **テスト**: Vitest (ユニットテスト), Playwright (E2Eテスト)
+- **リンター**: ESLint, Prettier, EditorConfig
 
 ## プロジェクト構造
 
@@ -52,8 +52,15 @@ docs/adr/             # ADR (Architecture Decision Records)
 npm install           # 依存関係のインストール
 npm run dev           # 開発サーバー起動 (Next.js + WebSocket)
 npm run build         # プロダクションビルド
+npm start             # プロダクションサーバー起動 (Next.js + WebSocket)
 npm run lint          # ESLintによるコード品質チェック
+npm run format        # Prettierによるコード整形
+npm run format:check  # コード整形チェック（整形せず確認のみ）
+npm run editorconfig  # EditorConfig準拠チェック
+npm test              # Vitestによるユニットテスト実行
 npm run test:e2e      # Playwright E2Eテスト実行
+npm run test:e2e:ui   # Playwright E2EテストをUIモードで実行
+npm run test:e2e:headed # Playwright E2Eテストをヘッドモードで実行
 ```
 
 ## 開発ガイドライン
@@ -65,7 +72,7 @@ npm run test:e2e      # Playwright E2Eテスト実行
 - 機能追加の前に「本当に必要か」を問う
 - シンプルさを維持する
 - ユーザーの思考の流れを妨げないUXを心がける
-- 変更後は `npm run lint` と `npm run test:e2e` で品質を確認する
+- 変更後は `npm run format` でコードを整形し、`npm run lint` と `npm test` と `npm run test:e2e` で品質を確認する
 
 ### やってはいけないこと
 
