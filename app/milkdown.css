@@ -127,6 +127,9 @@
   pointer-events: none;
   word-break: normal;
   display: inline;
+  line-height: 0;
+  height: 0;
+  vertical-align: baseline;
 }
 
 /* Hide the user name label */
