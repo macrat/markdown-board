@@ -129,6 +129,16 @@
   height: 0;
 }
 
+/*
+ * Hide the ProseMirror-separator hack element inserted after collaborative cursors.
+ * ProseMirror adds this <img> when a contentEditable="false" widget (the cursor)
+ * is the last child of a textblock, which doubles the line height.
+ * See ADR-0005 for details.
+ */
+.milkdown .ProseMirror-yjs-cursor + img.ProseMirror-separator {
+  display: none;
+}
+
 /* Collaborative cursor styling - single simple caret */
 .milkdown .ProseMirror-yjs-cursor {
   position: relative;
@@ -139,20 +149,6 @@
   pointer-events: none;
   word-break: normal;
   display: inline;
-}
-
-/* Hide the user name label */
-.milkdown .ProseMirror-yjs-cursor > div {
-  display: none;
-}
-
-/* Fix collaborative cursor positioning without breaking line breaks */
-.milkdown .ProseMirror-yjs-cursor + .ProseMirror-trailingBreak {
-  /* Only hide trailing breaks immediately after collaborative cursors */
-  /* Use visibility: hidden to preserve accessibility for screen readers */
-  visibility: hidden;
-  line-height: 0;
-  height: 0;
 }
 
 /* Peer count indicator */
