@@ -1193,10 +1193,10 @@ Also test <img> and <a> tags`;
         '.milkdown .ProseMirror p:first-child',
       );
       if (!firstPara) return false;
-      
+
       const beforeStyle = window.getComputedStyle(firstPara, '::before');
       const content = beforeStyle.content;
-      
+
       // Check if content is not "none" and contains the placeholder text
       return content && content !== 'none' && content.includes('ここに入力');
     });
@@ -1289,10 +1289,10 @@ Also test <img> and <a> tags`;
         '.milkdown .ProseMirror p:first-child',
       );
       if (!firstPara) return false;
-      
+
       const beforeStyle = window.getComputedStyle(firstPara, '::before');
       const content = beforeStyle.content;
-      
+
       // If content is "none", placeholder is not visible
       return content && content !== 'none' && content.includes('ここに入力');
     });
