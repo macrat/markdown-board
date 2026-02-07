@@ -38,18 +38,6 @@
   color: #574a46;
 }
 
-/* Ensure all paragraphs have consistent height */
-.milkdown .ProseMirror p {
-  /* Set explicit height to ensure empty lines have the same height as text lines.
-   * This is necessary because empty paragraphs with only <br> tags would otherwise
-   * collapse to zero height, while paragraphs with text respect line-height.
-   * Note: height (not min-height) is required because min-height doesn't prevent
-   * collapse when the only content is a collapsed <br> element.
-   * Multi-line content is allowed to overflow with overflow: visible. */
-  height: 1.7em;
-  overflow: visible;
-}
-
 .milkdown ul,
 .milkdown ol {
   margin-bottom: 1rem;
@@ -131,6 +119,7 @@
 
 /* Collaborative cursor styling - single simple caret */
 .milkdown .ProseMirror-yjs-cursor {
+  /* Remove cursor from layout flow to prevent it from affecting empty line height */
   position: absolute;
   border-left: 2px solid #c42776;
   border-right: none;
@@ -138,26 +127,29 @@
   margin-right: -1px;
   pointer-events: none;
   word-break: normal;
+  /* Cursor height and positioning */
   height: 1.7em;
   top: 0;
 }
 
 /* Hide the user name label */
 .milkdown .ProseMirror-yjs-cursor > div {
-  display: none !important;
+  display: none;
 }
 
 /* Fix collaborative cursor positioning without breaking line breaks */
 .milkdown .ProseMirror-yjs-cursor + .ProseMirror-trailingBreak {
-  /* Keep the trailing break visible to maintain empty line height */
-  /* but ensure it doesn't add extra space beyond normal line height */
+  /* Trailing breaks should remain visible to maintain empty line height */
+  /* Remove the hiding that was causing empty paragraphs to collapse */
 }
 
-/* Ensure trailing breaks contribute to line height properly */
-.milkdown .ProseMirror .ProseMirror-trailingBreak {
-  /* Make it an inline element that respects line-height */
-  display: inline;
-  /* Note: Can't set height on inline elements, line-height is inherited from parent */
+/* Ensure trailing breaks in empty paragraphs have proper height */
+.milkdown .ProseMirror-trailingBreak {
+  /* Make br elements render with line-height to give empty paragraphs proper height */
+  display: inline-block;
+  width: 0;
+  height: 1.7em;
+  vertical-align: top;
 }
 
 /* Peer count indicator */

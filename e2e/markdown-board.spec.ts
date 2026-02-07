@@ -1425,4 +1425,130 @@ Also test <img> and <a> tags`;
       fullPage: false,
     });
   });
+
+  test('should not have second paragraph intrude into first paragraph wrapped lines', async ({
+    page,
+  }) => {
+    // This test checks for the specific issue where a paragraph with many characters
+    // wraps to multiple lines, and the next paragraph intrudes into those wrapped lines
+    // because of fixed height on paragraphs
+
+    // Set a narrower viewport to force more wrapping
+    await page.setViewportSize({ width: 800, height: 600 });
+
+    // Create a new page
+    await page.goto('/');
+    await page.waitForLoadState('networkidle');
+    await page.click('button[title="新しいページを作成"]');
+    await page.waitForURL(/\/page\/.+/);
+    await page.waitForSelector('.milkdown', { timeout: 10000 });
+    await page.waitForTimeout(1000);
+
+    const editor = page
+      .locator('.milkdown')
+      .locator('div[contenteditable="true"]')
+      .first();
+    await editor.click();
+
+    // Type many 'a's to ensure wrapping occurs (similar to user's example)
+    const longTextA = 'a'.repeat(90);
+    await editor.type(longTextA);
+    await editor.press('Enter');
+    await editor.press('Enter');
+
+    // Type many 'b's for the second paragraph
+    const longTextB = 'b'.repeat(30);
+    await editor.type(longTextB);
+
+    await page.waitForTimeout(1000);
+
+    // Get the first paragraph (with many a's)
+    const firstPara = page.locator('.milkdown .ProseMirror p').first();
+    const firstParaBox = await firstPara.boundingBox();
+
+    // Get the second paragraph (with many b's)
+    const secondPara = page.locator('.milkdown .ProseMirror p').nth(2);
+    const secondParaBox = await secondPara.boundingBox();
+
+    // Get the actual text bottom of the first paragraph
+    const firstParaTextBottom = await page.evaluate(() => {
+      const para = document.querySelector('.milkdown .ProseMirror p');
+      if (!para) return null;
+      const range = document.createRange();
+      range.selectNodeContents(para);
+      const rects = range.getClientRects();
+      if (rects.length === 0) return null;
+      // Get the last rect which represents the last line of wrapped text
+      const lastRect = rects[rects.length - 1];
+      return {
+        bottom: lastRect.bottom,
+        top: lastRect.top,
+      };
+    });
+
+    // Get the actual text top of the second paragraph
+    const secondParaTextTop = await page.evaluate(() => {
+      const paras = document.querySelectorAll('.milkdown .ProseMirror p');
+      if (paras.length < 3) return null;
+      const para = paras[2]; // Third paragraph (index 2)
+      const range = document.createRange();
+      range.selectNodeContents(para);
+      const rects = range.getClientRects();
+      if (rects.length === 0) return null;
+      const firstRect = rects[0];
+      return {
+        top: firstRect.top,
+        bottom: firstRect.bottom,
+      };
+    });
+
+    if (
+      firstParaBox &&
+      secondParaBox &&
+      firstParaTextBottom &&
+      secondParaTextTop
+    ) {
+      console.log('First paragraph element top:', firstParaBox.y);
+      console.log(
+        'First paragraph element bottom (fixed):',
+        firstParaBox.y + firstParaBox.height,
+      );
+      console.log(
+        'First paragraph actual text bottom:',
+        firstParaTextBottom.bottom,
+      );
+      console.log('Second paragraph element top:', secondParaBox.y);
+      console.log('Second paragraph text top:', secondParaTextTop.top);
+
+      // Check if the second paragraph's text intrudes into the first paragraph's text area
+      // The second paragraph text should start AFTER the first paragraph text ends
+      const intrusion = firstParaTextBottom.bottom > secondParaTextTop.top;
+
+      console.log(
+        'Second paragraph intrudes into first:',
+        intrusion,
+        `(${firstParaTextBottom.bottom} > ${secondParaTextTop.top})`,
+      );
+
+      if (intrusion) {
+        console.error(
+          'INTRUSION DETECTED: Second paragraph text starts before first paragraph text ends!',
+        );
+        console.error(
+          `First para text ends at ${firstParaTextBottom.bottom}, but second para text starts at ${secondParaTextTop.top}`,
+        );
+      }
+
+      // The test should fail if there's intrusion
+      expect(firstParaTextBottom.bottom).toBeLessThanOrEqual(
+        secondParaTextTop.top + 2,
+      );
+    }
+
+    // Take a screenshot for visual verification
+    await page.screenshot({
+      path: '/tmp/playwright-logs/paragraph-intrusion-test.png',
+      fullPage: false,
+    });
+  });
 });
