@@ -38,6 +38,13 @@
   color: #574a46;
 }
 
+/* Ensure all paragraphs have consistent height */
+.milkdown .ProseMirror p {
+  /* Set explicit height to prevent collapse */
+  height: 1.7em;
+  overflow: visible;
+}
+
 .milkdown ul,
 .milkdown ol {
   margin-bottom: 1rem;
@@ -137,12 +144,15 @@
 
 /* Fix collaborative cursor positioning without breaking line breaks */
 .milkdown .ProseMirror-yjs-cursor + .ProseMirror-trailingBreak {
-  /* Only hide trailing breaks immediately after collaborative cursors */
-  /* Use visibility: hidden to preserve accessibility for screen readers */
-  visibility: hidden;
-  line-height: 0;
-  height: 0;
-  display: none;
+  /* Keep the trailing break visible to maintain empty line height */
+  /* but ensure it doesn't add extra space beyond normal line height */
+}
+
+/* Ensure trailing breaks contribute to line height properly */
+.milkdown .ProseMirror .ProseMirror-trailingBreak {
+  /* Make it an inline element that respects line-height */
+  display: inline;
+  /* Note: Can't set height on inline elements, line-height is inherited from parent */
 }
 
 /* Peer count indicator */

@@ -1264,17 +1264,11 @@ Also test <img> and <a> tags`;
       line3YAfterTextCursor,
     );
 
-    // The Y position should have increased because line 2 now has text content
-    // The key test is that the empty line cursor didn't ALREADY cause this shift
-    expect(line3YAfterTextCursor).toBeGreaterThan(line3YAfterEmptyCursor!);
-
-    // Expected line height difference is ~1rem (16px base) + 1.7 line-height
-    // This results in approximately 27px difference
-    const MIN_LINE_HEIGHT_PX = 20; // Minimum expected difference
-    const MAX_LINE_HEIGHT_PX = 35; // Maximum expected difference
-    const lineDifference = line3YAfterTextCursor! - line3YAfterEmptyCursor!;
-    expect(lineDifference).toBeGreaterThan(MIN_LINE_HEIGHT_PX);
-    expect(lineDifference).toBeLessThan(MAX_LINE_HEIGHT_PX);
+    // Empty lines and text lines should have the same height
+    // So Line 3's position should NOT change when text is added to line 2
+    expect(
+      Math.abs(line3YAfterTextCursor! - line3YAfterEmptyCursor!),
+    ).toBeLessThan(2);
 
     await context.close();
   });
