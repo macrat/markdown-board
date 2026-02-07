@@ -1272,4 +1272,157 @@ Also test <img> and <a> tags`;
 
     await context.close();
   });
+
+  test('should not overlap text on wrapped lines or forced line breaks', async ({
+    page,
+  }) => {
+    // Create a new page
+    await page.goto('/');
+    await page.waitForLoadState('networkidle');
+    await page.click('button[title="新しいページを作成"]');
+    await page.waitForURL(/\/page\/.+/);
+    await page.waitForSelector('.milkdown', { timeout: 10000 });
+    await page.waitForTimeout(1000);
+
+    const editor = page
+      .locator('.milkdown')
+      .locator('div[contenteditable="true"]')
+      .first();
+    await editor.click();
+
+    // Test 1: Long line that will wrap
+    const longText =
+      'This is a very long line of text that should wrap to multiple lines when the viewport is not wide enough to display it all in a single line. It contains enough words to ensure wrapping occurs.';
+    await editor.type(longText);
+    await editor.press('Enter');
+    await editor.press('Enter');
+    await editor.type('This is the next paragraph that should not overlap');
+
+    await page.waitForTimeout(1000);
+
+    // Get the first paragraph with long text
+    const longPara = page.locator('.milkdown .ProseMirror p').first();
+    const longParaBox = await longPara.boundingBox();
+
+    // Get the next paragraph
+    const nextPara = page.locator('.milkdown .ProseMirror p').nth(2);
+    const nextParaBox = await nextPara.boundingBox();
+
+    // Get the actual text bounding box by checking the last word position
+    const lastWordInLongPara = await page.evaluate(() => {
+      const para = document.querySelector('.milkdown .ProseMirror p');
+      if (!para) return null;
+      const range = document.createRange();
+      range.selectNodeContents(para);
+      const rects = range.getClientRects();
+      if (rects.length === 0) return null;
+      // Get the last rect which represents the last line of text
+      const lastRect = rects[rects.length - 1];
+      return {
+        top: lastRect.top,
+        bottom: lastRect.bottom,
+        height: lastRect.bottom - lastRect.top,
+      };
+    });
+
+    // Check if paragraphs overlap
+    if (longParaBox && nextParaBox && lastWordInLongPara) {
+      console.log('Long paragraph element top:', longParaBox.y);
+      console.log(
+        'Long paragraph element bottom (fixed height):',
+        longParaBox.y + longParaBox.height,
+      );
+      console.log(
+        'Long paragraph actual text bottom:',
+        lastWordInLongPara.bottom,
+      );
+      console.log('Next paragraph top:', nextParaBox.y);
+
+      // Check if the actual text (not just the element) overlaps with next paragraph
+      // Allow 2px tolerance for rendering differences
+      const textOverlapsNextPara =
+        lastWordInLongPara.bottom > nextParaBox.y + 2;
+      console.log('Text overlaps next paragraph:', textOverlapsNextPara);
+
+      if (textOverlapsNextPara) {
+        console.error(
+          'OVERLAP DETECTED: Long paragraph text extends into next paragraph!',
+        );
+        console.error(
+          `Text bottom (${lastWordInLongPara.bottom}) > Next para top (${nextParaBox.y})`,
+        );
+      }
+
+      // The test should fail if there's overlap
+      expect(lastWordInLongPara.bottom).toBeLessThanOrEqual(nextParaBox.y + 2);
+    }
+
+    // Test 2: Forced line break with two spaces + Enter
+    await editor.press('Control+a');
+    await editor.press('Backspace');
+    await page.waitForTimeout(500);
+
+    await editor.type('First line  '); // Two spaces at the end for hard break
+    await editor.press('Enter');
+    await editor.type('Second line after hard break');
+    await editor.press('Enter');
+    await editor.press('Enter');
+    await editor.type('Third paragraph');
+
+    await page.waitForTimeout(1000);
+
+    // Check if hard break causes overlap
+    const firstParaWithBreak = page.locator('.milkdown .ProseMirror p').first();
+    const thirdPara = page.locator('.milkdown .ProseMirror p').nth(2);
+
+    const firstBoxWithBreak = await firstParaWithBreak.boundingBox();
+    const thirdBox = await thirdPara.boundingBox();
+
+    const firstParaTextBottom = await page.evaluate(() => {
+      const para = document.querySelector('.milkdown .ProseMirror p');
+      if (!para) return null;
+      const range = document.createRange();
+      range.selectNodeContents(para);
+      const rects = range.getClientRects();
+      if (rects.length === 0) return null;
+      const lastRect = rects[rects.length - 1];
+      return lastRect.bottom;
+    });
+
+    if (firstBoxWithBreak && thirdBox && firstParaTextBottom) {
+      console.log(
+        'First paragraph with hard break - element top:',
+        firstBoxWithBreak.y,
+      );
+      console.log(
+        'First paragraph with hard break - element bottom:',
+        firstBoxWithBreak.y + firstBoxWithBreak.height,
+      );
+      console.log(
+        'First paragraph with hard break - actual text bottom:',
+        firstParaTextBottom,
+      );
+      console.log('Third paragraph top:', thirdBox.y);
+
+      const hardBreakOverlaps = firstParaTextBottom > thirdBox.y + 2;
+      console.log(
+        'Hard break text overlaps third paragraph:',
+        hardBreakOverlaps,
+      );
+
+      if (hardBreakOverlaps) {
+        console.error(
+          'OVERLAP DETECTED: Hard break paragraph text extends into third paragraph!',
+        );
+      }
+
+      expect(firstParaTextBottom).toBeLessThanOrEqual(thirdBox.y + 2);
+    }
+
+    // Visual verification - take a screenshot
+    await page.screenshot({
+      path: '/tmp/playwright-logs/text-overlap-test.png',
+      fullPage: false,
+    });
+  });
 });
