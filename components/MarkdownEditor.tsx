@@ -236,6 +236,22 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
         });
 
         editorInstanceRef.current = editor;
+
+        // Auto-focus the editor if it's a blank page
+        // Only focus if the content is empty (blank page)
+        if (!initialContent || initialContent.trim() === '') {
+          // Small delay to ensure editor is fully rendered
+          setTimeout(() => {
+            if (!isMountedRef.current) return;
+            const editableElement = editorRef.current?.querySelector(
+              'div[contenteditable="true"]',
+            ) as HTMLElement | null;
+            if (editableElement) {
+              editableElement.focus();
+              logger.log('[Editor] Auto-focused blank page editor');
+            }
+          }, 100);
+        }
       } catch (error) {
         logger.error('Failed to initialize editor:', error);
 
