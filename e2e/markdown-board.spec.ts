@@ -1166,4 +1166,113 @@ Also test <img> and <a> tags`;
     // Verify page is back in recent list (archive was cancelled)
     await expect(pageItem).toBeVisible();
   });
+
+  test('should not create extra whitespace when cursor is on empty line', async ({
+    browser,
+  }) => {
+    const context = await browser.newContext();
+    const page1 = await context.newPage();
+
+    // Step 1: Create a page with Line 1, empty line, Line 3
+    await page1.goto('/');
+    await page1.waitForLoadState('networkidle');
+    await page1.click('button[title="新しいページを作成"]');
+    await page1.waitForURL(/\/page\/.+/);
+    const pageUrl = page1.url();
+
+    await page1.waitForSelector('.milkdown', { timeout: 10000 });
+    await page1.waitForTimeout(1000);
+
+    const editor1 = page1
+      .locator('.milkdown')
+      .locator('div[contenteditable="true"]')
+      .first();
+    await editor1.click();
+    await editor1.type('Line 1');
+    await editor1.press('Enter');
+    await editor1.press('Enter'); // Empty line
+    await editor1.type('Line 3');
+
+    // Wait for content to sync
+    await page1.waitForTimeout(2000);
+
+    // Step 2: Get the Y coordinate of Line 3 before opening second tab
+    const line3Para = page1.locator('.milkdown .ProseMirror p').nth(2);
+    await expect(line3Para).toHaveText('Line 3');
+    const line3BoxBefore = await line3Para.boundingBox();
+    const line3YBefore = line3BoxBefore?.y;
+
+    console.log('Line 3 Y position before second tab:', line3YBefore);
+
+    // Step 3: Open second tab and navigate to the same page
+    const page2 = await context.newPage();
+    await page2.goto(pageUrl);
+    await page2.waitForLoadState('networkidle');
+    await page2.waitForSelector('.milkdown', { timeout: 10000 });
+    await page2.waitForTimeout(2000);
+
+    // Place cursor on the empty line (line 2)
+    const editor2 = page2
+      .locator('.milkdown')
+      .locator('div[contenteditable="true"]')
+      .first();
+    await editor2.click();
+
+    // Navigate to line 2 (empty line)
+    const line2Para = page2.locator('.milkdown .ProseMirror p').nth(1);
+    await line2Para.click();
+
+    console.log('Clicked on empty line in second tab');
+    await page2.waitForTimeout(1000);
+
+    // Step 4: Verify cursor is visible in first tab
+    await page1.waitForTimeout(1000);
+    const cursor = page1.locator('.ProseMirror-yjs-cursor');
+    await expect(cursor).toBeVisible({ timeout: 5000 });
+    console.log('Cursor visible in first tab');
+
+    // Step 5: Compare Line 3 Y position in first tab
+    const line3BoxAfterEmptyCursor = await line3Para.boundingBox();
+    const line3YAfterEmptyCursor = line3BoxAfterEmptyCursor?.y;
+
+    console.log(
+      'Line 3 Y position after cursor on empty line:',
+      line3YAfterEmptyCursor,
+    );
+
+    // The Y position should be the same (no extra whitespace)
+    expect(line3YAfterEmptyCursor).toBe(line3YBefore);
+
+    // Step 6: Now test with text on line 2
+    // In page2, type "Line 2" on the currently selected line
+    await editor2.type('Line 2');
+    await page2.waitForTimeout(2000);
+
+    // Wait for sync to page1
+    await page1.waitForTimeout(2000);
+
+    // Verify Line 2 text appears in page1
+    const line2InPage1 = page1.locator('.milkdown .ProseMirror p').nth(1);
+    await expect(line2InPage1).toContainText('Line 2', { timeout: 5000 });
+
+    // Get Line 3 Y position after adding text to line 2
+    const line3BoxAfterTextCursor = await line3Para.boundingBox();
+    const line3YAfterTextCursor = line3BoxAfterTextCursor?.y;
+
+    console.log(
+      'Line 3 Y position after cursor on text line:',
+      line3YAfterTextCursor,
+    );
+
+    // The Y position should have increased because line 2 now has text content
+    // The key test is that the empty line cursor didn't ALREADY cause this shift
+    expect(line3YAfterTextCursor).toBeGreaterThan(line3YAfterEmptyCursor!);
+
+    // And the difference should be about one line height (1rem margin-bottom)
+    const lineDifference = line3YAfterTextCursor! - line3YAfterEmptyCursor!;
+    expect(lineDifference).toBeGreaterThan(20); // Should be ~27px
+    expect(lineDifference).toBeLessThan(35);
+
+    await context.close();
+  });
 });

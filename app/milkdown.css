@@ -119,22 +119,25 @@
 
 /* Collaborative cursor styling - single simple caret */
 .milkdown .ProseMirror-yjs-cursor {
-  position: relative;
+  position: absolute;
   border-left: 2px solid #c42776;
   border-right: none;
   margin-left: -1px;
   margin-right: -1px;
   pointer-events: none;
   word-break: normal;
-  display: inline;
-  line-height: 0;
-  height: 0;
-  vertical-align: baseline;
+  height: 1.7em;
+  top: 0;
 }
 
 /* Hide the user name label */
 .milkdown .ProseMirror-yjs-cursor > div {
-  display: none;
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  width: 0 !important;
+  height: 0 !important;
+  overflow: hidden !important;
 }
 
 /* Fix collaborative cursor positioning without breaking line breaks */
@@ -144,6 +147,7 @@
   visibility: hidden;
   line-height: 0;
   height: 0;
+  display: none;
 }
 
 /* Peer count indicator */
