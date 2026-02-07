@@ -36,19 +36,29 @@ body {
   border-radius: 4px;
 }
 
+.archive-button:hover,
+.archive-button:focus,
+.unarchive-button:hover,
+.unarchive-button:focus {
+  background-color: rgba(87, 74, 70, 0.1);
+  border-color: #574a46;
+}
+
 .archive-button:focus-visible,
 .unarchive-button:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
-  background-color: rgba(87, 74, 70, 0.1);
-  border-color: #574a46;
+}
+
+.fab-button:hover,
+.fab-button:focus {
+  background-color: var(--accent-light);
+  transform: scale(1.05);
 }
 
 .fab-button:focus-visible {
   outline: 2px solid var(--foreground);
   outline-offset: 2px;
-  background-color: var(--accent-light);
-  transform: scale(1.05);
 }
 
 .tab-button:focus-visible {

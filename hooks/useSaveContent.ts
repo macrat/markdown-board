@@ -66,8 +66,8 @@ export function useSaveContent(pageId: string) {
             if (isMountedRef.current) {
               showSaveError(
                 response.status === 413
-                  ? '保存できませんでした: コンテンツが大きすぎます（上限: 10MB）'
-                  : '保存に失敗しました',
+                  ? '変更を反映できませんでした: コンテンツが大きすぎます（上限: 10MB）'
+                  : '変更を反映できませんでした',
               );
             }
           } else {
@@ -86,7 +86,7 @@ export function useSaveContent(pageId: string) {
         } catch (error) {
           logger.error('[Editor Save] Network error:', error);
           if (isMountedRef.current) {
-            showSaveError('保存に失敗しました');
+            showSaveError('変更を反映できませんでした');
           }
         }
       }, 1000);
