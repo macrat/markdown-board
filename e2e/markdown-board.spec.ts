@@ -1187,15 +1187,15 @@ Also test <img> and <a> tags`;
     // Wait a moment for the blur to take effect
     await page.waitForTimeout(500);
 
-    // Verify the placeholder is visible by checking if the ::before pseudo-element has content
+    // Verify the placeholder is visible by checking if the ::after pseudo-element has content
     const placeholderVisible = await page.evaluate(() => {
       const firstPara = document.querySelector(
         '.milkdown .ProseMirror p:first-child',
       );
       if (!firstPara) return false;
 
-      const beforeStyle = window.getComputedStyle(firstPara, '::before');
-      const content = beforeStyle.content;
+      const afterStyle = window.getComputedStyle(firstPara, '::after');
+      const content = afterStyle.content;
 
       // Check if content is not "none" and contains the placeholder text
       return content && content !== 'none' && content.includes('ここに入力');
@@ -1290,8 +1290,8 @@ Also test <img> and <a> tags`;
       );
       if (!firstPara) return false;
 
-      const beforeStyle = window.getComputedStyle(firstPara, '::before');
-      const content = beforeStyle.content;
+      const afterStyle = window.getComputedStyle(firstPara, '::after');
+      const content = afterStyle.content;
 
       // If content is "none", placeholder is not visible
       return content && content !== 'none' && content.includes('ここに入力');

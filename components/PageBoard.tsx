@@ -2,66 +2,19 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import type { PageListItem, ArchiveListItem } from '@/lib/types';
+import type {
+  PageListItem as PageListItemType,
+  ArchiveListItem,
+} from '@/lib/types';
 import Toast from './Toast';
+import PageListItem from './PageListItem';
+import { ArchiveIcon, UnarchiveIcon, PlusIcon } from './Icons';
 import { usePageList } from '@/hooks/usePageList';
 import { useArchives } from '@/hooks/useArchives';
 import { useAnimatingItems } from '@/hooks/useAnimatingItems';
 import { useArchiveToast } from '@/hooks/useArchiveToast';
 
 type Tab = 'latest' | 'archive';
-
-// SVG Icons
-const ArchiveIcon = () => (
-  <svg
-    width="20"
-    height="20"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <polyline points="21 8 21 21 3 21 3 8" />
-    <rect x="1" y="3" width="22" height="5" />
-    <line x1="10" y1="12" x2="14" y2="12" />
-  </svg>
-);
-
-const UnarchiveIcon = () => (
-  <svg
-    width="20"
-    height="20"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <polyline points="21 8 21 21 3 21 3 8" />
-    <rect x="1" y="3" width="22" height="5" />
-    <polyline points="12 17 12 11" />
-    <polyline points="9 14 12 11 15 14" />
-  </svg>
-);
-
-const PlusIcon = () => (
-  <svg
-    width="28"
-    height="28"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2.5"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <line x1="12" y1="5" x2="12" y2="19" />
-    <line x1="5" y1="12" x2="19" y2="12" />
-  </svg>
-);
 
 export default function PageBoard() {
   const [activeTab, setActiveTab] = useState<Tab>('latest');
@@ -138,7 +91,7 @@ export default function PageBoard() {
 
     const archivedPage = findArchive(pageId);
     if (archivedPage) {
-      const restoredPage: PageListItem = {
+      const restoredPage: PageListItemType = {
         id: archivedPage.id,
         title: archivedPage.title,
         created_at: archivedPage.created_at,
@@ -186,10 +139,6 @@ export default function PageBoard() {
       startFadeIn,
     ],
   );
-
-  const formatDate = (timestamp: number) => {
-    return new Date(timestamp).toLocaleString();
-  };
 
   if (loading) {
     return (
@@ -270,102 +219,20 @@ export default function PageBoard() {
               style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}
             >
               {pages.map((page) => (
-                <div
+                <PageListItem
                   key={page.id}
-                  data-testid={`page-item-${page.id}`}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    padding: '16px 20px',
-                    backgroundColor: 'rgba(245, 234, 230, 0.5)',
-                    borderRadius: '8px',
-                    border: '1px solid rgba(87, 74, 70, 0.1)',
-                    opacity: getItemOpacity(page.id),
-                    transition: 'opacity 0.2s ease-in-out',
-                  }}
-                >
-                  <div
-                    role="button"
-                    tabIndex={0}
-                    aria-label={`${page.title}を開く`}
-                    className="page-list-item-button"
-                    style={{ flex: 1, cursor: 'pointer' }}
-                    onClick={() => router.push(`/page/${page.id}`)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault();
-                        router.push(`/page/${page.id}`);
-                      }
-                    }}
-                  >
-                    <h3
-                      style={{
-                        color: '#574a46',
-                        fontSize: '16px',
-                        fontWeight: '500',
-                        margin: 0,
-                        marginBottom: '4px',
-                      }}
-                    >
-                      {page.title}
-                    </h3>
-                    <p
-                      style={{
-                        color: '#574a46',
-                        opacity: 0.6,
-                        fontSize: '13px',
-                        margin: 0,
-                      }}
-                    >
-                      {formatDate(page.updated_at)}
-                    </p>
-                  </div>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleArchivePage(page.id, page.title);
-                    }}
-                    className="archive-button"
-                    aria-label="アーカイブする"
-                    title="アーカイブ"
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      width: '44px',
-                      height: '44px',
-                      backgroundColor: 'transparent',
-                      border: '1px solid rgba(87, 74, 70, 0.3)',
-                      borderRadius: '8px',
-                      color: '#574a46',
-                      cursor: 'pointer',
-                      transition: 'all 0.15s ease',
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.backgroundColor =
-                        'rgba(87, 74, 70, 0.1)';
-                      e.currentTarget.style.borderColor = '#574a46';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.backgroundColor = 'transparent';
-                      e.currentTarget.style.borderColor =
-                        'rgba(87, 74, 70, 0.3)';
-                    }}
-                    onFocus={(e) => {
-                      e.currentTarget.style.backgroundColor =
-                        'rgba(87, 74, 70, 0.1)';
-                      e.currentTarget.style.borderColor = '#574a46';
-                    }}
-                    onBlur={(e) => {
-                      e.currentTarget.style.backgroundColor = 'transparent';
-                      e.currentTarget.style.borderColor =
-                        'rgba(87, 74, 70, 0.3)';
-                    }}
-                  >
-                    <ArchiveIcon />
-                  </button>
-                </div>
+                  dataTestId={`page-item-${page.id}`}
+                  title={page.title}
+                  timestamp={page.updated_at}
+                  opacity={getItemOpacity(page.id)}
+                  onNavigate={() => router.push(`/page/${page.id}`)}
+                  navigateAriaLabel={`${page.title}を開く`}
+                  onAction={() => handleArchivePage(page.id, page.title)}
+                  actionAriaLabel="アーカイブする"
+                  actionTitle="アーカイブ"
+                  actionClassName="archive-button"
+                  actionIcon={<ArchiveIcon />}
+                />
               ))}
             </div>
           )}
@@ -398,86 +265,18 @@ export default function PageBoard() {
               style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}
             >
               {archives.map((page) => (
-                <div
+                <PageListItem
                   key={page.id}
-                  data-testid={`archive-item-${page.id}`}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    padding: '16px 20px',
-                    backgroundColor: 'rgba(245, 234, 230, 0.5)',
-                    borderRadius: '8px',
-                    border: '1px solid rgba(87, 74, 70, 0.1)',
-                    opacity: getItemOpacity(page.id),
-                    transition: 'opacity 0.2s ease-in-out',
-                  }}
-                >
-                  <div style={{ flex: 1 }}>
-                    <h3
-                      style={{
-                        color: '#574a46',
-                        fontSize: '16px',
-                        fontWeight: '500',
-                        margin: 0,
-                        marginBottom: '4px',
-                      }}
-                    >
-                      {page.title}
-                    </h3>
-                    <p
-                      style={{
-                        color: '#574a46',
-                        opacity: 0.6,
-                        fontSize: '13px',
-                        margin: 0,
-                      }}
-                    >
-                      {formatDate(page.archived_at)}
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => handleUnarchivePage(page.id)}
-                    className="unarchive-button"
-                    aria-label="アーカイブを解除する"
-                    title="アーカイブを解除"
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      width: '44px',
-                      height: '44px',
-                      backgroundColor: 'transparent',
-                      border: '1px solid rgba(87, 74, 70, 0.3)',
-                      borderRadius: '8px',
-                      color: '#574a46',
-                      cursor: 'pointer',
-                      transition: 'all 0.15s ease',
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.backgroundColor =
-                        'rgba(87, 74, 70, 0.1)';
-                      e.currentTarget.style.borderColor = '#574a46';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.backgroundColor = 'transparent';
-                      e.currentTarget.style.borderColor =
-                        'rgba(87, 74, 70, 0.3)';
-                    }}
-                    onFocus={(e) => {
-                      e.currentTarget.style.backgroundColor =
-                        'rgba(87, 74, 70, 0.1)';
-                      e.currentTarget.style.borderColor = '#574a46';
-                    }}
-                    onBlur={(e) => {
-                      e.currentTarget.style.backgroundColor = 'transparent';
-                      e.currentTarget.style.borderColor =
-                        'rgba(87, 74, 70, 0.3)';
-                    }}
-                  >
-                    <UnarchiveIcon />
-                  </button>
-                </div>
+                  dataTestId={`archive-item-${page.id}`}
+                  title={page.title}
+                  timestamp={page.archived_at}
+                  opacity={getItemOpacity(page.id)}
+                  onAction={() => handleUnarchivePage(page.id)}
+                  actionAriaLabel="アーカイブを解除する"
+                  actionTitle="アーカイブを解除"
+                  actionClassName="unarchive-button"
+                  actionIcon={<UnarchiveIcon />}
+                />
               ))}
             </div>
           )}
@@ -507,22 +306,6 @@ export default function PageBoard() {
           justifyContent: 'center',
           transition: 'all 0.2s ease',
           zIndex: 100,
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.backgroundColor = '#e893c2';
-          e.currentTarget.style.transform = 'scale(1.05)';
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.backgroundColor = '#c42776';
-          e.currentTarget.style.transform = 'scale(1)';
-        }}
-        onFocus={(e) => {
-          e.currentTarget.style.backgroundColor = '#e893c2';
-          e.currentTarget.style.transform = 'scale(1.05)';
-        }}
-        onBlur={(e) => {
-          e.currentTarget.style.backgroundColor = '#c42776';
-          e.currentTarget.style.transform = 'scale(1)';
         }}
       >
         <PlusIcon />
