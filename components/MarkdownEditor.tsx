@@ -199,6 +199,15 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
             const collabService = ctx.get(collabServiceCtx);
             collabService.bindDoc(ydoc);
             collabService.setAwareness(provider.awareness);
+            collabService.mergeOptions({
+              yCursorOpts: {
+                cursorBuilder: () => {
+                  const cursor = document.createElement('span');
+                  cursor.classList.add('ProseMirror-yjs-cursor');
+                  return cursor;
+                },
+              },
+            });
           })
           .create();
 
