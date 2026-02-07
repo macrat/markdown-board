@@ -110,7 +110,15 @@
   white-space: pre-wrap;
 }
 
-.milkdown .ProseMirror p.is-editor-empty:first-child::before {
+.milkdown .ProseMirror p:first-child:only-child:empty::before {
+  content: 'ここに入力...';
+  color: rgba(87, 74, 70, 0.4);
+  pointer-events: none;
+  height: 0;
+}
+
+/* Also handle the case where the paragraph has only a <br> tag */
+.milkdown .ProseMirror p:first-child:last-child:has(> br.ProseMirror-trailingBreak:only-child)::before {
   content: 'ここに入力...';
   color: rgba(87, 74, 70, 0.4);
   pointer-events: none;
