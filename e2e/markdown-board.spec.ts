@@ -1240,8 +1240,8 @@ Also test <img> and <a> tags`;
       line3YAfterEmptyCursor,
     );
 
-    // The Y position should be the same (no extra whitespace)
-    expect(line3YAfterEmptyCursor).toBe(line3YBefore);
+    // The Y position should be approximately the same (allowing for sub-pixel rendering)
+    expect(Math.abs(line3YAfterEmptyCursor! - line3YBefore!)).toBeLessThan(2);
 
     // Step 6: Now test with text on line 2
     // In page2, type "Line 2" on the currently selected line
@@ -1268,10 +1268,13 @@ Also test <img> and <a> tags`;
     // The key test is that the empty line cursor didn't ALREADY cause this shift
     expect(line3YAfterTextCursor).toBeGreaterThan(line3YAfterEmptyCursor!);
 
-    // And the difference should be about one line height (1rem margin-bottom)
+    // Expected line height difference is ~1rem (16px base) + 1.7 line-height
+    // This results in approximately 27px difference
+    const MIN_LINE_HEIGHT_PX = 20; // Minimum expected difference
+    const MAX_LINE_HEIGHT_PX = 35; // Maximum expected difference
     const lineDifference = line3YAfterTextCursor! - line3YAfterEmptyCursor!;
-    expect(lineDifference).toBeGreaterThan(20); // Should be ~27px
-    expect(lineDifference).toBeLessThan(35);
+    expect(lineDifference).toBeGreaterThan(MIN_LINE_HEIGHT_PX);
+    expect(lineDifference).toBeLessThan(MAX_LINE_HEIGHT_PX);
 
     await context.close();
   });
