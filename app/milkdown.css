@@ -129,6 +129,16 @@
   height: 0;
 }
 
+/*
+ * Hide the ProseMirror-separator hack element inserted after collaborative cursors.
+ * ProseMirror adds this <img> when a contentEditable="false" widget (the cursor)
+ * is the last child of a textblock, which doubles the line height.
+ * See ADR-0005 for details.
+ */
+.milkdown .ProseMirror-yjs-cursor + img.ProseMirror-separator {
+  display: none;
+}
+
 /* Collaborative cursor styling - single simple caret */
 .milkdown .ProseMirror-yjs-cursor {
   position: relative;
