@@ -15,6 +15,7 @@ function openDatabase() {
     fs.mkdirSync(DB_DIR, { recursive: true });
   }
   const db = new Database(DB_PATH);
+  db.pragma('journal_mode = WAL');
   db.pragma('foreign_keys = ON');
   return db;
 }

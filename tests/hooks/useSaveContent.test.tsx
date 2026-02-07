@@ -93,7 +93,7 @@ describe('useSaveContent', () => {
       vi.advanceTimersByTime(1000);
     });
 
-    expect(result.current.saveError).toBe('保存に失敗しました');
+    expect(result.current.saveError).toBe('変更を反映できませんでした');
 
     // Now trigger a successful save
     act(() => {
@@ -123,7 +123,7 @@ describe('useSaveContent', () => {
       vi.advanceTimersByTime(1000);
     });
 
-    expect(result.current.saveError).toBe('保存に失敗しました');
+    expect(result.current.saveError).toBe('変更を反映できませんでした');
   });
 
   it('sets saveError to size limit message on 413 status', async () => {
@@ -143,7 +143,7 @@ describe('useSaveContent', () => {
     });
 
     expect(result.current.saveError).toBe(
-      '保存できませんでした: コンテンツが大きすぎます（上限: 10MB）',
+      '変更を反映できませんでした: コンテンツが大きすぎます（上限: 10MB）',
     );
   });
 
@@ -161,7 +161,7 @@ describe('useSaveContent', () => {
       vi.advanceTimersByTime(1000);
     });
 
-    expect(result.current.saveError).toBe('保存に失敗しました');
+    expect(result.current.saveError).toBe('変更を反映できませんでした');
   });
 
   it('debounces multiple rapid changes and only triggers one save', async () => {
@@ -234,14 +234,14 @@ describe('useSaveContent', () => {
       vi.advanceTimersByTime(1000);
     });
 
-    expect(result.current.saveError).toBe('保存に失敗しました');
+    expect(result.current.saveError).toBe('変更を反映できませんでした');
 
     // Advance 4999ms - error should still be visible
     act(() => {
       vi.advanceTimersByTime(4999);
     });
 
-    expect(result.current.saveError).toBe('保存に失敗しました');
+    expect(result.current.saveError).toBe('変更を反映できませんでした');
 
     // Advance the remaining 1ms to reach 5000ms total
     act(() => {

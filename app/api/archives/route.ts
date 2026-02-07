@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import db from '@/lib/db';
 import { logger } from '@/lib/logger';
 
-const { cleanupOldArchives } = require('@/server/cleanup-archives'); // eslint-disable-line @typescript-eslint/no-require-imports
+import { cleanupOldArchives } from '@/server/cleanup-archives';
 
 export async function GET() {
   try {

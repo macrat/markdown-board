@@ -1,4 +1,4 @@
-const { openDatabase } = require('../server/db-config'); // eslint-disable-line @typescript-eslint/no-require-imports
+import { openDatabase } from '../server/db-config';
 
 const db = openDatabase();
 
