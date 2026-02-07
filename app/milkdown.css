@@ -110,7 +110,7 @@
   white-space: pre-wrap;
 }
 
-.milkdown .ProseMirror p:first-child:only-child:empty::before {
+.milkdown .ProseMirror p:first-child:only-child:empty::after {
   content: 'ここに入力...';
   color: rgba(87, 74, 70, 0.4);
   pointer-events: none;
@@ -122,7 +122,7 @@
   .ProseMirror
   p:first-child:last-child:has(
     > br.ProseMirror-trailingBreak:only-child
-  )::before {
+  )::after {
   content: 'ここに入力...';
   color: rgba(87, 74, 70, 0.4);
   pointer-events: none;
