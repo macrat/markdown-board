@@ -1,6 +1,6 @@
 ---
 name: create-adr
-description: Architecture Decision Record (ADR) を作成するスキル。技術的・機能的な重要な判断を記録し、将来の開発における判断基準を明確化する。ユーザーとLLMの両方が呼び出せる。
+description: Architecture Decision Record (ADR) を作成するスキル。技術的・機能的な重要な判断を記録し、将来の開発における判断基準を明確化する。
 ---
 
 # ADR作成スキル
@@ -44,6 +44,8 @@ description: Architecture Decision Record (ADR) を作成するスキル。技�
 3. **プロダクト哲学との関連を示す** — CLAUDE.mdの原則とどう関連するかを明記する
 4. **将来の変更可能性を残す** — 状況が変わった場合の再検討の余地を示す
 5. **簡潔かつ具体的に** — 長すぎず、かつ判断を再現できる十分な情報を含める
+6. **今回固有の判断と一般原則を区別する** — このケース特有の状況と、今後も適用できる原則を明確に分けて記述する
+7. **今後の判断への影響を考慮する** — この決定が将来の類似判断にどのような影響を与えるかを意識して書く
 
 ### ADRを書いてはいけない場合
 
@@ -115,7 +117,7 @@ description: Architecture Decision Record (ADR) を作成するスキル。技�
 新しいADRを作成する前に、必ず既存のADRを確認してください。
 
 ```bash
-ls -la /home/runner/work/markdown-board/markdown-board/docs/adr/
+ls -la docs/adr/
 ```
 
 既存のADRファイルをすべて確認し、同様のトピックが既に記録されていないかチェックしてください。重複する内容がある場合は、既存のADRを更新するか、新しいADRで参照してください。
@@ -231,7 +233,7 @@ npm run format
 
 ### ステップ9: コミットとレビュー依頼
 
-ADRを作成したら、変更をコミットして report_progress ツールで進捗を報告してください。
+ADRを作成したら、変更をコミットしてください。
 
 コミットメッセージの例：
 
