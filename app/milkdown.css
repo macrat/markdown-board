@@ -110,14 +110,26 @@
   white-space: pre-wrap;
 }
 
+.milkdown .ProseMirror p:first-child:only-child:empty {
+  position: relative;
+}
+
 .milkdown .ProseMirror p:first-child:only-child:empty::after {
   content: 'ここに入力...';
   color: rgba(87, 74, 70, 0.4);
   pointer-events: none;
-  height: 0;
+  position: absolute;
+  top: 0;
+  left: 0;
 }
 
 /* Also handle the case where the paragraph has only a <br> tag */
+.milkdown
+  .ProseMirror
+  p:first-child:last-child:has(> br.ProseMirror-trailingBreak:only-child) {
+  position: relative;
+}
+
 .milkdown
   .ProseMirror
   p:first-child:last-child:has(
@@ -126,7 +138,9 @@
   content: 'ここに入力...';
   color: rgba(87, 74, 70, 0.4);
   pointer-events: none;
-  height: 0;
+  position: absolute;
+  top: 0;
+  left: 0;
 }
 
 /*
