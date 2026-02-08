@@ -103,7 +103,7 @@ export default function PageBoard() {
     }
 
     const success = await unarchivePageApi(pageId);
-    if (!success) {
+    if (!success || !archivedPage) {
       await Promise.all([fetchPages(), fetchArchives()]);
     }
   }, [
