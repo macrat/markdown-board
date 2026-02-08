@@ -2,18 +2,50 @@
 
 /**
  * WebSocket server for Yjs collaborative editing
- * Uses the official @y/websocket-server implementation
+ * Uses the official @y/websocket-server implementation with SQLite persistence
  */
 
 const ws = require('ws');
 const http = require('http');
+const Y = require('yjs');
 
 // Import y-websocket server utilities
-const { setupWSConnection } = require('@y/websocket-server/utils');
+const {
+  setupWSConnection,
+  setPersistence,
+} = require('@y/websocket-server/utils');
 const { startPeriodicCleanup } = require('./cleanup-archives');
 const { openDatabase } = require('./db-config');
+const { SqlitePersistence } = require('./yjs-sqlite-persistence');
 
 const PORT = process.env.NEXT_PUBLIC_WS_PORT || 1234;
+
+// Open database and set up Yjs persistence
+const db = openDatabase();
+const sqlitePersistence = new SqlitePersistence(db);
+
+// Configure @y/websocket-server to use SQLite persistence
+setPersistence({
+  bindState: async (docName, ydoc) => {
+    // Get persisted document from SQLite
+    const persistedYdoc = await sqlitePersistence.getYDoc(docName);
+
+    // Store current state if document is new
+    const newUpdates = Y.encodeStateAsUpdate(ydoc);
+    sqlitePersistence.storeUpdate(docName, newUpdates);
+
+    // Apply persisted state to current document
+    Y.applyUpdate(ydoc, Y.encodeStateAsUpdate(persistedYdoc));
+
+    // Listen for future updates and persist them
+    ydoc.on('update', (update) => {
+      sqlitePersistence.storeUpdate(docName, update);
+    });
+  },
+  writeState: async () => {
+    // No-op: updates are already persisted incrementally
+  },
+});
 
 const server = http.createServer((request, response) => {
   response.writeHead(200, { 'Content-Type': 'text/plain' });
@@ -23,6 +55,7 @@ const server = http.createServer((request, response) => {
 const wss = new ws.Server({ server });
 
 console.log(`✓ WebSocket server running on ws://localhost:${PORT}`);
+console.log(`✓ Using SQLite for Yjs document persistence`);
 
 wss.on('connection', (conn, req) => {
   const roomName = req.url?.slice(1) || 'default';
@@ -53,6 +86,7 @@ const shutdown = () => {
   });
   wss.close(() => {
     server.close(() => {
+      db.close();
       console.log('WebSocket server closed');
       process.exit(0);
     });

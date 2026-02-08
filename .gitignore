@@ -49,8 +49,5 @@ next-env.d.ts
 *.db-shm
 *.db-wal
 
-# yjs persistence
-/.yjs
-
 # claude
 .claude/agent-memory/
