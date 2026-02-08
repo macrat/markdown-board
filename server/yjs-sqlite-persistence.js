@@ -60,20 +60,12 @@ class SqlitePersistence {
    * @param {Uint8Array} update - Binary update data
    */
   storeUpdate(docName, update) {
-    // Get next clock value for this document
-    const clockStmt = this.db.prepare(`
-      SELECT COALESCE(MAX(clock), -1) + 1 as next_clock
-      FROM yjs_updates
-      WHERE doc_name = ?
-    `);
-    const { next_clock } = clockStmt.get(docName);
-
-    // Store the update
+    // Use transaction for atomic operation
     const insertStmt = this.db.prepare(`
       INSERT INTO yjs_updates (doc_name, clock, value)
-      VALUES (?, ?, ?)
+      VALUES (?, (SELECT COALESCE(MAX(clock), -1) + 1 FROM yjs_updates WHERE doc_name = ?), ?)
     `);
-    insertStmt.run(docName, next_clock, Buffer.from(update));
+    insertStmt.run(docName, docName, Buffer.from(update));
   }
 
   /**

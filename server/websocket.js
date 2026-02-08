@@ -27,15 +27,19 @@ const sqlitePersistence = new SqlitePersistence(db);
 // Configure @y/websocket-server to use SQLite persistence
 setPersistence({
   bindState: async (docName, ydoc) => {
-    // Get persisted document from SQLite
+    // First, restore persisted state from SQLite
     const persistedYdoc = await sqlitePersistence.getYDoc(docName);
-
-    // Store current state if document is new
-    const newUpdates = Y.encodeStateAsUpdate(ydoc);
-    sqlitePersistence.storeUpdate(docName, newUpdates);
+    const persistedState = Y.encodeStateAsUpdate(persistedYdoc);
 
     // Apply persisted state to current document
-    Y.applyUpdate(ydoc, Y.encodeStateAsUpdate(persistedYdoc));
+    Y.applyUpdate(ydoc, persistedState);
+
+    // Then store any new state that wasn't in persistence
+    // (only if the current doc has content not in persisted state)
+    const currentState = Y.encodeStateAsUpdate(ydoc);
+    if (currentState.length > 0) {
+      sqlitePersistence.storeUpdate(docName, currentState);
+    }
 
     // Listen for future updates and persist them
     ydoc.on('update', (update) => {
