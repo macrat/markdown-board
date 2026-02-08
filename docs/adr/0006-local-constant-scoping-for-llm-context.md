@@ -6,7 +6,7 @@
 
 ## コンテキスト
 
-GitHub Issue にて、コードベース内のマジックナンバーを `lib/constants.ts` に集約する提案があった。具体的には以下の値:
+GitHub Issue #84 にて、コードベース内のマジックナンバーを `lib/constants.ts` に集約する提案があった。具体的には以下の値:
 
 - `1000` (ms) - `hooks/useSaveContent.ts` の保存デバウンス時間
 - `5000` (ms) - `hooks/useSaveContent.ts` のエラー表示時間
