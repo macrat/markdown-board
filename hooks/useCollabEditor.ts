@@ -21,6 +21,7 @@ export function useCollabEditor(pageId: string) {
   const updatePeerCountRef = useRef<(() => void) | null>(null);
   const initTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const syncTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const autoFocusTimerRef = useRef<NodeJS.Timeout | null>(null);
   const isMountedRef = useRef(false);
   const isInitializingRef = useRef(false);
 
@@ -245,7 +246,8 @@ export function useCollabEditor(pageId: string) {
 
         // Auto-focus the editor if it's a blank page
         if (!initialContent || initialContent.trim() === '') {
-          setTimeout(() => {
+          autoFocusTimerRef.current = setTimeout(() => {
+            autoFocusTimerRef.current = null;
             if (!isMountedRef.current) return;
             const editableElement = editorRef.current?.querySelector(
               'div[contenteditable="true"]',
@@ -298,6 +300,9 @@ export function useCollabEditor(pageId: string) {
       }
       if (syncTimeoutRef.current) {
         clearTimeout(syncTimeoutRef.current);
+      }
+      if (autoFocusTimerRef.current) {
+        clearTimeout(autoFocusTimerRef.current);
       }
       if (editorInstanceRef.current) {
         editorInstanceRef.current.destroy();
