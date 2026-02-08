@@ -1265,6 +1265,76 @@ Also test <img> and <a> tags`;
     expect(placeholderVisible).toBe(true);
   });
 
+  test('should display placeholder on the first line (not second line)', async ({
+    page,
+  }) => {
+    // Create a new blank page
+    await page.click('button[title="新しいページを作成"]');
+    await page.waitForURL(/\/page\/.+/);
+    await page.waitForSelector('.milkdown', { timeout: 10000 });
+
+    // Wait for editor to be fully loaded
+    await page.waitForTimeout(1500);
+
+    // Blur the editor to ensure placeholder is visible
+    await page.evaluate(() => {
+      const activeEl = document.activeElement as HTMLElement;
+      if (activeEl?.getAttribute('contenteditable') === 'true') {
+        activeEl.blur();
+      }
+    });
+
+    // Wait a moment for the blur to take effect
+    await page.waitForTimeout(500);
+
+    // Verify placeholder position matches the first paragraph
+    const positions = await page.evaluate(() => {
+      const firstPara = document.querySelector(
+        '.milkdown .ProseMirror p:first-child',
+      ) as HTMLElement;
+      if (!firstPara) return null;
+
+      // Get the bounding rect of the first paragraph
+      const paraRect = firstPara.getBoundingClientRect();
+
+      // Get the computed style of the ::after pseudo-element (placeholder)
+      const afterStyle = window.getComputedStyle(firstPara, '::after');
+      const content = afterStyle.content;
+
+      // Verify placeholder exists
+      if (!content || content === 'none' || !content.includes('ここに入力')) {
+        return null;
+      }
+
+      // Since the ::after is positioned absolutely with top: 0, left: 0,
+      // it should be at the same position as the paragraph element
+      // We can verify this by checking the positioning style
+      const position = afterStyle.position;
+      const top = afterStyle.top;
+      const left = afterStyle.left;
+
+      return {
+        paraTop: paraRect.top,
+        paraLeft: paraRect.left,
+        afterPosition: position,
+        afterTop: top,
+        afterLeft: left,
+      };
+    });
+
+    // Verify we got valid positions
+    expect(positions).not.toBeNull();
+
+    if (positions) {
+      // The ::after pseudo-element should be positioned absolutely
+      expect(positions.afterPosition).toBe('absolute');
+
+      // With top: 0 and left: 0, which means it overlays the first line
+      expect(positions.afterTop).toBe('0px');
+      expect(positions.afterLeft).toBe('0px');
+    }
+  });
+
   test('should auto-focus editor on blank page', async ({ page }) => {
     // Create a new blank page
     await page.click('button[title="新しいページを作成"]');
