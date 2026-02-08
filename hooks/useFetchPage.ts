@@ -20,7 +20,14 @@ export function useFetchPage(pageId: string) {
           return;
         }
 
-        const data: unknown = await response.json();
+        let data: unknown;
+        try {
+          data = await response.json();
+        } catch (e) {
+          logger.error('[Editor FetchPage] JSON parse error:', e);
+          if (isMounted) router.push('/');
+          return;
+        }
         if (!isMounted) return;
 
         if (!isPage(data)) {
