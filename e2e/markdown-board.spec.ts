@@ -1044,6 +1044,66 @@ Also test <img> and <a> tags`;
     await expect(pageItem).not.toBeVisible();
   });
 
+  test('should support arrow key navigation between tabs (WAI-ARIA)', async ({
+    page,
+  }) => {
+    const timestamp = Date.now();
+
+    // Create a page and archive it to have content in both tabs
+    const pageId = await createPageWithContent(
+      page,
+      `# ArrowKeyTest${timestamp}\n\nTesting arrow key navigation`,
+    );
+
+    await page.goto('/');
+    await page.waitForLoadState('networkidle');
+    await page.waitForTimeout(500);
+
+    // Archive the page so we have content in archive tab
+    const pageItem = page.locator(`[data-testid="page-item-${pageId}"]`);
+    const archiveButton = pageItem.locator('button[title="アーカイブ"]');
+    await archiveButton.click();
+    await page.waitForTimeout(1000);
+
+    // Focus on the "最新" tab
+    const recentTab = page.locator('button#tab-latest');
+    await recentTab.focus();
+
+    // Verify "最新" tab has tabIndex=0 (focusable)
+    await expect(recentTab).toHaveAttribute('tabindex', '0');
+
+    // Verify "アーカイブ" tab has tabIndex=-1 (not in tab order)
+    const archiveTab = page.locator('button#tab-archive');
+    await expect(archiveTab).toHaveAttribute('tabindex', '-1');
+
+    // Press ArrowRight to switch to archive tab
+    await page.keyboard.press('ArrowRight');
+    await page.waitForTimeout(300);
+
+    // Verify archive tab is now active and has focus
+    await expect(archiveTab).toHaveAttribute('aria-selected', 'true');
+    await expect(archiveTab).toHaveAttribute('tabindex', '0');
+    await expect(recentTab).toHaveAttribute('tabindex', '-1');
+    await expect(archiveTab).toBeFocused();
+
+    // Verify archived page is visible
+    const archiveItem = page.locator(`[data-testid="archive-item-${pageId}"]`);
+    await expect(archiveItem).toBeVisible();
+
+    // Press ArrowLeft to switch back to recent tab
+    await page.keyboard.press('ArrowLeft');
+    await page.waitForTimeout(300);
+
+    // Verify recent tab is now active and has focus
+    await expect(recentTab).toHaveAttribute('aria-selected', 'true');
+    await expect(recentTab).toHaveAttribute('tabindex', '0');
+    await expect(archiveTab).toHaveAttribute('tabindex', '-1');
+    await expect(recentTab).toBeFocused();
+
+    // Verify archived page is no longer visible (back to recent tab)
+    await expect(archiveItem).not.toBeVisible();
+  });
+
   test('should create new page via FAB button', async ({ page }) => {
     // Click the FAB (Floating Action Button) to create a new page
     const fabButton = page.locator('button[title="新しいページを作成"]');

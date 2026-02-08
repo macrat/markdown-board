@@ -161,9 +161,17 @@ export default function PageBoard() {
           id="tab-latest"
           role="tab"
           className="tab-button"
+          tabIndex={activeTab === 'latest' ? 0 : -1}
           aria-selected={activeTab === 'latest'}
           aria-controls="tabpanel-latest"
           onClick={() => setActiveTab('latest')}
+          onKeyDown={(e) => {
+            if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
+              e.preventDefault();
+              setActiveTab('archive');
+              document.getElementById('tab-archive')?.focus();
+            }
+          }}
           style={{
             padding: '12px 24px',
             backgroundColor: 'transparent',
@@ -185,9 +193,17 @@ export default function PageBoard() {
           id="tab-archive"
           role="tab"
           className="tab-button"
+          tabIndex={activeTab === 'archive' ? 0 : -1}
           aria-selected={activeTab === 'archive'}
           aria-controls="tabpanel-archive"
           onClick={() => setActiveTab('archive')}
+          onKeyDown={(e) => {
+            if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
+              e.preventDefault();
+              setActiveTab('latest');
+              document.getElementById('tab-latest')?.focus();
+            }
+          }}
           style={{
             padding: '12px 24px',
             backgroundColor: 'transparent',
