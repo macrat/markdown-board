@@ -184,7 +184,7 @@ describe('useFetchPage', () => {
       archived_at: null,
     };
 
-    let resolvePromise: (value: Response) => void;
+    let resolvePromise: (value: Response) => void = () => {};
     const fetchPromise = new Promise<Response>((resolve) => {
       resolvePromise = resolve;
     });
@@ -200,7 +200,7 @@ describe('useFetchPage', () => {
     unmount();
 
     // Now resolve the fetch
-    resolvePromise!(createFetchResponse(true, 200, mockPageData));
+    resolvePromise(createFetchResponse(true, 200, mockPageData));
 
     // Give it a moment to process (though it shouldn't update state)
     await new Promise((resolve) => setTimeout(resolve, 10));
