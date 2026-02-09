@@ -10,6 +10,18 @@ import { WebsocketProvider } from 'y-websocket';
 // Timeout for waiting for Yjs sync to complete (in milliseconds)
 const SYNC_TIMEOUT_MS = 500;
 
+function safeDestroy(
+  resource: { destroy(): void } | null,
+  label: string,
+): void {
+  if (!resource) return;
+  try {
+    resource.destroy();
+  } catch (e) {
+    logger.error(`[Editor] Error destroying ${label}`, e);
+  }
+}
+
 export function useCollabEditor(pageId: string) {
   const [peerCount, setPeerCount] = useState(0);
   const [wsConnected, setWsConnected] = useState(true);
@@ -26,6 +38,29 @@ export function useCollabEditor(pageId: string) {
   const autoFocusTimerRef = useRef<NodeJS.Timeout | null>(null);
   const isMountedRef = useRef(false);
   const isInitializingRef = useRef(false);
+
+  // Cleanup all collab resources stored in refs (editor -> provider -> ydoc)
+  const cleanupResources = () => {
+    safeDestroy(editorInstanceRef.current, 'editor');
+    editorInstanceRef.current = null;
+
+    if (providerRef.current) {
+      if (updatePeerCountRef.current) {
+        providerRef.current.awareness.off(
+          'change',
+          updatePeerCountRef.current,
+        );
+      }
+      if (statusHandlerRef.current) {
+        providerRef.current.off('status', statusHandlerRef.current);
+      }
+    }
+    safeDestroy(providerRef.current, 'provider');
+    providerRef.current = null;
+
+    safeDestroy(ydocRef.current, 'ydoc');
+    ydocRef.current = null;
+  };
 
   const { loading } = usePageExists(pageId);
 
@@ -117,22 +152,8 @@ export function useCollabEditor(pageId: string) {
         if (!isMountedRef.current) {
           logger.log('[Editor] Component unmounted during sync, aborting');
           isInitializingRef.current = false;
-          try {
-            provider.destroy();
-          } catch (e) {
-            logger.error(
-              '[Editor] Error destroying provider during unmount abort',
-              e,
-            );
-          }
-          try {
-            ydoc.destroy();
-          } catch (e) {
-            logger.error(
-              '[Editor] Error destroying ydoc during unmount abort',
-              e,
-            );
-          }
+          safeDestroy(provider, 'provider');
+          safeDestroy(ydoc, 'ydoc');
           return;
         }
 
@@ -165,24 +186,9 @@ export function useCollabEditor(pageId: string) {
             '[Editor] Component unmounted during editor creation, cleaning up',
           );
           isInitializingRef.current = false;
-          try {
-            editor.destroy();
-          } catch (e) {
-            logger.error('[Editor] Error destroying editor during unmount', e);
-          }
-          try {
-            provider.destroy();
-          } catch (e) {
-            logger.error(
-              '[Editor] Error destroying provider during unmount',
-              e,
-            );
-          }
-          try {
-            ydoc.destroy();
-          } catch (e) {
-            logger.error('[Editor] Error destroying ydoc during unmount', e);
-          }
+          safeDestroy(editor, 'editor');
+          safeDestroy(provider, 'provider');
+          safeDestroy(ydoc, 'ydoc');
           return;
         }
 
@@ -210,29 +216,7 @@ export function useCollabEditor(pageId: string) {
         }
       } catch (error) {
         logger.error('Failed to initialize editor:', error);
-
-        // Cleanup on initialization failure: destroy in reverse dependency order
-        if (editorInstanceRef.current) {
-          editorInstanceRef.current.destroy();
-          editorInstanceRef.current = null;
-        }
-        if (providerRef.current) {
-          if (updatePeerCountRef.current) {
-            providerRef.current.awareness.off(
-              'change',
-              updatePeerCountRef.current,
-            );
-          }
-          if (statusHandlerRef.current) {
-            providerRef.current.off('status', statusHandlerRef.current);
-          }
-          providerRef.current.destroy();
-          providerRef.current = null;
-        }
-        if (ydocRef.current) {
-          ydocRef.current.destroy();
-          ydocRef.current = null;
-        }
+        cleanupResources();
       } finally {
         isInitializingRef.current = false;
       }
@@ -247,9 +231,7 @@ export function useCollabEditor(pageId: string) {
     }, 100);
 
     return () => {
-      // Restore default browser tab title
       document.title = 'Markdown Board';
-      // Cleanup: destroy in reverse dependency order (editor -> provider -> ydoc)
       if (initTimeoutRef.current) {
         clearTimeout(initTimeoutRef.current);
       }
@@ -259,27 +241,7 @@ export function useCollabEditor(pageId: string) {
       if (autoFocusTimerRef.current) {
         clearTimeout(autoFocusTimerRef.current);
       }
-      if (editorInstanceRef.current) {
-        editorInstanceRef.current.destroy();
-        editorInstanceRef.current = null;
-      }
-      if (providerRef.current) {
-        if (updatePeerCountRef.current) {
-          providerRef.current.awareness.off(
-            'change',
-            updatePeerCountRef.current,
-          );
-        }
-        if (statusHandlerRef.current) {
-          providerRef.current.off('status', statusHandlerRef.current);
-        }
-        providerRef.current.destroy();
-        providerRef.current = null;
-      }
-      if (ydocRef.current) {
-        ydocRef.current.destroy();
-        ydocRef.current = null;
-      }
+      cleanupResources();
     };
   }, [pageId, loading]);
 

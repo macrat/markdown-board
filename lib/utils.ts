@@ -4,6 +4,9 @@
  * Looks at the first node in the document. If it is a heading,
  * concatenates all text nodes within it. Otherwise returns 'Untitled'.
  *
+ * NOTE: server/websocket.js has a CJS copy of this function.
+ * Keep both implementations in sync when modifying the logic.
+ *
  * @param json - ProseMirror JSON (e.g. from yDocToProsemirrorJSON)
  * @returns The extracted title, or 'Untitled'
  */

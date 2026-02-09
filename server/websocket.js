@@ -44,7 +44,8 @@ const titleDebouncers = new Map();
 
 /**
  * Extract title from a ProseMirror JSON document.
- * Mirrors the logic in lib/utils.ts extractTitleFromProsemirrorJSON.
+ * NOTE: This is a CJS copy of lib/utils.ts extractTitleFromProsemirrorJSON.
+ * Keep both implementations in sync when modifying the logic.
  */
 function extractTitleFromProsemirrorJSON(json) {
   const content = json?.content;
@@ -130,7 +131,7 @@ setPersistence({
     // 2. Cancel pending debounced sync
     const debounce = titleDebouncers.get(docName);
     if (debounce) {
-      debounce(null);
+      debounce(() => {});
       titleDebouncers.delete(docName);
     }
 

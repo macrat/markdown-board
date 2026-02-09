@@ -13,6 +13,7 @@ export function createTestDb() {
     );
     CREATE INDEX IF NOT EXISTS idx_pages_archived_at ON pages(archived_at);
     CREATE INDEX IF NOT EXISTS idx_pages_created_at ON pages(created_at);
+    CREATE INDEX IF NOT EXISTS idx_pages_updated_at ON pages(updated_at);
 
     CREATE TABLE IF NOT EXISTS yjs_updates (
       doc_name TEXT NOT NULL,
