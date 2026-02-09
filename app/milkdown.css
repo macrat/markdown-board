@@ -165,6 +165,31 @@
   display: inline;
 }
 
+/* Home link - subtle in top-left corner */
+.home-link {
+  position: fixed;
+  top: 1rem;
+  left: 1rem;
+  font-size: 0.75rem;
+  font-weight: bold;
+  color: #574a46;
+  text-decoration: none;
+  opacity: 0.15;
+  transition: opacity 0.3s ease;
+  z-index: 10;
+}
+
+.home-link:hover,
+.home-link:focus-visible {
+  opacity: 0.7;
+}
+
+.home-link:focus-visible {
+  outline: 2px solid #c42776;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
 /* Connection status area */
 .connection-status-area {
   position: fixed;

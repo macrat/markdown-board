@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
+import Link from 'next/link';
 import { useCollabEditor } from '@/hooks/useCollabEditor';
 import '../app/milkdown.css';
 
@@ -43,6 +44,10 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
 
   return (
     <div className="min-h-screen relative">
+      <Link href="/" className="home-link" aria-label="ページ一覧に戻る">
+        Markdown Board
+      </Link>
+
       <div className="h-screen p-4 sm:p-8 overflow-auto">
         <div ref={editorRef} className="milkdown max-w-4xl mx-auto" />
       </div>
