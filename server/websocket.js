@@ -52,7 +52,6 @@ function extractTitleFromProsemirrorJSON(json) {
   if (!content || content.length === 0) return 'Untitled';
 
   const firstNode = content[0];
-  if (firstNode.type !== 'heading') return 'Untitled';
 
   const nodeContent = firstNode.content;
   if (!nodeContent || nodeContent.length === 0) return 'Untitled';

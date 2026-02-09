@@ -1,8 +1,8 @@
 /**
  * Extract a title from a ProseMirror JSON document structure.
  *
- * Looks at the first node in the document. If it is a heading,
- * concatenates all text nodes within it. Otherwise returns 'Untitled'.
+ * Concatenates all text nodes within the first node of the document.
+ * Returns 'Untitled' if no text is found.
  *
  * NOTE: server/websocket.js has a CJS copy of this function.
  * Keep both implementations in sync when modifying the logic.
@@ -17,7 +17,6 @@ export function extractTitleFromProsemirrorJSON(
   if (!content || content.length === 0) return 'Untitled';
 
   const firstNode = content[0];
-  if (firstNode.type !== 'heading') return 'Untitled';
 
   const nodeContent = firstNode.content as
     | Array<Record<string, unknown>>

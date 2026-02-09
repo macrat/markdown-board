@@ -1,5 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { extractTitleFromProsemirrorJSON, formatRelativeTime } from '@/lib/utils';
+import {
+  extractTitleFromProsemirrorJSON,
+  formatRelativeTime,
+} from '@/lib/utils';
 
 describe('extractTitleFromProsemirrorJSON', () => {
   describe('empty/missing content', () => {
@@ -117,7 +120,7 @@ describe('extractTitleFromProsemirrorJSON', () => {
   });
 
   describe('non-heading first node', () => {
-    it('returns "Untitled" when first node is a paragraph', () => {
+    it('extracts title from paragraph', () => {
       const json = {
         type: 'doc',
         content: [
@@ -127,10 +130,10 @@ describe('extractTitleFromProsemirrorJSON', () => {
           },
         ],
       };
-      expect(extractTitleFromProsemirrorJSON(json)).toBe('Untitled');
+      expect(extractTitleFromProsemirrorJSON(json)).toBe('Just a paragraph');
     });
 
-    it('returns "Untitled" when first node is a code block', () => {
+    it('extracts title from code block', () => {
       const json = {
         type: 'doc',
         content: [
@@ -140,7 +143,7 @@ describe('extractTitleFromProsemirrorJSON', () => {
           },
         ],
       };
-      expect(extractTitleFromProsemirrorJSON(json)).toBe('Untitled');
+      expect(extractTitleFromProsemirrorJSON(json)).toBe('code here');
     });
   });
 
