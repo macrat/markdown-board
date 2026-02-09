@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import type {
   PageListItem as PageListItemType,
@@ -16,9 +16,12 @@ import { useArchiveToast } from '@/hooks/useArchiveToast';
 
 type Tab = 'latest' | 'archive';
 
+const SEARCH_VISIBLE_THRESHOLD = 5;
+
 export default function PageBoard() {
   const [activeTab, setActiveTab] = useState<Tab>('latest');
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
   const [now, setNow] = useState(() => Date.now());
   const router = useRouter();
 
@@ -41,6 +44,12 @@ export default function PageBoard() {
   const { startFadeOut, startFadeIn, clearAnimation, getItemOpacity } =
     useAnimatingItems();
   const { toast, showToast, hideToast } = useArchiveToast();
+
+  const filteredPages = useMemo(() => {
+    if (!searchQuery) return pages;
+    const query = searchQuery.toLowerCase();
+    return pages.filter((page) => page.title.toLowerCase().includes(query));
+  }, [pages, searchQuery]);
 
   useEffect(() => {
     const loadData = async () => {
@@ -232,15 +241,39 @@ export default function PageBoard() {
       {/* Latest Tab Content */}
       {activeTab === 'latest' && (
         <div role="tabpanel" id="tabpanel-latest" aria-labelledby="tab-latest">
-          {pages.length === 0 ? (
+          {pages.length > SEARCH_VISIBLE_THRESHOLD && (
+            <div style={{ marginBottom: '16px' }}>
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="ページを検索..."
+                aria-label="ページを検索"
+                style={{
+                  width: '100%',
+                  padding: '10px 12px',
+                  fontSize: '14px',
+                  border: '1px solid rgba(87, 74, 70, 0.2)',
+                  borderRadius: '8px',
+                  backgroundColor: 'transparent',
+                  color: '#574a46',
+                  outline: 'none',
+                  boxSizing: 'border-box',
+                }}
+              />
+            </div>
+          )}
+          {filteredPages.length === 0 ? (
             <p style={{ color: '#574a46', opacity: 0.7 }}>
-              ページがありません。新しいページを作成しましょう。
+              {searchQuery
+                ? '一致するページが見つかりません。'
+                : 'ページがありません。新しいページを作成しましょう。'}
             </p>
           ) : (
             <div
               style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}
             >
-              {pages.map((page) => (
+              {filteredPages.map((page) => (
                 <PageListItem
                   key={page.id}
                   dataTestId={`page-item-${page.id}`}
