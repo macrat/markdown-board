@@ -48,7 +48,7 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
         Markdown Board
       </Link>
 
-      <div className="h-screen p-4 sm:p-8 overflow-auto">
+      <div className="h-screen px-4 pb-4 pt-8 sm:p-8 overflow-auto">
         <div ref={editorRef} className="milkdown max-w-4xl mx-auto" />
       </div>
 
