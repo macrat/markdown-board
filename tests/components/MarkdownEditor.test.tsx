@@ -7,6 +7,7 @@ vi.mock('@/hooks/useCollabEditor', () => ({
   useCollabEditor: vi.fn(() => ({
     loading: false,
     peerCount: 0,
+    wsConnected: true,
     editorRef: { current: null },
   })),
 }));
@@ -21,6 +22,7 @@ beforeEach(() => {
   mockUseCollabEditor.mockReturnValue({
     loading: false,
     peerCount: 0,
+    wsConnected: true,
     editorRef: { current: null },
   });
 });
@@ -30,6 +32,7 @@ describe('MarkdownEditor', () => {
     mockUseCollabEditor.mockReturnValue({
       loading: true,
       peerCount: 0,
+      wsConnected: true,
       editorRef: { current: null },
     });
 
@@ -46,6 +49,7 @@ describe('MarkdownEditor', () => {
     mockUseCollabEditor.mockReturnValue({
       loading: false,
       peerCount: 3,
+      wsConnected: true,
       editorRef: { current: null },
     });
 

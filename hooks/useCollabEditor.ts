@@ -12,11 +12,15 @@ const SYNC_TIMEOUT_MS = 500;
 
 export function useCollabEditor(pageId: string) {
   const [peerCount, setPeerCount] = useState(0);
+  const [wsConnected, setWsConnected] = useState(true);
   const editorRef = useRef<HTMLDivElement>(null);
   const editorInstanceRef = useRef<Editor | null>(null);
   const ydocRef = useRef<Y.Doc | null>(null);
   const providerRef = useRef<WebsocketProvider | null>(null);
   const updatePeerCountRef = useRef<(() => void) | null>(null);
+  const statusHandlerRef = useRef<((event: { status: string }) => void) | null>(
+    null,
+  );
   const initTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const syncTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const autoFocusTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -74,6 +78,13 @@ export function useCollabEditor(pageId: string) {
         updatePeerCountRef.current = updatePeerCount;
         provider.awareness.on('change', updatePeerCount);
         updatePeerCount();
+
+        // Track WebSocket connection status
+        const handleStatus = (event: { status: string }) => {
+          setWsConnected(event.status === 'connected');
+        };
+        statusHandlerRef.current = handleStatus;
+        provider.on('status', handleStatus);
 
         logger.log(`[WebSocket] Connecting to room: ${pageId} at ${wsUrl}`);
 
@@ -212,6 +223,9 @@ export function useCollabEditor(pageId: string) {
               updatePeerCountRef.current,
             );
           }
+          if (statusHandlerRef.current) {
+            providerRef.current.off('status', statusHandlerRef.current);
+          }
           providerRef.current.destroy();
           providerRef.current = null;
         }
@@ -233,6 +247,8 @@ export function useCollabEditor(pageId: string) {
     }, 100);
 
     return () => {
+      // Restore default browser tab title
+      document.title = 'Markdown Board';
       // Cleanup: destroy in reverse dependency order (editor -> provider -> ydoc)
       if (initTimeoutRef.current) {
         clearTimeout(initTimeoutRef.current);
@@ -254,6 +270,9 @@ export function useCollabEditor(pageId: string) {
             updatePeerCountRef.current,
           );
         }
+        if (statusHandlerRef.current) {
+          providerRef.current.off('status', statusHandlerRef.current);
+        }
         providerRef.current.destroy();
         providerRef.current = null;
       }
@@ -264,5 +283,5 @@ export function useCollabEditor(pageId: string) {
     };
   }, [pageId, loading]);
 
-  return { loading, peerCount, editorRef };
+  return { loading, peerCount, wsConnected, editorRef };
 }

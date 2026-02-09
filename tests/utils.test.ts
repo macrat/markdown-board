@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { extractTitleFromProsemirrorJSON } from '@/lib/utils';
+import { extractTitleFromProsemirrorJSON, formatRelativeTime } from '@/lib/utils';
 
 describe('extractTitleFromProsemirrorJSON', () => {
   describe('empty/missing content', () => {
@@ -172,5 +172,49 @@ describe('extractTitleFromProsemirrorJSON', () => {
       };
       expect(extractTitleFromProsemirrorJSON(json)).toBe('🌍 Hello World');
     });
+  });
+});
+
+describe('formatRelativeTime', () => {
+  const MINUTE = 60 * 1000;
+  const HOUR = 60 * MINUTE;
+  const DAY = 24 * HOUR;
+
+  const now = new Date('2026-02-09T12:00:00').getTime();
+
+  it('returns "たった今" for future timestamps', () => {
+    expect(formatRelativeTime(now + 1, now)).toBe('たった今');
+    expect(formatRelativeTime(now + 5 * MINUTE, now)).toBe('たった今');
+    expect(formatRelativeTime(now + DAY, now)).toBe('たった今');
+  });
+
+  it('returns "たった今" for less than 1 minute ago', () => {
+    expect(formatRelativeTime(now, now)).toBe('たった今');
+    expect(formatRelativeTime(now - 30_000, now)).toBe('たった今');
+    expect(formatRelativeTime(now - 59_999, now)).toBe('たった今');
+  });
+
+  it('returns "◯分前" for 1-59 minutes ago', () => {
+    expect(formatRelativeTime(now - MINUTE, now)).toBe('1分前');
+    expect(formatRelativeTime(now - 5 * MINUTE, now)).toBe('5分前');
+    expect(formatRelativeTime(now - 30 * MINUTE, now)).toBe('30分前');
+    expect(formatRelativeTime(now - 59 * MINUTE, now)).toBe('59分前');
+  });
+
+  it('returns "◯時間前" for 1-23 hours ago', () => {
+    expect(formatRelativeTime(now - HOUR, now)).toBe('1時間前');
+    expect(formatRelativeTime(now - 3 * HOUR, now)).toBe('3時間前');
+    expect(formatRelativeTime(now - 12 * HOUR, now)).toBe('12時間前');
+    expect(formatRelativeTime(now - 23 * HOUR, now)).toBe('23時間前');
+  });
+
+  it('returns date format for 24+ hours ago', () => {
+    expect(formatRelativeTime(now - DAY, now)).toBe('2月8日');
+    expect(formatRelativeTime(now - 7 * DAY, now)).toBe('2月2日');
+  });
+
+  it('handles year boundary correctly', () => {
+    const jan1 = new Date('2026-01-01T12:00:00').getTime();
+    expect(formatRelativeTime(jan1 - 2 * DAY, jan1)).toBe('2025年12月30日');
   });
 });

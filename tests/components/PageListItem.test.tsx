@@ -3,10 +3,14 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, cleanup } from '@testing-library/react';
 import PageListItem from '@/components/PageListItem';
 
+const now = Date.now();
+const fiveMinutesAgo = now - 5 * 60 * 1000;
+
 const defaultProps = {
   dataTestId: 'page-item-1',
   title: 'Test Page',
-  timestamp: 1700000000000,
+  timestamp: fiveMinutesAgo,
+  now,
   opacity: 1,
   onAction: vi.fn(),
   actionAriaLabel: 'アーカイブ',
@@ -26,8 +30,7 @@ describe('PageListItem', () => {
     const heading = screen.getByRole('heading', { level: 3 });
     expect(heading.textContent).toBe('Test Page');
 
-    const date = new Date(defaultProps.timestamp).toLocaleString();
-    expect(screen.getByText(date)).toBeTruthy();
+    expect(screen.getByText('5分前')).toBeTruthy();
   });
 
   it('calls onNavigate on click', () => {
