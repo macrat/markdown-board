@@ -165,18 +165,14 @@
   display: inline;
 }
 
-/* Home link - subtle in top-left corner */
+/* Home link - subtle in editor header */
 .home-link {
-  position: fixed;
-  top: 1rem;
-  left: 1rem;
   font-size: 0.75rem;
   font-weight: bold;
   color: #574a46;
   text-decoration: none;
   opacity: 0.15;
   transition: opacity 0.3s ease;
-  z-index: 10;
 }
 
 .home-link:hover,

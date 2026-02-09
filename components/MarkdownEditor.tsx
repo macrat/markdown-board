@@ -43,12 +43,14 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
   }
 
   return (
-    <div className="min-h-screen relative">
-      <Link href="/" className="home-link" aria-label="ページ一覧に戻る">
-        Markdown Board
-      </Link>
+    <div className="h-screen flex flex-col relative">
+      <div className="shrink-0 px-4 pt-3 pb-2 sm:px-8 sm:pt-4">
+        <Link href="/" className="home-link" aria-label="ページ一覧に戻る">
+          Markdown Board
+        </Link>
+      </div>
 
-      <div className="h-screen px-4 pb-4 pt-8 sm:p-8 overflow-auto">
+      <div className="flex-1 min-h-0 px-4 pb-4 sm:px-8 sm:pb-8 overflow-auto">
         <div ref={editorRef} className="milkdown max-w-4xl mx-auto" />
       </div>
 
