@@ -16,6 +16,8 @@ import { useArchiveToast } from '@/hooks/useArchiveToast';
 
 type Tab = 'latest' | 'archive';
 
+const SEARCH_VISIBLE_THRESHOLD = 5;
+
 export default function PageBoard() {
   const [activeTab, setActiveTab] = useState<Tab>('latest');
   const [loading, setLoading] = useState(true);
@@ -176,7 +178,6 @@ export default function PageBoard() {
             if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
               e.preventDefault();
               setActiveTab('archive');
-              setSearchQuery('');
               document.getElementById('tab-archive')?.focus();
             }
           }}
@@ -204,10 +205,7 @@ export default function PageBoard() {
           tabIndex={activeTab === 'archive' ? 0 : -1}
           aria-selected={activeTab === 'archive'}
           aria-controls="tabpanel-archive"
-          onClick={() => {
-            setActiveTab('archive');
-            setSearchQuery('');
-          }}
+          onClick={() => setActiveTab('archive')}
           onKeyDown={(e) => {
             if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
               e.preventDefault();
@@ -237,7 +235,7 @@ export default function PageBoard() {
       {/* Latest Tab Content */}
       {activeTab === 'latest' && (
         <div role="tabpanel" id="tabpanel-latest" aria-labelledby="tab-latest">
-          {pages.length > 5 && (
+          {pages.length > SEARCH_VISIBLE_THRESHOLD && (
             <div style={{ marginBottom: '16px' }}>
               <input
                 type="text"
