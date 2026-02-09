@@ -165,21 +165,6 @@
   display: inline;
 }
 
-/* Saved indicator */
-.saved-indicator {
-  position: fixed;
-  bottom: 1rem;
-  left: 50%;
-  transform: translateX(-50%);
-  font-size: 0.875rem;
-  color: #574a46;
-  background-color: rgba(245, 234, 230, 0.95);
-  padding: 0.375rem 1rem;
-  border-radius: 0.5rem;
-  box-shadow: 0 1px 4px rgba(87, 74, 70, 0.15);
-  pointer-events: none;
-}
-
 /* Peer count indicator */
 .peer-count-indicator {
   position: fixed;

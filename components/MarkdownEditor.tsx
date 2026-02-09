@@ -1,27 +1,17 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useEffect } from 'react';
 import { useCollabEditor } from '@/hooks/useCollabEditor';
 import '../app/milkdown.css';
 
 export default function MarkdownEditor({ pageId }: { pageId: string }) {
   const { loading, peerCount, saveError, editorRef } = useCollabEditor(pageId);
-  const [showSaved, setShowSaved] = useState(false);
-  const savedTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Ctrl+S / Cmd+S: suppress browser save dialog, show saved indicator
+      // Ctrl+S / Cmd+S: suppress browser save dialog
       if ((e.ctrlKey || e.metaKey) && e.key === 's') {
         e.preventDefault();
-        setShowSaved(true);
-        if (savedTimeoutRef.current) {
-          clearTimeout(savedTimeoutRef.current);
-        }
-        savedTimeoutRef.current = setTimeout(() => {
-          setShowSaved(false);
-          savedTimeoutRef.current = null;
-        }, 1500);
       }
 
       // Escape: unfocus from editor
@@ -39,9 +29,6 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
     document.addEventListener('keydown', handleKeyDown);
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
-      if (savedTimeoutRef.current) {
-        clearTimeout(savedTimeoutRef.current);
-      }
     };
   }, [editorRef]);
 
@@ -87,13 +74,6 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
             <path d="M16 3.13a4 4 0 0 1 0 7.75" />
           </svg>
           {peerCount}
-        </div>
-      )}
-
-      {/* 保存済みインジケーター */}
-      {showSaved && (
-        <div role="status" aria-live="polite" className="saved-indicator">
-          保存済み
         </div>
       )}
 
