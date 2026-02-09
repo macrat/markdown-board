@@ -22,7 +22,13 @@ export default function PageBoard() {
   const [activeTab, setActiveTab] = useState<Tab>('latest');
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [now, setNow] = useState(() => Date.now());
   const router = useRouter();
+
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 30_000);
+    return () => clearInterval(id);
+  }, []);
 
   const { pages, fetchPages, createPage, removePage, addPage, findPage } =
     usePageList();
@@ -273,6 +279,7 @@ export default function PageBoard() {
                   dataTestId={`page-item-${page.id}`}
                   title={page.title}
                   timestamp={page.updated_at}
+                  now={now}
                   opacity={getItemOpacity(page.id)}
                   onNavigate={() => router.push(`/page/${page.id}`)}
                   navigateAriaLabel={`${page.title}を開く`}
@@ -319,6 +326,7 @@ export default function PageBoard() {
                   dataTestId={`archive-item-${page.id}`}
                   title={page.title}
                   timestamp={page.archived_at}
+                  now={now}
                   opacity={getItemOpacity(page.id)}
                   onAction={() => handleUnarchivePage(page.id)}
                   actionAriaLabel="アーカイブを解除する"

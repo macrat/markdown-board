@@ -982,7 +982,7 @@ Also test <img> and <a> tags`;
     await page.waitForLoadState('networkidle');
     await page.waitForTimeout(500);
 
-    // Check that timestamp is visible (formatted date without label)
+    // Check that timestamp is visible in relative time format
     // Find the page item and verify it has a timestamp
     const pageListItem = page
       .locator('h3')
@@ -994,9 +994,8 @@ Also test <img> and <a> tags`;
     const timestampText = pageListItem.locator('..').locator('p').first();
     await expect(timestampText).toBeVisible();
     const text = await timestampText.textContent();
-    // Check that it contains numbers typical of date/time (but no "Updated:" label)
-    expect(text).toMatch(/\d/);
-    expect(text).not.toContain('Updated:');
+    // A just-created page should show relative time (e.g., "たった今" or "◯分前")
+    expect(text).toMatch(/たった今|\d+分前|\d+時間前|\d+月\d+日/);
   });
 
   // ==================== TAB UI TESTS ====================
