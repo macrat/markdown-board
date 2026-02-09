@@ -1,11 +1,37 @@
 'use client';
 
+import { useEffect } from 'react';
 import { useCollabEditor } from '@/hooks/useCollabEditor';
 import '../app/milkdown.css';
 
 export default function MarkdownEditor({ pageId }: { pageId: string }) {
   const { loading, peerCount, wsConnected, saveError, editorRef } =
     useCollabEditor(pageId);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ctrl+S / Cmd+S: suppress browser save dialog
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault();
+      }
+
+      // Escape: unfocus from editor
+      if (e.key === 'Escape') {
+        const activeElement = document.activeElement;
+        if (
+          activeElement instanceof HTMLElement &&
+          editorRef.current?.contains(activeElement)
+        ) {
+          activeElement.blur();
+        }
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [editorRef]);
 
   if (loading) {
     return (
