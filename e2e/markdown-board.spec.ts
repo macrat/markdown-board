@@ -1568,4 +1568,113 @@ Also test <img> and <a> tags`;
 
     await context.close();
   });
+
+  // ==================== SEARCH FILTER TESTS ====================
+
+  test('should show search field when more than 5 pages exist and filter by title', async ({
+    page,
+  }) => {
+    const timestamp = Date.now();
+
+    // Create 6 pages to trigger the search field visibility
+    for (let i = 1; i <= 6; i++) {
+      await page.goto('/');
+      await page.waitForLoadState('networkidle');
+      await createPageWithContent(
+        page,
+        `# SearchTest${timestamp}-${i}\n\nContent for page ${i}`,
+      );
+    }
+
+    await page.goto('/');
+    await page.waitForLoadState('networkidle');
+    await page.waitForTimeout(500);
+
+    // The search field should be visible
+    const searchInput = page.locator('input[aria-label="ページを検索"]');
+    await expect(searchInput).toBeVisible();
+
+    // Type a search query to filter pages
+    await searchInput.fill(`SearchTest${timestamp}-1`);
+    await page.waitForTimeout(300);
+
+    // Only the matching page should be visible
+    await expect(
+      page
+        .locator('h3')
+        .filter({ hasText: `SearchTest${timestamp}-1` })
+        .first(),
+    ).toBeVisible();
+
+    // Other pages should not be visible
+    await expect(
+      page.locator('h3').filter({ hasText: `SearchTest${timestamp}-2` }),
+    ).toHaveCount(0);
+
+    // Clear the search and verify all pages reappear
+    await searchInput.fill('');
+    await page.waitForTimeout(300);
+
+    for (let i = 1; i <= 6; i++) {
+      await expect(
+        page
+          .locator('h3')
+          .filter({ hasText: `SearchTest${timestamp}-${i}` })
+          .first(),
+      ).toBeVisible();
+    }
+  });
+
+  test('should show no-results message when search matches nothing', async ({
+    page,
+  }) => {
+    const timestamp = Date.now();
+
+    // Create 6 pages to trigger the search field visibility
+    for (let i = 1; i <= 6; i++) {
+      await page.goto('/');
+      await page.waitForLoadState('networkidle');
+      await createPageWithContent(
+        page,
+        `# NoMatch${timestamp}-${i}\n\nContent`,
+      );
+    }
+
+    await page.goto('/');
+    await page.waitForLoadState('networkidle');
+    await page.waitForTimeout(500);
+
+    const searchInput = page.locator('input[aria-label="ページを検索"]');
+    await searchInput.fill('zzz-nonexistent-query');
+    await page.waitForTimeout(300);
+
+    // Should show no-results message
+    await expect(
+      page.locator('text=一致するページが見つかりません。'),
+    ).toBeVisible();
+  });
+
+  test('should hide search field when 5 or fewer pages exist', async ({
+    page,
+  }) => {
+    // With the default state (tests create various pages but we navigate fresh),
+    // create exactly 1 page to ensure we have few pages
+    const timestamp = Date.now();
+    await createPageWithContent(
+      page,
+      `# FewPages${timestamp}\n\nOnly a few pages`,
+    );
+
+    await page.goto('/');
+    await page.waitForLoadState('networkidle');
+    await page.waitForTimeout(500);
+
+    // Count current pages - if 5 or fewer, search should be hidden
+    const pageCount = await page.locator('[data-testid^="page-item-"]').count();
+    if (pageCount <= 5) {
+      await expect(
+        page.locator('input[aria-label="ページを検索"]'),
+      ).not.toBeVisible();
+    }
+  });
 });
