@@ -1,6 +1,7 @@
 ---
 name: create-issue
 description: GitHub Issue を作成するスキル。プロダクト哲学との整合性を確認し、重複チェックを行った上で、適切な構造とラベルを持つIssueを起票する。
+allowed-tools: Bash(gh issue:*), Read, Glob
 ---
 
 # Issue作成スキル
