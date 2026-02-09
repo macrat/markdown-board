@@ -1,6 +1,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { logger } from '@/lib/logger';
 import { logResponseError } from '@/lib/api';
+import { extractTitle } from '@/lib/utils';
 
 export function useSaveContent(pageId: string) {
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -47,6 +48,11 @@ export function useSaveContent(pageId: string) {
 
       saveTimeoutRef.current = setTimeout(async () => {
         if (!isMountedRef.current) return;
+
+        // Update browser tab title synchronized with save debounce
+        const title = extractTitle(content);
+        document.title =
+          title === 'Untitled' ? 'Markdown Board' : `${title} - Markdown Board`;
 
         logger.log('[Editor] Saving content - length:', content.length);
 

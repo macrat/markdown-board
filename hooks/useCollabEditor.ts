@@ -4,6 +4,7 @@ import { commonmark } from '@milkdown/preset-commonmark';
 import { listener, listenerCtx } from '@milkdown/plugin-listener';
 import { collab, collabServiceCtx } from '@milkdown/plugin-collab';
 import { logger } from '@/lib/logger';
+import { extractTitle } from '@/lib/utils';
 import { useSaveContent } from '@/hooks/useSaveContent';
 import { useFetchPage } from '@/hooks/useFetchPage';
 import * as Y from 'yjs';
@@ -43,6 +44,13 @@ export function useCollabEditor(pageId: string) {
   // Initialize editor when page content becomes available
   useEffect(() => {
     if (loading || pageContent === null) return;
+
+    // Set initial browser tab title from loaded content
+    const pageTitle = extractTitle(pageContent);
+    document.title =
+      pageTitle === 'Untitled'
+        ? 'Markdown Board'
+        : `${pageTitle} - Markdown Board`;
 
     const initialContent = pageContent;
 
@@ -308,6 +316,8 @@ export function useCollabEditor(pageId: string) {
     }, 100);
 
     return () => {
+      // Restore default browser tab title
+      document.title = 'Markdown Board';
       // Cleanup: destroy in reverse dependency order (editor -> provider -> ydoc)
       if (initTimeoutRef.current) {
         clearTimeout(initTimeoutRef.current);
