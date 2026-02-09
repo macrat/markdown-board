@@ -46,10 +46,7 @@ export function useCollabEditor(pageId: string) {
 
     if (providerRef.current) {
       if (updatePeerCountRef.current) {
-        providerRef.current.awareness.off(
-          'change',
-          updatePeerCountRef.current,
-        );
+        providerRef.current.awareness.off('change', updatePeerCountRef.current);
       }
       if (statusHandlerRef.current) {
         providerRef.current.off('status', statusHandlerRef.current);
