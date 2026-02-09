@@ -56,6 +56,10 @@ export function formatRelativeTime(
 ): string {
   const diff = now - timestamp;
 
+  if (diff < 0) {
+    return 'たった今';
+  }
+
   if (diff < MINUTE) {
     return 'たった今';
   }
@@ -69,5 +73,9 @@ export function formatRelativeTime(
   }
 
   const date = new Date(timestamp);
+  const nowDate = new Date(now);
+  if (date.getFullYear() !== nowDate.getFullYear()) {
+    return `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日`;
+  }
   return `${date.getMonth() + 1}月${date.getDate()}日`;
 }

@@ -1,12 +1,11 @@
-'use client';
-
-import { ReactNode, useState, useEffect } from 'react';
+import { ReactNode } from 'react';
 import { formatRelativeTime } from '@/lib/utils';
 
 interface PageListItemProps {
   dataTestId: string;
   title: string;
   timestamp: number;
+  now: number;
   opacity: number;
   onNavigate?: () => void;
   navigateAriaLabel?: string;
@@ -21,6 +20,7 @@ export default function PageListItem({
   dataTestId,
   title,
   timestamp,
+  now,
   opacity,
   onNavigate,
   navigateAriaLabel,
@@ -30,13 +30,6 @@ export default function PageListItem({
   actionClassName,
   actionIcon,
 }: PageListItemProps) {
-  const [now, setNow] = useState(() => Date.now());
-
-  useEffect(() => {
-    const id = setInterval(() => setNow(Date.now()), 30_000);
-    return () => clearInterval(id);
-  }, []);
-
   const formattedDate = formatRelativeTime(timestamp, now);
 
   const titleDateContent = (

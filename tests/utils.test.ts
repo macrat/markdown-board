@@ -112,6 +112,12 @@ describe('formatRelativeTime', () => {
 
   const now = new Date('2026-02-09T12:00:00').getTime();
 
+  it('returns "たった今" for future timestamps', () => {
+    expect(formatRelativeTime(now + 1, now)).toBe('たった今');
+    expect(formatRelativeTime(now + 5 * MINUTE, now)).toBe('たった今');
+    expect(formatRelativeTime(now + DAY, now)).toBe('たった今');
+  });
+
   it('returns "たった今" for less than 1 minute ago', () => {
     expect(formatRelativeTime(now, now)).toBe('たった今');
     expect(formatRelativeTime(now - 30_000, now)).toBe('たった今');
@@ -139,6 +145,6 @@ describe('formatRelativeTime', () => {
 
   it('handles year boundary correctly', () => {
     const jan1 = new Date('2026-01-01T12:00:00').getTime();
-    expect(formatRelativeTime(jan1 - 2 * DAY, jan1)).toBe('12月30日');
+    expect(formatRelativeTime(jan1 - 2 * DAY, jan1)).toBe('2025年12月30日');
   });
 });
