@@ -4,7 +4,7 @@ import { useCollabEditor } from '@/hooks/useCollabEditor';
 import '../app/milkdown.css';
 
 export default function MarkdownEditor({ pageId }: { pageId: string }) {
-  const { loading, peerCount, saveError, editorRef } = useCollabEditor(pageId);
+  const { loading, peerCount, editorRef } = useCollabEditor(pageId);
 
   if (loading) {
     return (
@@ -48,21 +48,6 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
             <path d="M16 3.13a4 4 0 0 1 0 7.75" />
           </svg>
           {peerCount}
-        </div>
-      )}
-
-      {/* 保存エラー表示 */}
-      {saveError && (
-        <div
-          role="alert"
-          aria-live="assertive"
-          className="fixed bottom-4 left-1/2 -translate-x-1/2 text-sm px-5 py-3 rounded-lg shadow-lg transition-opacity duration-300"
-          style={{
-            color: '#f5eae6',
-            backgroundColor: '#574a46',
-          }}
-        >
-          {saveError}
         </div>
       )}
     </div>

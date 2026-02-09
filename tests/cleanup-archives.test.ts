@@ -90,8 +90,6 @@ describe('cleanupOldArchives', () => {
   });
 
   it('does not delete archives exactly at the 30-day boundary', () => {
-    // An archive exactly 30 days old should NOT be deleted
-    // (the condition is archived_at < thirtyDaysAgo, meaning strictly older)
     const exactlyThirtyDaysAgo = Date.now() - THIRTY_DAYS_MS;
 
     insertPage(db, {
@@ -126,6 +124,45 @@ describe('cleanupOldArchives', () => {
       .prepare('SELECT * FROM pages WHERE id = ?')
       .get('old-active');
     expect(page).toBeDefined();
+  });
+
+  it('also deletes associated yjs_updates records', () => {
+    const thirtyOneDaysAgo = Date.now() - 31 * 24 * 60 * 60 * 1000;
+
+    insertPage(db, {
+      id: 'old-archive',
+      title: 'Old',
+      archived_at: thirtyOneDaysAgo,
+    });
+
+    // Add yjs_updates for the page
+    db.prepare(
+      'INSERT INTO yjs_updates (doc_name, clock, value) VALUES (?, ?, ?)',
+    ).run('old-archive', 0, Buffer.from([0, 0]));
+    db.prepare(
+      'INSERT INTO yjs_updates (doc_name, clock, value) VALUES (?, ?, ?)',
+    ).run('old-archive', 1, Buffer.from([1, 1]));
+
+    // Also add yjs_updates for a page that should NOT be deleted
+    insertPage(db, { id: 'active-page', title: 'Active' });
+    db.prepare(
+      'INSERT INTO yjs_updates (doc_name, clock, value) VALUES (?, ?, ?)',
+    ).run('active-page', 0, Buffer.from([2, 2]));
+
+    const deleted = cleanupOldArchives(db);
+    expect(deleted).toBe(1);
+
+    // yjs_updates for old archive should be gone
+    const oldUpdates = db
+      .prepare('SELECT * FROM yjs_updates WHERE doc_name = ?')
+      .all('old-archive');
+    expect(oldUpdates).toHaveLength(0);
+
+    // yjs_updates for active page should remain
+    const activeUpdates = db
+      .prepare('SELECT * FROM yjs_updates WHERE doc_name = ?')
+      .all('active-page');
+    expect(activeUpdates).toHaveLength(1);
   });
 });
 

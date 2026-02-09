@@ -1,47 +1,40 @@
-/** Maximum allowed content size in bytes (10MB) */
-export const MAX_CONTENT_SIZE = 10 * 1024 * 1024;
-
 /**
- * Returns the byte size of a string encoded as UTF-8.
+ * Extract a title from a ProseMirror JSON document structure.
+ *
+ * Looks at the first node in the document. If it is a heading,
+ * concatenates all text nodes within it. Otherwise returns 'Untitled'.
+ *
+ * @param json - ProseMirror JSON (e.g. from yDocToProsemirrorJSON)
+ * @returns The extracted title, or 'Untitled'
  */
-export function getContentByteSize(content: string): number {
-  return new TextEncoder().encode(content).byteLength;
+export function extractTitleFromProsemirrorJSON(
+  json: Record<string, unknown>,
+): string {
+  const content = json?.content as Array<Record<string, unknown>> | undefined;
+  if (!content || content.length === 0) return 'Untitled';
+
+  const firstNode = content[0];
+  if (firstNode.type !== 'heading') return 'Untitled';
+
+  const nodeContent = firstNode.content as
+    | Array<Record<string, unknown>>
+    | undefined;
+  if (!nodeContent || nodeContent.length === 0) return 'Untitled';
+
+  const text = collectText(nodeContent);
+  return text.trim() || 'Untitled';
 }
 
-/**
- * Extracts a title from markdown content.
- *
- * The title is determined by the following rules:
- * 1. If the content is empty or whitespace only, returns 'Untitled'
- * 2. If the first line is an escaped heading (e.g., '\# hello'), removes the backslash and returns the text
- * 3. If the first line is a markdown heading (e.g., '# Title'), removes the '#' markers and returns the text
- * 4. Otherwise, returns the first line as-is
- *
- * @param content - The markdown content to extract the title from
- * @returns The extracted title, or 'Untitled' if no valid title is found
- */
-export function extractTitle(content: string): string {
-  if (!content || content.trim() === '') {
-    return 'Untitled';
+function collectText(nodes: Array<Record<string, unknown>>): string {
+  let result = '';
+  for (const node of nodes) {
+    if (node.type === 'text' && typeof node.text === 'string') {
+      result += node.text;
+    }
+    const children = node.content as Array<Record<string, unknown>> | undefined;
+    if (children) {
+      result += collectText(children);
+    }
   }
-
-  const firstLine = content.split('\n')[0].trim();
-
-  if (!firstLine) {
-    return 'Untitled';
-  }
-
-  // Check if the first line is an ACTUAL heading (not escaped)
-  // Escaped headings like "\# hello" should be treated as plain text "# hello"
-  if (firstLine.startsWith('\\#')) {
-    // This is escaped - it's plain text, so remove the backslash escape
-    return firstLine.replace(/^\\/, '').trim() || 'Untitled';
-  }
-
-  // If the first line is a real heading (starts with # but not \#), remove the # markers
-  if (firstLine.startsWith('#')) {
-    return firstLine.replace(/^#+\s*/, '').trim() || 'Untitled';
-  }
-
-  return firstLine;
+  return result;
 }
