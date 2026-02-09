@@ -45,3 +45,29 @@ export function extractTitle(content: string): string {
 
   return firstLine;
 }
+
+const MINUTE = 60 * 1000;
+const HOUR = 60 * MINUTE;
+const DAY = 24 * HOUR;
+
+export function formatRelativeTime(
+  timestamp: number,
+  now: number = Date.now(),
+): string {
+  const diff = now - timestamp;
+
+  if (diff < MINUTE) {
+    return 'たった今';
+  }
+  if (diff < HOUR) {
+    const minutes = Math.floor(diff / MINUTE);
+    return `${minutes}分前`;
+  }
+  if (diff < DAY) {
+    const hours = Math.floor(diff / HOUR);
+    return `${hours}時間前`;
+  }
+
+  const date = new Date(timestamp);
+  return `${date.getMonth() + 1}月${date.getDate()}日`;
+}

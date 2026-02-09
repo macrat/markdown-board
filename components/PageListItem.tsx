@@ -1,4 +1,7 @@
-import { ReactNode } from 'react';
+'use client';
+
+import { ReactNode, useState, useEffect } from 'react';
+import { formatRelativeTime } from '@/lib/utils';
 
 interface PageListItemProps {
   dataTestId: string;
@@ -27,7 +30,14 @@ export default function PageListItem({
   actionClassName,
   actionIcon,
 }: PageListItemProps) {
-  const formattedDate = new Date(timestamp).toLocaleString();
+  const [now, setNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 30_000);
+    return () => clearInterval(id);
+  }, []);
+
+  const formattedDate = formatRelativeTime(timestamp, now);
 
   const titleDateContent = (
     <>
