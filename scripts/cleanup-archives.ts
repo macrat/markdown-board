@@ -41,4 +41,4 @@ async function cleanupOldArchives() {
   }
 }
 
-cleanupOldArchives();
+await cleanupOldArchives();
