@@ -42,3 +42,5 @@ async function cleanupOldArchives() {
 }
 
 await cleanupOldArchives();
+
+export {};
