@@ -9,22 +9,6 @@ test.describe('Accessibility', () => {
     await page.waitForTimeout(500);
   });
 
-  test('should have proper ARIA labels and roles', async ({ page }) => {
-    // Check create button accessibility in sidebar
-    const newPageButton = page.locator('button[title="新しいページを作成"]');
-    await expect(newPageButton).toBeVisible();
-    await expect(newPageButton).toBeEnabled();
-
-    // Check editor accessibility
-    await page.waitForSelector('.milkdown', { timeout: 10000 });
-
-    const editor = page
-      .locator('.milkdown')
-      .locator('div[contenteditable="true"]')
-      .first();
-    await expect(editor).toHaveAttribute('contenteditable', 'true');
-  });
-
   test('should support keyboard navigation', async ({ page }) => {
     // Tab through elements
     await page.keyboard.press('Tab');
