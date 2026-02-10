@@ -90,21 +90,26 @@ describe('cleanupOldArchives', () => {
   });
 
   it('does not delete archives exactly at the 30-day boundary', () => {
-    const exactlyThirtyDaysAgo = Date.now() - THIRTY_DAYS_MS;
+    vi.useFakeTimers();
+    try {
+      const exactlyThirtyDaysAgo = Date.now() - THIRTY_DAYS_MS;
 
-    insertPage(db, {
-      id: 'boundary-archive',
-      title: 'Boundary',
-      archived_at: exactlyThirtyDaysAgo,
-    });
+      insertPage(db, {
+        id: 'boundary-archive',
+        title: 'Boundary',
+        archived_at: exactlyThirtyDaysAgo,
+      });
 
-    const deleted = cleanupOldArchives(db);
-    expect(deleted).toBe(0);
+      const deleted = cleanupOldArchives(db);
+      expect(deleted).toBe(0);
 
-    const page = db
-      .prepare('SELECT * FROM pages WHERE id = ?')
-      .get('boundary-archive');
-    expect(page).toBeDefined();
+      const page = db
+        .prepare('SELECT * FROM pages WHERE id = ?')
+        .get('boundary-archive');
+      expect(page).toBeDefined();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('does not affect non-archived pages regardless of age', () => {
