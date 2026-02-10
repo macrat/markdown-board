@@ -437,4 +437,87 @@ describe('PageBoard', () => {
 
     expect(screen.getByText('30日間保持されます')).toBeTruthy();
   });
+
+  // ==================== Page Navigation ====================
+
+  it('navigates to page when page item is clicked', async () => {
+    setupMocks();
+
+    await act(async () => {
+      render(<PageBoard />);
+    });
+    await act(async () => {});
+
+    // Click on page item
+    const pageItem = screen.getByText('Page 1');
+    await act(async () => {
+      fireEvent.click(pageItem);
+    });
+
+    expect(mockPush).toHaveBeenCalledWith('/page/page-1');
+  });
+
+  it('navigates to different pages independently', async () => {
+    setupMocks();
+
+    await act(async () => {
+      render(<PageBoard />);
+    });
+    await act(async () => {});
+
+    // Click first page
+    await act(async () => {
+      fireEvent.click(screen.getByText('Page 1'));
+    });
+    expect(mockPush).toHaveBeenCalledWith('/page/page-1');
+
+    mockPush.mockClear();
+
+    // Click second page
+    await act(async () => {
+      fireEvent.click(screen.getByText('Page 2'));
+    });
+    expect(mockPush).toHaveBeenCalledWith('/page/page-2');
+  });
+
+  // ==================== FAB Button Accessibility ====================
+
+  it('FAB button has title and aria-label attributes', async () => {
+    setupMocks();
+
+    await act(async () => {
+      render(<PageBoard />);
+    });
+    await act(async () => {});
+
+    const fab = screen.getByLabelText('新しいページを作成');
+    expect(fab.tagName).toBe('BUTTON');
+    expect(fab.getAttribute('title')).toBe('新しいページを作成');
+  });
+
+  // ==================== Tab tabIndex Management ====================
+
+  it('manages tabIndex correctly for WAI-ARIA tabs', async () => {
+    setupMocks();
+
+    await act(async () => {
+      render(<PageBoard />);
+    });
+    await act(async () => {});
+
+    const recentTab = screen.getByRole('tab', { name: '最新' });
+    const archiveTab = screen.getByRole('tab', { name: 'アーカイブ' });
+
+    // Active tab has tabIndex 0, inactive has -1
+    expect(recentTab.getAttribute('tabindex')).toBe('0');
+    expect(archiveTab.getAttribute('tabindex')).toBe('-1');
+
+    // Switch tab
+    await act(async () => {
+      fireEvent.click(archiveTab);
+    });
+
+    expect(recentTab.getAttribute('tabindex')).toBe('-1');
+    expect(archiveTab.getAttribute('tabindex')).toBe('0');
+  });
 });

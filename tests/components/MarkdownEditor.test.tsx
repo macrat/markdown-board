@@ -64,4 +64,42 @@ describe('MarkdownEditor', () => {
     render(<MarkdownEditor pageId="page-1" />);
     expect(screen.queryByRole('status')).toBeNull();
   });
+
+  it('renders home link with aria-label', () => {
+    render(<MarkdownEditor pageId="page-1" />);
+    const link = screen.getByLabelText('ページ一覧に戻る');
+    expect(link).toBeTruthy();
+    expect(link.tagName).toBe('A');
+    expect(link.getAttribute('href')).toBe('/');
+    expect(link.textContent).toContain('Markdown Board');
+  });
+
+  it('shows offline indicator when WebSocket is disconnected', () => {
+    mockUseCollabEditor.mockReturnValue({
+      loading: false,
+      peerCount: 0,
+      wsConnected: false,
+      editorRef: { current: null },
+    });
+
+    render(<MarkdownEditor pageId="page-1" />);
+    const offlineStatus =
+      screen.getByLabelText('サーバーとの接続が切れています');
+    expect(offlineStatus).toBeTruthy();
+    expect(offlineStatus.textContent).toContain('オフライン');
+  });
+
+  it('does not show offline indicator when connected', () => {
+    render(<MarkdownEditor pageId="page-1" />);
+    expect(
+      screen.queryByLabelText('サーバーとの接続が切れています'),
+    ).toBeNull();
+  });
+
+  it('renders editor container with milkdown class', () => {
+    const { container } = render(<MarkdownEditor pageId="page-1" />);
+    const milkdown = container.querySelector('.milkdown');
+    expect(milkdown).toBeTruthy();
+    expect(milkdown?.tagName).toBe('DIV');
+  });
 });
