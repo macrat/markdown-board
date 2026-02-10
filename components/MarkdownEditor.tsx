@@ -36,7 +36,7 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
   if (loading) {
     return (
       <div className="flex-1 flex items-center justify-center">
-        <p style={{ color: '#574a46' }}>読み込み中...</p>
+        <p style={{ color: 'var(--foreground)' }}>読み込み中...</p>
       </div>
     );
   }
