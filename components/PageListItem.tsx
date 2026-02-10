@@ -36,7 +36,7 @@ export default function PageListItem({
     <>
       <h3
         style={{
-          color: '#574a46',
+          color: 'var(--foreground)',
           fontSize: '16px',
           fontWeight: '500',
           margin: 0,
@@ -47,7 +47,7 @@ export default function PageListItem({
       </h3>
       <p
         style={{
-          color: '#574a46',
+          color: 'var(--foreground)',
           opacity: 0.6,
           fontSize: '13px',
           margin: 0,
@@ -66,9 +66,9 @@ export default function PageListItem({
         alignItems: 'center',
         justifyContent: 'space-between',
         padding: '16px 20px',
-        backgroundColor: 'rgba(245, 234, 230, 0.5)',
+        backgroundColor: 'rgba(var(--background-rgb), 0.5)',
         borderRadius: '8px',
-        border: '1px solid rgba(87, 74, 70, 0.1)',
+        border: '1px solid rgba(var(--foreground-rgb), 0.1)',
         opacity,
         transition: 'opacity 0.2s ease-in-out',
       }}
@@ -108,9 +108,9 @@ export default function PageListItem({
           width: '44px',
           height: '44px',
           backgroundColor: 'transparent',
-          border: '1px solid rgba(87, 74, 70, 0.3)',
+          border: '1px solid rgba(var(--foreground-rgb), 0.3)',
           borderRadius: '8px',
-          color: '#574a46',
+          color: 'var(--foreground)',
           cursor: 'pointer',
           transition: 'all 0.15s ease',
         }}

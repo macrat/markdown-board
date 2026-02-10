@@ -7,16 +7,19 @@ export default function Home() {
         <header className="mb-8 sm:mb-12">
           <h1
             className="text-2xl sm:text-4xl font-bold mb-2"
-            style={{ color: '#574a46' }}
+            style={{ color: 'var(--foreground)' }}
           >
             Markdown Board
           </h1>
-          <p className="text-lg" style={{ color: '#574a46', opacity: 0.7 }}>
+          <p
+            className="text-lg"
+            style={{ color: 'var(--foreground)', opacity: 0.7 }}
+          >
             共同編集できるMarkdownメモ
           </p>
           <p
             className="text-sm mt-1"
-            style={{ color: '#574a46', opacity: 0.5 }}
+            style={{ color: 'var(--foreground)', opacity: 0.5 }}
           >
             URLを共有するだけで、誰でも一緒に編集できます
           </p>
