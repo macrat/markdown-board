@@ -7,9 +7,5 @@ export default async function PageView({
 }) {
   const { id } = await params;
 
-  return (
-    <div className="min-h-screen">
-      <MarkdownEditor pageId={id} />
-    </div>
-  );
+  return <MarkdownEditor pageId={id} />;
 }
