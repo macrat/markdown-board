@@ -1,7 +1,24 @@
 import { test, expect } from '@playwright/test';
 import { createPageWithContent } from './helpers';
 
+/**
+ * データ永続化に関するE2Eテスト。
+ *
+ * ブラウザ上でのエディタ操作→自動保存→ページリロード→復元という
+ * エンドツーエンドのデータフローを検証する。SQLite永続化の単体テストは
+ * 別途存在するが、ここではフロントエンド（Milkdown/Yjs）からバックエンド
+ * （API/SQLite）までの統合的な動作を確認する。
+ */
 test.describe('Data Persistence', () => {
+  /**
+   * エディタで入力したコンテンツが、ローカルキャッシュをクリアして
+   * リロードした後もSQLiteから復元されることを検証する。
+   *
+   * localStorage/sessionStorageをクリアした上でリロードすることで、
+   * サーバー再起動相当の状態を再現する。Milkdownエディタでの入力→
+   * Yjs経由の自動保存→API経由のSQLite永続化→ページリロードによる
+   * 復元という完全なサイクルをテストするため、E2Eテストが必要。
+   */
   test('should restore content from SQLite after server restart', async ({
     page,
   }) => {
@@ -52,6 +69,14 @@ test.describe('Data Persistence', () => {
     await expect(pageTitle).toContainText('Restart Test');
   });
 
+  /**
+   * ページ間を素早く遷移してもデータが失われないことを検証する。
+   *
+   * トップページとエディタページの間を繰り返し遷移し、最終的に
+   * コンテンツが保持されていることを確認する。Next.jsのルーティング、
+   * Yjsのドキュメント初期化/破棄、WebSocket接続の確立/切断が
+   * 高速に繰り返される実際のブラウザ環境でのテストが必要。
+   */
   test('should handle rapid navigation without data loss', async ({ page }) => {
     await page.goto('/');
     await page.waitForLoadState('networkidle');

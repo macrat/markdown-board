@@ -1,7 +1,23 @@
 import { test, expect } from '@playwright/test';
 import { createPageWithContent } from './helpers';
 
+/**
+ * レスポンシブレイアウトに関するE2Eテスト。
+ *
+ * ビューポートサイズの変更、長いテキストの折り返し、モバイル・タブレット
+ * 画面でのUI表示など、実際のブラウザレンダリングエンジンによるレイアウト
+ * 計算が必要なテストをまとめている。jsdomにはレイアウトエンジンがないため、
+ * これらはE2Eテストでしか検証できない。
+ */
 test.describe('Responsive Layout', () => {
+  /**
+   * 1000文字の長い行を含むコンテンツで水平スクロールが発生しないことを
+   * 検証する。
+   *
+   * scrollWidthとclientWidthを比較し、コンテンツがビューポート内に
+   * 収まっていることを確認する。CSSのword-wrapやoverflow処理を含む
+   * 実際のレイアウト計算が必要なため、jsdomではテストできない。
+   */
   test('should handle very long lines without breaking layout', async ({
     page,
   }) => {
@@ -26,6 +42,14 @@ test.describe('Responsive Layout', () => {
     expect(hasHorizontalScroll).toBe(false);
   });
 
+  /**
+   * モバイルサイズ（375x667、iPhone SE相当）のビューポートでUIが
+   * 正常に表示されることを検証する。
+   *
+   * タイトルと新規作成ボタンが可視状態であることを確認する。
+   * 実際のビューポートサイズ変更とレンダリングが必要なため、
+   * jsdomではテストできない。
+   */
   test('should be responsive on mobile viewport', async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 667 });
 
@@ -38,6 +62,14 @@ test.describe('Responsive Layout', () => {
     ).toBeVisible();
   });
 
+  /**
+   * タブレットサイズ（768x1024、iPad相当）のビューポートでUIが
+   * 正常に表示されることを検証する。
+   *
+   * タイトルと新規作成ボタンが可視状態であることを確認する。
+   * 実際のビューポートサイズ変更とレンダリングが必要なため、
+   * jsdomではテストできない。
+   */
   test('should be responsive on tablet viewport', async ({ page }) => {
     await page.setViewportSize({ width: 768, height: 1024 });
 
