@@ -1,13 +1,12 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import Database from 'better-sqlite3';
 import { createTestDb, insertPage } from './helpers/db';
-
-const {
+import {
   cleanupOldArchives,
   runCleanupCycle,
   startPeriodicCleanup,
   THIRTY_DAYS_MS,
-} = require('../server/cleanup-archives'); // eslint-disable-line @typescript-eslint/no-require-imports
+} from '../server/cleanup-archives';
 
 let db: Database.Database;
 

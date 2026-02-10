@@ -7,33 +7,36 @@
  * This is the canonical implementation shared by both the Next.js app
  * (via lib/utils.ts re-export) and the WebSocket server.
  *
- * @param {Record<string, unknown>} json - ProseMirror JSON (e.g. from yDocToProsemirrorJSON)
- * @returns {string} The extracted title, or 'Untitled'
+ * @param json - ProseMirror JSON (e.g. from yDocToProsemirrorJSON)
+ * @returns The extracted title, or 'Untitled'
  */
-function extractTitleFromProsemirrorJSON(json) {
-  const content = json?.content;
+export function extractTitleFromProsemirrorJSON(
+  json: Record<string, unknown>,
+): string {
+  const content = json?.content as Array<Record<string, unknown>> | undefined;
   if (!content || content.length === 0) return 'Untitled';
 
   const firstNode = content[0];
 
-  const nodeContent = firstNode.content;
+  const nodeContent = firstNode.content as
+    | Array<Record<string, unknown>>
+    | undefined;
   if (!nodeContent || nodeContent.length === 0) return 'Untitled';
 
   const text = collectText(nodeContent);
   return text.trim() || 'Untitled';
 }
 
-function collectText(nodes) {
+function collectText(nodes: Array<Record<string, unknown>>): string {
   let result = '';
   for (const node of nodes) {
     if (node.type === 'text' && typeof node.text === 'string') {
       result += node.text;
     }
-    if (node.content) {
-      result += collectText(node.content);
+    const children = node.content as Array<Record<string, unknown>> | undefined;
+    if (children) {
+      result += collectText(children);
     }
   }
   return result;
 }
-
-module.exports = { extractTitleFromProsemirrorJSON };

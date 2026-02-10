@@ -1,4 +1,3 @@
-// Re-export from the canonical CJS implementation shared with server/websocket.js
 export { extractTitleFromProsemirrorJSON } from '../server/extract-title';
 
 const MINUTE = 60 * 1000;

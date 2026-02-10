@@ -1,11 +1,10 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import Database from 'better-sqlite3';
 import * as Y from 'yjs';
-
-const { YjsSqlitePersistence } = require('../server/yjs-sqlite-persistence'); // eslint-disable-line @typescript-eslint/no-require-imports
+import { YjsSqlitePersistence } from '../server/yjs-sqlite-persistence';
 
 let db: Database.Database;
-let persistence: InstanceType<typeof YjsSqlitePersistence>;
+let persistence: YjsSqlitePersistence;
 
 beforeEach(() => {
   db = new Database(':memory:');
