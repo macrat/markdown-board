@@ -4,13 +4,13 @@
  * compaction (merging all updates into a single row).
  */
 
-const Y = require('yjs');
+import type Database from 'better-sqlite3';
+import * as Y from 'yjs';
 
 /**
  * Ensure the yjs_updates table exists in the given database.
- * @param {import('better-sqlite3').Database} db
  */
-function ensureTable(db) {
+export function ensureTable(db: Database.Database): void {
   db.exec(`
     CREATE TABLE IF NOT EXISTS yjs_updates (
       doc_name TEXT NOT NULL,
@@ -21,11 +21,14 @@ function ensureTable(db) {
   `);
 }
 
-class YjsSqlitePersistence {
-  /**
-   * @param {import('better-sqlite3').Database} db
-   */
-  constructor(db) {
+export class YjsSqlitePersistence {
+  private db: Database.Database;
+  private _storeStmt: Database.Statement;
+  private _getStmt: Database.Statement;
+  private _maxClockStmt: Database.Statement;
+  private _deleteStmt: Database.Statement;
+
+  constructor(db: Database.Database) {
     this.db = db;
     ensureTable(db);
     this._storeStmt = db.prepare(
@@ -42,23 +45,23 @@ class YjsSqlitePersistence {
 
   /**
    * Store a Yjs update for the given document.
-   * @param {string} docName
-   * @param {Uint8Array} update
    */
-  storeUpdate(docName, update) {
-    const row = this._maxClockStmt.get(docName);
+  storeUpdate(docName: string, update: Uint8Array): void {
+    const row = this._maxClockStmt.get(docName) as
+      | {
+          max_clock: number | null;
+        }
+      | undefined;
     const nextClock = row && row.max_clock !== null ? row.max_clock + 1 : 0;
     this._storeStmt.run(docName, nextClock, Buffer.from(update));
   }
 
   /**
    * Load all stored updates into a Y.Doc and return it.
-   * @param {string} docName
-   * @returns {Y.Doc}
    */
-  getYDoc(docName) {
+  getYDoc(docName: string): Y.Doc {
     const doc = new Y.Doc();
-    const rows = this._getStmt.all(docName);
+    const rows = this._getStmt.all(docName) as { value: Buffer }[];
     for (const row of rows) {
       Y.applyUpdate(doc, row.value);
     }
@@ -68,10 +71,9 @@ class YjsSqlitePersistence {
   /**
    * Compact all updates for a document into a single merged update.
    * Runs inside a transaction (DELETE all + INSERT merged).
-   * @param {string} docName
    */
-  compactDocument(docName) {
-    const rows = this._getStmt.all(docName);
+  compactDocument(docName: string): void {
+    const rows = this._getStmt.all(docName) as { value: Buffer }[];
     if (rows.length <= 1) return;
 
     const updates = rows.map((row) => row.value);
@@ -86,11 +88,8 @@ class YjsSqlitePersistence {
 
   /**
    * Delete all stored updates for a document.
-   * @param {string} docName
    */
-  clearDocument(docName) {
+  clearDocument(docName: string): void {
     this._deleteStmt.run(docName);
   }
 }
-
-module.exports = { YjsSqlitePersistence, ensureTable };
