@@ -20,6 +20,7 @@ const { openDatabase } = require('./db-config');
 const { YjsSqlitePersistence } = require('./yjs-sqlite-persistence');
 const { yDocToProsemirrorJSON } = require('y-prosemirror');
 const { createDebouncer } = require('lib0/eventloop');
+const { extractTitleFromProsemirrorJSON } = require('./extract-title');
 
 const PORT = process.env.NEXT_PUBLIC_WS_PORT || 1234;
 
@@ -41,37 +42,6 @@ const persistence = new YjsSqlitePersistence(db);
 
 // Per-document debouncer map for title sync
 const titleDebouncers = new Map();
-
-/**
- * Extract title from a ProseMirror JSON document.
- * NOTE: This is a CJS copy of lib/utils.ts extractTitleFromProsemirrorJSON.
- * Keep both implementations in sync when modifying the logic.
- */
-function extractTitleFromProsemirrorJSON(json) {
-  const content = json?.content;
-  if (!content || content.length === 0) return 'Untitled';
-
-  const firstNode = content[0];
-
-  const nodeContent = firstNode.content;
-  if (!nodeContent || nodeContent.length === 0) return 'Untitled';
-
-  const text = collectText(nodeContent);
-  return text.trim() || 'Untitled';
-}
-
-function collectText(nodes) {
-  let result = '';
-  for (const node of nodes) {
-    if (node.type === 'text' && typeof node.text === 'string') {
-      result += node.text;
-    }
-    if (node.content) {
-      result += collectText(node.content);
-    }
-  }
-  return result;
-}
 
 /**
  * Sync title and updated_at to pages table.
@@ -130,7 +100,7 @@ setPersistence({
     // 2. Cancel pending debounced sync
     const debounce = titleDebouncers.get(docName);
     if (debounce) {
-      debounce(() => {});
+      debounce(null);
       titleDebouncers.delete(docName);
     }
 
