@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+#!/usr/bin/env -S npx tsx
 
 /**
  * WebSocket server for Yjs collaborative editing
@@ -6,21 +6,22 @@
  * with SQLite-backed Yjs persistence and debounced title sync.
  */
 
-const ws = require('ws');
-const http = require('http');
-const Y = require('yjs');
+import { WebSocketServer } from 'ws';
+import http from 'http';
+import * as Y from 'yjs';
 
 // Import y-websocket server utilities
-const {
+import {
   setupWSConnection,
   setPersistence,
-} = require('@y/websocket-server/utils');
-const { startPeriodicCleanup } = require('./cleanup-archives');
-const { openDatabase } = require('./db-config');
-const { YjsSqlitePersistence } = require('./yjs-sqlite-persistence');
-const { yDocToProsemirrorJSON } = require('y-prosemirror');
-const { createDebouncer } = require('lib0/eventloop');
-const { extractTitleFromProsemirrorJSON } = require('./extract-title');
+  type WSSharedDoc,
+} from '@y/websocket-server/utils';
+import { startPeriodicCleanup } from './cleanup-archives';
+import { openDatabase } from './db-config';
+import { YjsSqlitePersistence } from './yjs-sqlite-persistence';
+import { yDocToProsemirrorJSON } from 'y-prosemirror';
+import { createDebouncer } from 'lib0/eventloop';
+import { extractTitleFromProsemirrorJSON } from './extract-title';
 
 const PORT = process.env.NEXT_PUBLIC_WS_PORT || 1234;
 const TITLE_SYNC_DEBOUNCE_MS = 3000;
@@ -43,12 +44,12 @@ db.exec(`
 const persistence = new YjsSqlitePersistence(db);
 
 // Per-document debouncer map for title sync
-const titleDebouncers = new Map();
+const titleDebouncers = new Map<string, (cb: (() => void) | null) => void>();
 
 /**
  * Sync title and updated_at to pages table.
  */
-function syncTitleToDb(docName, ydoc) {
+function syncTitleToDb(docName: string, ydoc: Y.Doc): void {
   try {
     const json = yDocToProsemirrorJSON(ydoc, 'prosemirror');
     const title = extractTitleFromProsemirrorJSON(json);
@@ -66,7 +67,8 @@ function syncTitleToDb(docName, ydoc) {
 
 // Configure Yjs persistence
 setPersistence({
-  bindState: async (docName, ydoc) => {
+  provider: null,
+  bindState: async (docName: string, ydoc: WSSharedDoc) => {
     // 1. Load stored updates from SQLite
     const persistedYdoc = persistence.getYDoc(docName);
 
@@ -78,7 +80,7 @@ setPersistence({
     persistedYdoc.destroy();
 
     // 2. Store incremental updates
-    ydoc.on('update', (update) => {
+    ydoc.on('update', (update: Uint8Array) => {
       persistence.storeUpdate(docName, update);
     });
 
@@ -98,11 +100,11 @@ setPersistence({
     console.log(`[persistence] Loaded state for room: ${docName}`);
   },
 
-  writeState: async (docName, ydoc) => {
+  writeState: async (docName: string, ydoc: WSSharedDoc) => {
     // 1. Final title sync (immediate)
     syncTitleToDb(docName, ydoc);
 
-    // 2. Cancel pending debounced sync
+    // 2. Cancel pending debounced sync by replacing it with a no-op
     const debounce = titleDebouncers.get(docName);
     if (debounce) {
       debounce(null);
@@ -121,7 +123,7 @@ const server = http.createServer((request, response) => {
   response.end('WebSocket server for Yjs\n');
 });
 
-const wss = new ws.Server({ server });
+const wss = new WebSocketServer({ server });
 
 console.log(`✓ WebSocket server running on ws://localhost:${PORT}`);
 

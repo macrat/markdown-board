@@ -32,6 +32,9 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      - name: Build
+        run: npm run build
+
   unit-test:
     runs-on: ubuntu-latest
     permissions:

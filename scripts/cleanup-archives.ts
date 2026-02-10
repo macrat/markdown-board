@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+#!/usr/bin/env -S npx tsx
 
 /**
  * Cleanup script for archived pages older than 30 days
@@ -8,10 +8,10 @@
  *
  * @example
  * # Run with default URL
- * node cleanup-archives.js
+ * npx tsx cleanup-archives.ts
  *
  * # Run with custom URL
- * API_URL=https://api.example.com node cleanup-archives.js
+ * API_URL=https://api.example.com npx tsx cleanup-archives.ts
  */
 
 const API_URL = process.env.API_URL || 'http://localhost:3000';
@@ -31,7 +31,7 @@ async function cleanupOldArchives() {
       process.exit(1);
     }
 
-    const result = await response.json();
+    const result = (await response.json()) as { deleted: number };
     console.log(
       `Cleaned up ${result.deleted} archived pages older than 30 days`,
     );
@@ -41,4 +41,6 @@ async function cleanupOldArchives() {
   }
 }
 
-cleanupOldArchives();
+await cleanupOldArchives();
+
+export {};
