@@ -23,6 +23,8 @@ const { createDebouncer } = require('lib0/eventloop');
 const { extractTitleFromProsemirrorJSON } = require('./extract-title');
 
 const PORT = process.env.NEXT_PUBLIC_WS_PORT || 1234;
+const TITLE_SYNC_DEBOUNCE_MS = 3000;
+const TITLE_SYNC_MAX_WAIT_MS = 10000;
 
 // Open a persistent DB connection for the WebSocket server process
 const db = openDatabase();
@@ -81,7 +83,10 @@ setPersistence({
     });
 
     // 3. Debounced title sync
-    const debounce = createDebouncer(3000, 10000);
+    const debounce = createDebouncer(
+      TITLE_SYNC_DEBOUNCE_MS,
+      TITLE_SYNC_MAX_WAIT_MS,
+    );
     titleDebouncers.set(docName, debounce);
 
     ydoc.on('update', () => {
