@@ -60,8 +60,11 @@ export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
   useEffect(() => {
     const loadData = async () => {
       setLoading(true);
-      await Promise.all([fetchPages(), fetchArchives()]);
-      setLoading(false);
+      try {
+        await Promise.all([fetchPages(), fetchArchives()]);
+      } finally {
+        setLoading(false);
+      }
     };
     loadData();
   }, [fetchPages, fetchArchives]);
