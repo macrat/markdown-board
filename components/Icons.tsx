@@ -33,10 +33,10 @@ export const UnarchiveIcon = () => (
   </svg>
 );
 
-export const PlusIcon = () => (
+export const PlusIcon = ({ size = 18 }: { size?: number }) => (
   <svg
-    width="28"
-    height="28"
+    width={size}
+    height={size}
     viewBox="0 0 24 24"
     fill="none"
     stroke="currentColor"

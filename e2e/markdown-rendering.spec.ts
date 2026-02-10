@@ -4,6 +4,7 @@ import { createPageWithContent } from './helpers';
 test.describe('Markdown Rendering', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
+    await page.waitForURL(/\/page\/.+/);
     await page.waitForLoadState('networkidle');
     await page.waitForTimeout(500);
   });
@@ -33,8 +34,6 @@ test.describe('Markdown Rendering', () => {
   test('should render text formatting (bold, italic, strikethrough)', async ({
     page,
   }) => {
-    await page.click('button[title="新しいページを作成"]');
-    await page.waitForURL(/\/page\/.+/);
     await page.waitForSelector('.milkdown', { timeout: 10000 });
 
     const editor = page
@@ -69,8 +68,6 @@ test.describe('Markdown Rendering', () => {
   });
 
   test('should render unordered and ordered lists', async ({ page }) => {
-    await page.click('button[title="新しいページを作成"]');
-    await page.waitForURL(/\/page\/.+/);
     await page.waitForSelector('.milkdown', { timeout: 10000 });
 
     const editor = page
@@ -105,8 +102,6 @@ test.describe('Markdown Rendering', () => {
   });
 
   test('should render nested lists', async ({ page }) => {
-    await page.click('button[title="新しいページを作成"]');
-    await page.waitForURL(/\/page\/.+/);
     await page.waitForSelector('.milkdown', { timeout: 10000 });
 
     const editor = page
@@ -133,8 +128,6 @@ test.describe('Markdown Rendering', () => {
   });
 
   test('should render links', async ({ page }) => {
-    await page.click('button[title="新しいページを作成"]');
-    await page.waitForURL(/\/page\/.+/);
     await page.waitForSelector('.milkdown', { timeout: 10000 });
 
     const editor = page
@@ -155,8 +148,6 @@ test.describe('Markdown Rendering', () => {
   });
 
   test('should render inline code and code blocks', async ({ page }) => {
-    await page.click('button[title="新しいページを作成"]');
-    await page.waitForURL(/\/page\/.+/);
     await page.waitForSelector('.milkdown', { timeout: 10000 });
 
     const editor = page
@@ -197,8 +188,6 @@ test.describe('Markdown Rendering', () => {
   });
 
   test('should render blockquotes', async ({ page }) => {
-    await page.click('button[title="新しいページを作成"]');
-    await page.waitForURL(/\/page\/.+/);
     await page.waitForSelector('.milkdown', { timeout: 10000 });
 
     const editor = page
@@ -222,8 +211,6 @@ test.describe('Markdown Rendering', () => {
   });
 
   test('should render horizontal rules', async ({ page }) => {
-    await page.click('button[title="新しいページを作成"]');
-    await page.waitForURL(/\/page\/.+/);
     await page.waitForSelector('.milkdown', { timeout: 10000 });
 
     const editor = page
@@ -247,8 +234,6 @@ test.describe('Markdown Rendering', () => {
   });
 
   test('should render tables', async ({ page }) => {
-    await page.click('button[title="新しいページを作成"]');
-    await page.waitForURL(/\/page\/.+/);
     await page.waitForSelector('.milkdown', { timeout: 10000 });
 
     const editor = page

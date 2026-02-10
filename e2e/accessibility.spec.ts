@@ -4,22 +4,18 @@ import { createPageWithContent, MAX_TAB_ITERATIONS } from './helpers';
 test.describe('Accessibility', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
+    await page.waitForURL(/\/page\/.+/);
     await page.waitForLoadState('networkidle');
     await page.waitForTimeout(500);
   });
 
   test('should have proper ARIA labels and roles', async ({ page }) => {
-    // Check home page
-    await expect(page.locator('h1')).toContainText('Markdown Board');
-
-    // Check button accessibility
+    // Check create button accessibility in sidebar
     const newPageButton = page.locator('button[title="新しいページを作成"]');
     await expect(newPageButton).toBeVisible();
     await expect(newPageButton).toBeEnabled();
 
-    // Create a page and check editor accessibility
-    await page.click('button[title="新しいページを作成"]');
-    await page.waitForURL(/\/page\/.+/);
+    // Check editor accessibility
     await page.waitForSelector('.milkdown', { timeout: 10000 });
 
     const editor = page
@@ -30,18 +26,16 @@ test.describe('Accessibility', () => {
   });
 
   test('should support keyboard navigation', async ({ page }) => {
-    // Tab through buttons on home page
+    // Tab through elements
     await page.keyboard.press('Tab');
 
-    // Check focus is visible (we'll verify by checking activeElement)
+    // Check focus is visible
     const focusedElement = await page.evaluate(
       () => document.activeElement?.tagName,
     );
     expect(focusedElement).toBeTruthy();
 
     // Test keyboard navigation in editor
-    await page.click('button[title="新しいページを作成"]');
-    await page.waitForURL(/\/page\/.+/);
     await page.waitForSelector('.milkdown', { timeout: 10000 });
 
     const editor = page
@@ -72,7 +66,10 @@ test.describe('Accessibility', () => {
   test('should work with Tab key for navigation', async ({ page }) => {
     // Create a page first
     await createPageWithContent(page, '# Test Page\n\nContent here');
+
+    // Navigate to a new page to refresh sidebar
     await page.goto('/');
+    await page.waitForURL(/\/page\/.+/);
     await page.waitForLoadState('networkidle');
     await page.waitForTimeout(500);
 
@@ -80,7 +77,6 @@ test.describe('Accessibility', () => {
     await page.locator('body').focus();
 
     // Use Tab multiple times to navigate to archive tab
-    // We need to tab through multiple elements
     for (let i = 0; i < MAX_TAB_ITERATIONS; i++) {
       await page.keyboard.press('Tab');
       const focused = await page.evaluate(

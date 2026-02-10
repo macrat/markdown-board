@@ -2,18 +2,17 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Data Persistence', () => {
   test.beforeEach(async ({ page }) => {
+    // Navigate to home page (redirects to a new editor page)
     await page.goto('/');
+    await page.waitForURL(/\/page\/.+/);
     await page.waitForLoadState('networkidle');
     await page.waitForTimeout(500);
   });
 
-  test('should persist data through create → edit → home → return workflow', async ({
+  test('should persist data through create → edit → navigate → return workflow', async ({
     page,
   }) => {
-    // Step 1: Create a new page
-    await page.click('button[title="新しいページを作成"]');
-    await page.waitForURL(/\/page\/.+/);
-
+    // Step 1: We're already on a new page (from beforeEach redirect)
     // Wait for editor to load
     await page.waitForSelector('.milkdown', { timeout: 10000 });
 
@@ -38,12 +37,13 @@ test.describe('Data Persistence', () => {
     // Wait for auto-save (debounce is 1 second)
     await page.waitForTimeout(2000);
 
-    // Step 3: Go back to home
+    // Step 3: Navigate to a new page (which triggers sidebar refetch)
     await page.goto('/');
+    await page.waitForURL(/\/page\/.+/);
     await page.waitForLoadState('networkidle');
     await page.waitForTimeout(500);
 
-    // Verify the page appears in the list with correct title (should be without #)
+    // Verify the page appears in the sidebar list with correct title (should be without #)
     const pageListItems = page
       .locator('h3')
       .filter({ hasText: 'Test Page Title' });
@@ -54,7 +54,7 @@ test.describe('Data Persistence', () => {
     expect(titleText).not.toContain('#');
     expect(titleText).toContain('Test Page Title');
 
-    // Step 4: Return to the page by clicking the page item
+    // Step 4: Return to the page by clicking the page item in the sidebar
     await page
       .locator('h3')
       .filter({ hasText: 'Test Page Title' })
@@ -75,9 +75,7 @@ test.describe('Data Persistence', () => {
   });
 
   test('should handle escaped heading markers correctly', async ({ page }) => {
-    // Create a new page
-    await page.click('button[title="新しいページを作成"]');
-    await page.waitForURL(/\/page\/.+/);
+    // We're already on a new page (from beforeEach)
     await page.waitForSelector('.milkdown', { timeout: 10000 });
 
     const editor = page
@@ -95,30 +93,26 @@ test.describe('Data Persistence', () => {
     // Wait for save
     await page.waitForTimeout(2000);
 
-    // Go back to home
+    // Navigate to a new page to refresh sidebar
     await page.goto('/');
+    await page.waitForURL(/\/page\/.+/);
     await page.waitForLoadState('networkidle');
     await page.waitForTimeout(500);
 
     // The title should be "# hello" (the literal text with hash symbol)
-    // because Milkdown saved it as "\# hello" (escaped)
     const pageListItems = page.locator('h3').filter({ hasText: '# hello' });
     await expect(pageListItems.first()).toBeVisible();
 
     const titleText = await pageListItems.first().textContent();
-    // Title should contain the # symbol because it's escaped text, not a heading
     expect(titleText).toContain('# hello');
   });
 
   test('should restore content from SQLite after server restart', async ({
     page,
   }) => {
-    // Step 1: Create a new page with content
-    await page.click('button[title="新しいページを作成"]');
-    await page.waitForURL(/\/page\/.+/);
+    // Step 1: We're on a new page. Add content
     await page.waitForSelector('.milkdown', { timeout: 10000 });
 
-    // Add content
     const editor = page
       .locator('.milkdown')
       .locator('div[contenteditable="true"]')
@@ -161,7 +155,7 @@ test.describe('Data Persistence', () => {
     });
 
     // Verify title is rendered as h1 in the editor content
-    const pageTitle = page.locator('h1').first();
+    const pageTitle = page.locator('.milkdown .ProseMirror h1').first();
     await expect(pageTitle).toContainText('Restart Test');
   });
 });

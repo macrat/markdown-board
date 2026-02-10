@@ -7,6 +7,7 @@ interface PageListItemProps {
   timestamp: number;
   now: number;
   opacity: number;
+  active?: boolean;
   onNavigate?: () => void;
   navigateAriaLabel?: string;
   onAction: () => void;
@@ -22,6 +23,7 @@ export default function PageListItem({
   timestamp,
   now,
   opacity,
+  active,
   onNavigate,
   navigateAriaLabel,
   onAction,
@@ -37,10 +39,13 @@ export default function PageListItem({
       <h3
         style={{
           color: 'var(--foreground)',
-          fontSize: '16px',
+          fontSize: '14px',
           fontWeight: '500',
           margin: 0,
-          marginBottom: '4px',
+          marginBottom: '2px',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap',
         }}
       >
         {title}
@@ -49,7 +54,7 @@ export default function PageListItem({
         style={{
           color: 'var(--foreground)',
           opacity: 0.6,
-          fontSize: '13px',
+          fontSize: '12px',
           margin: 0,
         }}
       >
@@ -65,10 +70,14 @@ export default function PageListItem({
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        padding: '16px 20px',
-        backgroundColor: 'rgba(var(--background-rgb), 0.5)',
+        padding: '10px 12px',
+        backgroundColor: active
+          ? 'rgba(var(--accent-rgb), 0.08)'
+          : 'rgba(var(--background-rgb), 0.5)',
         borderRadius: '8px',
-        border: '1px solid rgba(var(--foreground-rgb), 0.1)',
+        border: active
+          ? '1px solid rgba(var(--accent-rgb), 0.2)'
+          : '1px solid rgba(var(--foreground-rgb), 0.1)',
         opacity,
         transition: 'opacity 0.2s ease-in-out',
       }}
@@ -78,8 +87,9 @@ export default function PageListItem({
           role="button"
           tabIndex={0}
           aria-label={navigateAriaLabel}
+          aria-current={active ? 'page' : undefined}
           className="page-list-item-button"
-          style={{ flex: 1, cursor: 'pointer' }}
+          style={{ flex: 1, cursor: 'pointer', minWidth: 0 }}
           onClick={onNavigate}
           onKeyDown={(e) => {
             if (e.key === 'Enter' || e.key === ' ') {
@@ -91,7 +101,7 @@ export default function PageListItem({
           {titleDateContent}
         </div>
       ) : (
-        <div style={{ flex: 1 }}>{titleDateContent}</div>
+        <div style={{ flex: 1, minWidth: 0 }}>{titleDateContent}</div>
       )}
       <button
         onClick={(e) => {
@@ -105,14 +115,16 @@ export default function PageListItem({
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          width: '44px',
-          height: '44px',
+          flexShrink: 0,
+          width: '36px',
+          height: '36px',
           backgroundColor: 'transparent',
           border: '1px solid rgba(var(--foreground-rgb), 0.3)',
           borderRadius: '8px',
           color: 'var(--foreground)',
           cursor: 'pointer',
           transition: 'all 0.15s ease',
+          marginLeft: '8px',
         }}
       >
         {actionIcon}

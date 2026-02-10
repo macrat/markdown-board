@@ -35,6 +35,63 @@ body {
   box-sizing: border-box;
 }
 
+/* Hamburger menu button (mobile) */
+.hamburger-menu-button {
+  position: fixed;
+  top: 0.5rem;
+  left: 0.5rem;
+  height: 3rem;
+  width: 3rem;
+  border-radius: 3rem;
+  padding: 0.5rem;
+  background-color: var(--background);
+  border: none;
+  color: var(--foreground);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 30;
+  transition: box-shadow 0.2s ease;
+}
+
+.hamburger-menu-button.scrolled {
+  box-shadow: 0 2px 8px rgba(var(--foreground-rgb), 0.15);
+}
+
+.hamburger-menu-button:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Indicators container (fixed, top-right) */
+.indicators-container {
+  position: fixed;
+  top: 0.5rem;
+  right: 0.5rem;
+  height: 3rem;
+  min-width: 3rem;
+  border-radius: 3rem;
+  padding: 0.5rem 0.75rem;
+  background-color: var(--background);
+  box-shadow: 0 2px 8px rgba(var(--foreground-rgb), 0.15);
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  z-index: 30;
+}
+
+/* Create page button */
+.create-page-button:hover,
+.create-page-button:focus {
+  background-color: var(--accent-light) !important;
+}
+
+.create-page-button:focus-visible {
+  outline: 3px solid var(--foreground);
+  outline-offset: 2px;
+}
+
 /* Focus-visible styling for keyboard navigation (WCAG 2.4.7) */
 .page-list-item-button:focus-visible {
   outline: 3px solid var(--accent);
@@ -56,17 +113,6 @@ body {
   outline: 3px solid var(--accent);
   outline-offset: 2px;
   background-color: var(--accent-focus-bg);
-}
-
-.fab-button:hover,
-.fab-button:focus {
-  background-color: var(--accent-light);
-  transform: scale(1.05);
-}
-
-.fab-button:focus-visible {
-  outline: 3px solid var(--foreground);
-  outline-offset: 2px;
 }
 
 .tab-button:focus-visible {

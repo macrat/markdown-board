@@ -4,6 +4,7 @@ import { createPageWithContent } from './helpers';
 test.describe('Edge Cases', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
+    await page.waitForURL(/\/page\/.+/);
     await page.waitForLoadState('networkidle');
     await page.waitForTimeout(500);
   });
@@ -18,12 +19,13 @@ Currency: $€£¥₹₽`;
 
     await createPageWithContent(page, specialContent);
 
-    // Go back and return
+    // Navigate to a new page to refresh sidebar
     await page.goto('/');
+    await page.waitForURL(/\/page\/.+/);
     await page.waitForLoadState('networkidle');
     await page.waitForTimeout(500);
 
-    // Click on the page item to navigate
+    // Click on the page item in the sidebar to navigate
     await page
       .locator('h3')
       .filter({ hasText: 'Special Characters Test' })
@@ -57,6 +59,7 @@ Russian: Привет мир`;
     await createPageWithContent(page, unicodeContent);
 
     await page.goto('/');
+    await page.waitForURL(/\/page\/.+/);
     await page.waitForLoadState('networkidle');
     await page.waitForTimeout(500);
 
@@ -65,7 +68,7 @@ Russian: Привет мир`;
       page.locator('h3').filter({ hasText: '🌍' }).first(),
     ).toBeVisible();
 
-    // Click on the page item to navigate
+    // Click on the page item in the sidebar to navigate
     await page.locator('h3').filter({ hasText: '🌍' }).first().click();
     await page.waitForURL(/\/page\/.+/);
     await page.waitForSelector('.milkdown', { timeout: 10000 });
@@ -82,19 +85,21 @@ Russian: Привет мир`;
 
     // Rapidly navigate back and forth
     await page.goto('/');
+    await page.waitForURL(/\/page\/.+/);
     await page.waitForLoadState('networkidle');
     await page.waitForTimeout(300);
 
-    // Click on the page item to navigate
+    // Click on the page item in the sidebar to navigate
     await page.locator('h3').filter({ hasText: 'Rapid Test' }).first().click();
     await page.waitForURL(/\/page\/.+/);
     await page.waitForTimeout(300);
 
     await page.goto('/');
+    await page.waitForURL(/\/page\/.+/);
     await page.waitForLoadState('networkidle');
     await page.waitForTimeout(300);
 
-    // Click on the page item again
+    // Click on the page item in the sidebar again
     await page.locator('h3').filter({ hasText: 'Rapid Test' }).first().click();
     await page.waitForURL(/\/page\/.+/);
     await page.waitForSelector('.milkdown', { timeout: 10000 });
@@ -145,30 +150,64 @@ Also test <img> and <a> tags`;
     expect(hasHorizontalScroll).toBe(false);
   });
 
-  test('should be responsive on mobile viewport', async ({ page }) => {
+  test('should show hamburger menu on mobile viewport', async ({ page }) => {
     // Set mobile viewport
     await page.setViewportSize({ width: 375, height: 667 });
 
     await page.goto('/');
+    await page.waitForURL(/\/page\/.+/);
     await page.waitForLoadState('networkidle');
 
-    // Check if main elements are visible
-    await expect(page.locator('h1')).toBeVisible();
+    // Check hamburger menu is visible
+    await expect(page.locator('.hamburger-menu-button')).toBeVisible();
+
+    // Sidebar should not be directly visible (it's hidden on mobile)
+    const createButton = page.locator('button[title="新しいページを作成"]');
+    await expect(createButton).not.toBeVisible();
+
+    // Open hamburger menu
+    await page.locator('.hamburger-menu-button').click();
+    await page.waitForTimeout(300);
+
+    // Now sidebar should be visible
+    await expect(createButton).toBeVisible();
+  });
+
+  test('should show sidebar on tablet/desktop viewport', async ({ page }) => {
+    // Set tablet viewport
+    await page.setViewportSize({ width: 768, height: 1024 });
+
+    await page.goto('/');
+    await page.waitForURL(/\/page\/.+/);
+    await page.waitForLoadState('networkidle');
+
+    // Sidebar should be visible without hamburger menu
     await expect(
       page.locator('button[title="新しいページを作成"]'),
     ).toBeVisible();
   });
 
-  test('should be responsive on tablet viewport', async ({ page }) => {
-    // Set tablet viewport
-    await page.setViewportSize({ width: 768, height: 1024 });
+  test('should show proper timestamps on page list', async ({ page }) => {
+    await createPageWithContent(page, '# Timestamp Test\n\nContent');
 
+    // Navigate to a new page to refresh sidebar
     await page.goto('/');
+    await page.waitForURL(/\/page\/.+/);
     await page.waitForLoadState('networkidle');
+    await page.waitForTimeout(500);
 
-    await expect(page.locator('h1')).toBeVisible();
-    await expect(
-      page.locator('button[title="新しいページを作成"]'),
-    ).toBeVisible();
+    // Check that timestamp is visible in the sidebar
+    const pageListItem = page
+      .locator('h3')
+      .filter({ hasText: 'Timestamp Test' })
+      .first();
+    await expect(pageListItem).toBeVisible();
+
+    // The timestamp <p> is a sibling of the <h3>, get parent and find the <p>
+    const timestampText = pageListItem.locator('..').locator('p').first();
+    await expect(timestampText).toBeVisible();
+    const text = await timestampText.textContent();
+    // A just-created page should show relative time
+    expect(text).toMatch(/たった今|\d+分前|\d+時間前|\d+月\d+日/);
   });
 });

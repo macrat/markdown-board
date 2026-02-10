@@ -4,14 +4,13 @@ import { createPageWithContent } from './helpers';
 test.describe('Editor Features', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
+    await page.waitForURL(/\/page\/.+/);
     await page.waitForLoadState('networkidle');
     await page.waitForTimeout(500);
   });
 
   test('should show placeholder text on blank page', async ({ page }) => {
-    // Create a new blank page
-    await page.click('button[title="新しいページを作成"]');
-    await page.waitForURL(/\/page\/.+/);
+    // We're already on a new blank page
     await page.waitForSelector('.milkdown', { timeout: 10000 });
 
     // Wait for editor to be fully loaded
@@ -49,9 +48,7 @@ test.describe('Editor Features', () => {
   test('should display placeholder on the first line (not second line)', async ({
     page,
   }) => {
-    // Create a new blank page
-    await page.click('button[title="新しいページを作成"]');
-    await page.waitForURL(/\/page\/.+/);
+    // We're already on a new blank page
     await page.waitForSelector('.milkdown', { timeout: 10000 });
 
     // Wait for editor to be fully loaded
@@ -75,9 +72,6 @@ test.describe('Editor Features', () => {
       ) as HTMLElement;
       if (!firstPara) return null;
 
-      // Get the bounding rect of the first paragraph
-      const paraRect = firstPara.getBoundingClientRect();
-
       // Get the computed style of the ::after pseudo-element (placeholder)
       const afterStyle = window.getComputedStyle(firstPara, '::after');
       const content = afterStyle.content;
@@ -87,16 +81,11 @@ test.describe('Editor Features', () => {
         return null;
       }
 
-      // Since the ::after is positioned absolutely with top: 0, left: 0,
-      // it should be at the same position as the paragraph element
-      // We can verify this by checking the positioning style
       const position = afterStyle.position;
       const top = afterStyle.top;
       const left = afterStyle.left;
 
       return {
-        paraTop: paraRect.top,
-        paraLeft: paraRect.left,
         afterPosition: position,
         afterTop: top,
         afterLeft: left,
@@ -117,9 +106,7 @@ test.describe('Editor Features', () => {
   });
 
   test('should auto-focus editor on blank page', async ({ page }) => {
-    // Create a new blank page
-    await page.click('button[title="新しいページを作成"]');
-    await page.waitForURL(/\/page\/.+/);
+    // We're already on a new blank page
     await page.waitForSelector('.milkdown', { timeout: 10000 });
 
     // Wait for editor to be fully loaded and auto-focused
@@ -143,8 +130,9 @@ test.describe('Editor Features', () => {
       '# Test Page\n\nThis page has content',
     );
 
-    // Navigate away and then back to the page
+    // Navigate to a new page to refresh sidebar, then go to the page with content
     await page.goto('/');
+    await page.waitForURL(/\/page\/.+/);
     await page.waitForLoadState('networkidle');
     await page.waitForTimeout(500);
 
@@ -166,9 +154,7 @@ test.describe('Editor Features', () => {
   });
 
   test('should hide placeholder when content is typed', async ({ page }) => {
-    // Create a new blank page
-    await page.click('button[title="新しいページを作成"]');
-    await page.waitForURL(/\/page\/.+/);
+    // We're already on a new blank page
     await page.waitForSelector('.milkdown', { timeout: 10000 });
 
     // Wait for editor to be fully loaded
