@@ -90,21 +90,28 @@ describe('cleanupOldArchives', () => {
   });
 
   it('does not delete archives exactly at the 30-day boundary', () => {
-    const exactlyThirtyDaysAgo = Date.now() - THIRTY_DAYS_MS;
+    // Freeze time to prevent flakiness from millisecond drift between
+    // the test setup and the Date.now() call inside cleanupOldArchives.
+    vi.useFakeTimers();
+    try {
+      const exactlyThirtyDaysAgo = Date.now() - THIRTY_DAYS_MS;
 
-    insertPage(db, {
-      id: 'boundary-archive',
-      title: 'Boundary',
-      archived_at: exactlyThirtyDaysAgo,
-    });
+      insertPage(db, {
+        id: 'boundary-archive',
+        title: 'Boundary',
+        archived_at: exactlyThirtyDaysAgo,
+      });
 
-    const deleted = cleanupOldArchives(db);
-    expect(deleted).toBe(0);
+      const deleted = cleanupOldArchives(db);
+      expect(deleted).toBe(0);
 
-    const page = db
-      .prepare('SELECT * FROM pages WHERE id = ?')
-      .get('boundary-archive');
-    expect(page).toBeDefined();
+      const page = db
+        .prepare('SELECT * FROM pages WHERE id = ?')
+        .get('boundary-archive');
+      expect(page).toBeDefined();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('does not affect non-archived pages regardless of age', () => {
@@ -215,37 +222,41 @@ describe('startPeriodicCleanup', () => {
   it('runs cleanup immediately and sets up interval', () => {
     vi.useFakeTimers();
     const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+    try {
+      const intervalId = startPeriodicCleanup(() => createTestDb());
 
-    const intervalId = startPeriodicCleanup(() => createTestDb());
+      expect(consoleSpy).toHaveBeenCalledWith(
+        '[cleanup] Starting periodic archive cleanup (every 1 hour)',
+      );
+      expect(consoleSpy).toHaveBeenCalledWith(
+        '[cleanup] No old archived pages to delete',
+      );
 
-    expect(consoleSpy).toHaveBeenCalledWith(
-      '[cleanup] Starting periodic archive cleanup (every 1 hour)',
-    );
-    expect(consoleSpy).toHaveBeenCalledWith(
-      '[cleanup] No old archived pages to delete',
-    );
-
-    clearInterval(intervalId);
-    consoleSpy.mockRestore();
-    vi.useRealTimers();
+      clearInterval(intervalId);
+    } finally {
+      consoleSpy.mockRestore();
+      vi.useRealTimers();
+    }
   });
 
   it('runs cleanup again after one hour', () => {
     vi.useFakeTimers();
     const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+    try {
+      // Factory creates a fresh DB each cycle (runCleanupCycle closes it after use)
+      const intervalId = startPeriodicCleanup(() => createTestDb());
+      consoleSpy.mockClear();
 
-    // Factory creates a fresh DB each cycle (runCleanupCycle closes it after use)
-    const intervalId = startPeriodicCleanup(() => createTestDb());
-    consoleSpy.mockClear();
+      vi.advanceTimersByTime(60 * 60 * 1000);
 
-    vi.advanceTimersByTime(60 * 60 * 1000);
+      expect(consoleSpy).toHaveBeenCalledWith(
+        '[cleanup] No old archived pages to delete',
+      );
 
-    expect(consoleSpy).toHaveBeenCalledWith(
-      '[cleanup] No old archived pages to delete',
-    );
-
-    clearInterval(intervalId);
-    consoleSpy.mockRestore();
-    vi.useRealTimers();
+      clearInterval(intervalId);
+    } finally {
+      consoleSpy.mockRestore();
+      vi.useRealTimers();
+    }
   });
 });
