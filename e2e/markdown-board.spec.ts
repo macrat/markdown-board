@@ -2,6 +2,7 @@ import { test, expect, Page } from '@playwright/test';
 
 // Helper function to create a new page with content
 async function createPageWithContent(page: Page, content: string) {
+  // Click the "作成" button in the sidebar to create a new page
   await page.click('button[title="新しいページを作成"]');
   await page.waitForURL(/\/page\/.+/);
   await page.waitForSelector('.milkdown', { timeout: 10000 });
@@ -28,19 +29,17 @@ const MAX_TAB_ITERATIONS = 10;
 
 test.describe('Markdown Board E2E Tests', () => {
   test.beforeEach(async ({ page }) => {
-    // Navigate to home page
+    // Navigate to home page (redirects to a new editor page)
     await page.goto('/');
+    await page.waitForURL(/\/page\/.+/);
     await page.waitForLoadState('networkidle');
     await page.waitForTimeout(500);
   });
 
-  test('should persist data through create → edit → home → return workflow', async ({
+  test('should persist data through create → edit → navigate → return workflow', async ({
     page,
   }) => {
-    // Step 1: Create a new page
-    await page.click('button[title="新しいページを作成"]');
-    await page.waitForURL(/\/page\/.+/);
-
+    // Step 1: We're already on a new page (from beforeEach redirect)
     // Wait for editor to load
     await page.waitForSelector('.milkdown', { timeout: 10000 });
 
@@ -65,12 +64,13 @@ test.describe('Markdown Board E2E Tests', () => {
     // Wait for auto-save (debounce is 1 second)
     await page.waitForTimeout(2000);
 
-    // Step 3: Go back to home
+    // Step 3: Navigate to a new page (which triggers sidebar refetch)
     await page.goto('/');
+    await page.waitForURL(/\/page\/.+/);
     await page.waitForLoadState('networkidle');
     await page.waitForTimeout(500);
 
-    // Verify the page appears in the list with correct title (should be without #)
+    // Verify the page appears in the sidebar list with correct title
     const pageListItems = page
       .locator('h3')
       .filter({ hasText: 'Test Page Title' });
@@ -81,7 +81,7 @@ test.describe('Markdown Board E2E Tests', () => {
     expect(titleText).not.toContain('#');
     expect(titleText).toContain('Test Page Title');
 
-    // Step 4: Return to the page by clicking the page item
+    // Step 4: Return to the page by clicking the page item in the sidebar
     await page
       .locator('h3')
       .filter({ hasText: 'Test Page Title' })
@@ -102,9 +102,7 @@ test.describe('Markdown Board E2E Tests', () => {
   });
 
   test('should handle escaped heading markers correctly', async ({ page }) => {
-    // Create a new page
-    await page.click('button[title="新しいページを作成"]');
-    await page.waitForURL(/\/page\/.+/);
+    // We're already on a new page (from beforeEach)
     await page.waitForSelector('.milkdown', { timeout: 10000 });
 
     const editor = page
@@ -122,22 +120,19 @@ test.describe('Markdown Board E2E Tests', () => {
     // Wait for save
     await page.waitForTimeout(2000);
 
-    // Go back to home
+    // Navigate to a new page to refresh sidebar
     await page.goto('/');
+    await page.waitForURL(/\/page\/.+/);
     await page.waitForLoadState('networkidle');
     await page.waitForTimeout(500);
 
     // The title should be "# hello" (the literal text with hash symbol)
-    // because Milkdown saved it as "\# hello" (escaped)
     const pageListItems = page.locator('h3').filter({ hasText: '# hello' });
     await expect(pageListItems.first()).toBeVisible();
 
     const titleText = await pageListItems.first().textContent();
-    // Title should contain the # symbol because it's escaped text, not a heading
     expect(titleText).toContain('# hello');
   });
-
-  // Title extraction logic is now covered by unit tests (tests/utils.test.ts)
 
   test('should synchronize data across multiple tabs in real-time', async ({
     browser,
@@ -150,11 +145,9 @@ test.describe('Markdown Board E2E Tests', () => {
     page1.on('console', (msg) => console.log('Page1:', msg.text()));
 
     await page1.goto('/');
+    await page1.waitForURL(/\/page\/.+/);
     await page1.waitForLoadState('networkidle');
 
-    // Create new page in Tab A
-    await page1.click('button[title="新しいページを作成"]');
-    await page1.waitForURL(/\/page\/.+/);
     const pageUrl = page1.url();
     const pageId = pageUrl.split('/page/')[1];
 
@@ -216,12 +209,9 @@ test.describe('Markdown Board E2E Tests', () => {
   test('should restore content from SQLite after server restart', async ({
     page,
   }) => {
-    // Step 1: Create a new page with content
-    await page.click('button[title="新しいページを作成"]');
-    await page.waitForURL(/\/page\/.+/);
+    // Step 1: We're on a new page. Add content
     await page.waitForSelector('.milkdown', { timeout: 10000 });
 
-    // Add content
     const editor = page
       .locator('.milkdown')
       .locator('div[contenteditable="true"]')
@@ -264,19 +254,19 @@ test.describe('Markdown Board E2E Tests', () => {
     });
 
     // Verify title is rendered as h1 in the editor content
-    const pageTitle = page.locator('h1').first();
+    const pageTitle = page.locator('.milkdown .ProseMirror h1').first();
     await expect(pageTitle).toContainText('Restart Test');
   });
 
   // ==================== EMPTY CONTENT HANDLING ====================
 
   test('should handle empty page creation correctly', async ({ page }) => {
-    await page.click('button[title="新しいページを作成"]');
-    await page.waitForURL(/\/page\/.+/);
+    // We're already on a new page. Don't add any content.
     await page.waitForSelector('.milkdown', { timeout: 10000 });
 
-    // Don't add any content, just go back
+    // Navigate to a new page to refresh sidebar
     await page.goto('/');
+    await page.waitForURL(/\/page\/.+/);
     await page.waitForLoadState('networkidle');
     await page.waitForTimeout(500);
 
@@ -289,8 +279,6 @@ test.describe('Markdown Board E2E Tests', () => {
   });
 
   test('should handle page with only whitespace', async ({ page }) => {
-    await page.click('button[title="新しいページを作成"]');
-    await page.waitForURL(/\/page\/.+/);
     await page.waitForSelector('.milkdown', { timeout: 10000 });
 
     const editor = page
@@ -302,10 +290,11 @@ test.describe('Markdown Board E2E Tests', () => {
     await page.waitForTimeout(2000);
 
     await page.goto('/');
+    await page.waitForURL(/\/page\/.+/);
     await page.waitForLoadState('networkidle');
     await page.waitForTimeout(500);
 
-    // Should show "Untitled" for whitespace-only pages (use first() to handle multiple Untitled pages)
+    // Should show "Untitled" for whitespace-only pages
     await expect(
       page.locator('h3').filter({ hasText: 'Untitled' }).first(),
     ).toBeVisible();
@@ -316,8 +305,6 @@ test.describe('Markdown Board E2E Tests', () => {
   test('should handle very long content without performance issues', async ({
     page,
   }) => {
-    await page.click('button[title="新しいページを作成"]');
-    await page.waitForURL(/\/page\/.+/);
     await page.waitForSelector('.milkdown', { timeout: 10000 });
 
     const editor = page
@@ -369,12 +356,13 @@ Currency: $€£¥₹₽`;
 
     await createPageWithContent(page, specialContent);
 
-    // Go back and return
+    // Navigate to a new page to refresh sidebar
     await page.goto('/');
+    await page.waitForURL(/\/page\/.+/);
     await page.waitForLoadState('networkidle');
     await page.waitForTimeout(500);
 
-    // Click on the page item to navigate
+    // Click on the page item in the sidebar to navigate
     await page
       .locator('h3')
       .filter({ hasText: 'Special Characters Test' })
@@ -408,6 +396,7 @@ Russian: Привет мир`;
     await createPageWithContent(page, unicodeContent);
 
     await page.goto('/');
+    await page.waitForURL(/\/page\/.+/);
     await page.waitForLoadState('networkidle');
     await page.waitForTimeout(500);
 
@@ -416,7 +405,7 @@ Russian: Привет мир`;
       page.locator('h3').filter({ hasText: '🌍' }).first(),
     ).toBeVisible();
 
-    // Click on the page item to navigate
+    // Click on the page item in the sidebar to navigate
     await page.locator('h3').filter({ hasText: '🌍' }).first().click();
     await page.waitForURL(/\/page\/.+/);
     await page.waitForSelector('.milkdown', { timeout: 10000 });
@@ -436,21 +425,20 @@ Russian: Привет мир`;
     const timestamp = Date.now();
 
     for (let i = 1; i <= pageCount; i++) {
-      await page.goto('/');
-      await page.waitForLoadState('networkidle');
-
       const pageId = await createPageWithContent(
         page,
         `# MultiPage ${timestamp}-${i}\n\nContent for page ${i}`,
       );
       pageIds.push(pageId);
-
-      await page.goto('/');
-      await page.waitForLoadState('networkidle');
-      await page.waitForTimeout(500);
     }
 
-    // Verify all pages are listed - check by count
+    // Navigate to new page to refresh sidebar
+    await page.goto('/');
+    await page.waitForURL(/\/page\/.+/);
+    await page.waitForLoadState('networkidle');
+    await page.waitForTimeout(500);
+
+    // Verify all pages are listed in sidebar
     for (let i = 1; i <= pageCount; i++) {
       const pageExists = await page
         .locator('h3')
@@ -471,20 +459,20 @@ Russian: Привет мир`;
       page,
       `# First Page ${timestamp}\n\nContent of first page`,
     );
-    await page.goto('/');
-    await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(500);
 
     // Create second page
     await createPageWithContent(
       page,
       `# Second Page ${timestamp}\n\nContent of second page`,
     );
+
+    // Navigate to a new page to refresh sidebar
     await page.goto('/');
+    await page.waitForURL(/\/page\/.+/);
     await page.waitForLoadState('networkidle');
     await page.waitForTimeout(500);
 
-    // Navigate to first page
+    // Navigate to first page via sidebar
     await page
       .locator('h3')
       .filter({ hasText: `First Page ${timestamp}` })
@@ -496,11 +484,7 @@ Russian: Привет мир`;
     let editorArea = page.locator('.milkdown .ProseMirror').first();
     await expect(editorArea).toContainText('Content of first page');
 
-    // Go back and navigate to second page
-    await page.goto('/');
-    await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(500);
-
+    // Navigate to second page via sidebar
     await page
       .locator('h3')
       .filter({ hasText: `Second Page ${timestamp}` })
@@ -540,8 +524,6 @@ Russian: Привет мир`;
   test('should render text formatting (bold, italic, strikethrough)', async ({
     page,
   }) => {
-    await page.click('button[title="新しいページを作成"]');
-    await page.waitForURL(/\/page\/.+/);
     await page.waitForSelector('.milkdown', { timeout: 10000 });
 
     const editor = page
@@ -576,8 +558,6 @@ Russian: Привет мир`;
   });
 
   test('should render unordered and ordered lists', async ({ page }) => {
-    await page.click('button[title="新しいページを作成"]');
-    await page.waitForURL(/\/page\/.+/);
     await page.waitForSelector('.milkdown', { timeout: 10000 });
 
     const editor = page
@@ -612,8 +592,6 @@ Russian: Привет мир`;
   });
 
   test('should render nested lists', async ({ page }) => {
-    await page.click('button[title="新しいページを作成"]');
-    await page.waitForURL(/\/page\/.+/);
     await page.waitForSelector('.milkdown', { timeout: 10000 });
 
     const editor = page
@@ -640,8 +618,6 @@ Russian: Привет мир`;
   });
 
   test('should render links', async ({ page }) => {
-    await page.click('button[title="新しいページを作成"]');
-    await page.waitForURL(/\/page\/.+/);
     await page.waitForSelector('.milkdown', { timeout: 10000 });
 
     const editor = page
@@ -662,8 +638,6 @@ Russian: Привет мир`;
   });
 
   test('should render inline code and code blocks', async ({ page }) => {
-    await page.click('button[title="新しいページを作成"]');
-    await page.waitForURL(/\/page\/.+/);
     await page.waitForSelector('.milkdown', { timeout: 10000 });
 
     const editor = page
@@ -704,8 +678,6 @@ Russian: Привет мир`;
   });
 
   test('should render blockquotes', async ({ page }) => {
-    await page.click('button[title="新しいページを作成"]');
-    await page.waitForURL(/\/page\/.+/);
     await page.waitForSelector('.milkdown', { timeout: 10000 });
 
     const editor = page
@@ -729,8 +701,6 @@ Russian: Привет мир`;
   });
 
   test('should render horizontal rules', async ({ page }) => {
-    await page.click('button[title="新しいページを作成"]');
-    await page.waitForURL(/\/page\/.+/);
     await page.waitForSelector('.milkdown', { timeout: 10000 });
 
     const editor = page
@@ -754,8 +724,6 @@ Russian: Привет мир`;
   });
 
   test('should render tables', async ({ page }) => {
-    await page.click('button[title="新しいページを作成"]');
-    await page.waitForURL(/\/page\/.+/);
     await page.waitForSelector('.milkdown', { timeout: 10000 });
 
     const editor = page
@@ -785,17 +753,12 @@ Russian: Привет мир`;
   // ==================== ACCESSIBILITY TESTS ====================
 
   test('should have proper ARIA labels and roles', async ({ page }) => {
-    // Check home page
-    await expect(page.locator('h1')).toContainText('Markdown Board');
-
-    // Check button accessibility
+    // Check create button accessibility in sidebar
     const newPageButton = page.locator('button[title="新しいページを作成"]');
     await expect(newPageButton).toBeVisible();
     await expect(newPageButton).toBeEnabled();
 
-    // Create a page and check editor accessibility
-    await page.click('button[title="新しいページを作成"]');
-    await page.waitForURL(/\/page\/.+/);
+    // Check editor accessibility
     await page.waitForSelector('.milkdown', { timeout: 10000 });
 
     const editor = page
@@ -806,18 +769,16 @@ Russian: Привет мир`;
   });
 
   test('should support keyboard navigation', async ({ page }) => {
-    // Tab through buttons on home page
+    // Tab through elements
     await page.keyboard.press('Tab');
 
-    // Check focus is visible (we'll verify by checking activeElement)
+    // Check focus is visible
     const focusedElement = await page.evaluate(
       () => document.activeElement?.tagName,
     );
     expect(focusedElement).toBeTruthy();
 
     // Test keyboard navigation in editor
-    await page.click('button[title="新しいページを作成"]');
-    await page.waitForURL(/\/page\/.+/);
     await page.waitForSelector('.milkdown', { timeout: 10000 });
 
     const editor = page
@@ -848,7 +809,10 @@ Russian: Привет мир`;
   test('should work with Tab key for navigation', async ({ page }) => {
     // Create a page first
     await createPageWithContent(page, '# Test Page\n\nContent here');
+
+    // Navigate to a new page to refresh sidebar
     await page.goto('/');
+    await page.waitForURL(/\/page\/.+/);
     await page.waitForLoadState('networkidle');
     await page.waitForTimeout(500);
 
@@ -856,7 +820,6 @@ Russian: Привет мир`;
     await page.locator('body').focus();
 
     // Use Tab multiple times to navigate to archive tab
-    // We need to tab through multiple elements
     for (let i = 0; i < MAX_TAB_ITERATIONS; i++) {
       await page.keyboard.press('Tab');
       const focused = await page.evaluate(
@@ -878,28 +841,38 @@ Russian: Привет мир`;
 
   // ==================== RESPONSIVE LAYOUT TESTS ====================
 
-  test('should be responsive on mobile viewport', async ({ page }) => {
+  test('should show hamburger menu on mobile viewport', async ({ page }) => {
     // Set mobile viewport
     await page.setViewportSize({ width: 375, height: 667 });
 
     await page.goto('/');
+    await page.waitForURL(/\/page\/.+/);
     await page.waitForLoadState('networkidle');
 
-    // Check if main elements are visible
-    await expect(page.locator('h1')).toBeVisible();
-    await expect(
-      page.locator('button[title="新しいページを作成"]'),
-    ).toBeVisible();
+    // Check hamburger menu is visible
+    await expect(page.locator('.hamburger-menu-button')).toBeVisible();
+
+    // Sidebar should not be directly visible (it's hidden on mobile)
+    const createButton = page.locator('button[title="新しいページを作成"]');
+    await expect(createButton).not.toBeVisible();
+
+    // Open hamburger menu
+    await page.locator('.hamburger-menu-button').click();
+    await page.waitForTimeout(300);
+
+    // Now sidebar should be visible
+    await expect(createButton).toBeVisible();
   });
 
-  test('should be responsive on tablet viewport', async ({ page }) => {
+  test('should show sidebar on tablet/desktop viewport', async ({ page }) => {
     // Set tablet viewport
     await page.setViewportSize({ width: 768, height: 1024 });
 
     await page.goto('/');
+    await page.waitForURL(/\/page\/.+/);
     await page.waitForLoadState('networkidle');
 
-    await expect(page.locator('h1')).toBeVisible();
+    // Sidebar should be visible without hamburger menu
     await expect(
       page.locator('button[title="新しいページを作成"]'),
     ).toBeVisible();
@@ -910,17 +883,20 @@ Russian: Привет мир`;
   test('should handle rapid navigation without data loss', async ({ page }) => {
     await createPageWithContent(page, '# Rapid Test\n\nContent to preserve');
 
-    // Rapidly navigate back and forth
+    // Navigate to a new page to refresh sidebar
     await page.goto('/');
+    await page.waitForURL(/\/page\/.+/);
     await page.waitForLoadState('networkidle');
     await page.waitForTimeout(300);
 
-    // Click on the page item to navigate
+    // Click on the page item in the sidebar to navigate
     await page.locator('h3').filter({ hasText: 'Rapid Test' }).first().click();
     await page.waitForURL(/\/page\/.+/);
     await page.waitForTimeout(300);
 
+    // Navigate to another new page
     await page.goto('/');
+    await page.waitForURL(/\/page\/.+/);
     await page.waitForLoadState('networkidle');
     await page.waitForTimeout(300);
 
@@ -978,12 +954,13 @@ Also test <img> and <a> tags`;
   test('should show proper timestamps on page list', async ({ page }) => {
     await createPageWithContent(page, '# Timestamp Test\n\nContent');
 
+    // Navigate to a new page to refresh sidebar
     await page.goto('/');
+    await page.waitForURL(/\/page\/.+/);
     await page.waitForLoadState('networkidle');
     await page.waitForTimeout(500);
 
-    // Check that timestamp is visible in relative time format
-    // Find the page item and verify it has a timestamp
+    // Check that timestamp is visible in the sidebar
     const pageListItem = page
       .locator('h3')
       .filter({ hasText: 'Timestamp Test' })
@@ -994,7 +971,7 @@ Also test <img> and <a> tags`;
     const timestampText = pageListItem.locator('..').locator('p').first();
     await expect(timestampText).toBeVisible();
     const text = await timestampText.textContent();
-    // A just-created page should show relative time (e.g., "たった今" or "◯分前")
+    // A just-created page should show relative time
     expect(text).toMatch(/たった今|\d+分前|\d+時間前|\d+月\d+日/);
   });
 
@@ -1009,7 +986,9 @@ Also test <img> and <a> tags`;
       `# TabSwitchTest${timestamp}\n\nContent for tab test`,
     );
 
+    // Navigate to a new page to refresh sidebar
     await page.goto('/');
+    await page.waitForURL(/\/page\/.+/);
     await page.waitForLoadState('networkidle');
     await page.waitForTimeout(500);
 
@@ -1054,7 +1033,9 @@ Also test <img> and <a> tags`;
       `# ArrowKeyTest${timestamp}\n\nTesting arrow key navigation`,
     );
 
+    // Navigate to a new page to refresh sidebar
     await page.goto('/');
+    await page.waitForURL(/\/page\/.+/);
     await page.waitForLoadState('networkidle');
     await page.waitForTimeout(500);
 
@@ -1103,11 +1084,11 @@ Also test <img> and <a> tags`;
     await expect(archiveItem).not.toBeVisible();
   });
 
-  test('should create new page via FAB button', async ({ page }) => {
-    // Click the FAB (Floating Action Button) to create a new page
-    const fabButton = page.locator('button[title="新しいページを作成"]');
-    await expect(fabButton).toBeVisible();
-    await fabButton.click();
+  test('should create new page via sidebar create button', async ({ page }) => {
+    // Click the create button in the sidebar
+    const createButton = page.locator('button[title="新しいページを作成"]');
+    await expect(createButton).toBeVisible();
+    await createButton.click();
 
     // Wait for navigation to new page
     await page.waitForURL(/\/page\/.+/);
@@ -1122,17 +1103,18 @@ Also test <img> and <a> tags`;
 
     // Add some content
     await editor.click();
-    await editor.type('# FAB Created Page');
+    await editor.type('# Create Button Page');
     await page.waitForTimeout(2000);
 
-    // Go back and verify page exists
+    // Navigate to a new page to refresh sidebar
     await page.goto('/');
+    await page.waitForURL(/\/page\/.+/);
     await page.waitForLoadState('networkidle');
     await page.waitForTimeout(500);
 
-    // Verify page appears in the list
+    // Verify page appears in the sidebar list
     await expect(
-      page.locator('h3').filter({ hasText: 'FAB Created Page' }).first(),
+      page.locator('h3').filter({ hasText: 'Create Button Page' }).first(),
     ).toBeVisible();
   });
 
@@ -1145,7 +1127,9 @@ Also test <img> and <a> tags`;
       `# ArchiveUnarchiveTest${timestamp}\n\nContent to archive`,
     );
 
+    // Navigate to a new page to refresh sidebar
     await page.goto('/');
+    await page.waitForURL(/\/page\/.+/);
     await page.waitForLoadState('networkidle');
     await page.waitForTimeout(500);
 
@@ -1200,7 +1184,9 @@ Also test <img> and <a> tags`;
       `# ToastTest${timestamp}\n\nContent for toast test`,
     );
 
+    // Navigate to a new page to refresh sidebar
     await page.goto('/');
+    await page.waitForURL(/\/page\/.+/);
     await page.waitForLoadState('networkidle');
     await page.waitForTimeout(500);
 
@@ -1227,9 +1213,7 @@ Also test <img> and <a> tags`;
   });
 
   test('should show placeholder text on blank page', async ({ page }) => {
-    // Create a new blank page
-    await page.click('button[title="新しいページを作成"]');
-    await page.waitForURL(/\/page\/.+/);
+    // We're already on a new blank page
     await page.waitForSelector('.milkdown', { timeout: 10000 });
 
     // Wait for editor to be fully loaded
@@ -1267,9 +1251,7 @@ Also test <img> and <a> tags`;
   test('should display placeholder on the first line (not second line)', async ({
     page,
   }) => {
-    // Create a new blank page
-    await page.click('button[title="新しいページを作成"]');
-    await page.waitForURL(/\/page\/.+/);
+    // We're already on a new blank page
     await page.waitForSelector('.milkdown', { timeout: 10000 });
 
     // Wait for editor to be fully loaded
@@ -1293,9 +1275,6 @@ Also test <img> and <a> tags`;
       ) as HTMLElement;
       if (!firstPara) return null;
 
-      // Get the bounding rect of the first paragraph
-      const paraRect = firstPara.getBoundingClientRect();
-
       // Get the computed style of the ::after pseudo-element (placeholder)
       const afterStyle = window.getComputedStyle(firstPara, '::after');
       const content = afterStyle.content;
@@ -1305,16 +1284,11 @@ Also test <img> and <a> tags`;
         return null;
       }
 
-      // Since the ::after is positioned absolutely with top: 0, left: 0,
-      // it should be at the same position as the paragraph element
-      // We can verify this by checking the positioning style
       const position = afterStyle.position;
       const top = afterStyle.top;
       const left = afterStyle.left;
 
       return {
-        paraTop: paraRect.top,
-        paraLeft: paraRect.left,
         afterPosition: position,
         afterTop: top,
         afterLeft: left,
@@ -1335,9 +1309,7 @@ Also test <img> and <a> tags`;
   });
 
   test('should auto-focus editor on blank page', async ({ page }) => {
-    // Create a new blank page
-    await page.click('button[title="新しいページを作成"]');
-    await page.waitForURL(/\/page\/.+/);
+    // We're already on a new blank page
     await page.waitForSelector('.milkdown', { timeout: 10000 });
 
     // Wait for editor to be fully loaded and auto-focused
@@ -1361,8 +1333,9 @@ Also test <img> and <a> tags`;
       '# Test Page\n\nThis page has content',
     );
 
-    // Navigate away and then back to the page
+    // Navigate to a new page to refresh sidebar, then go to the page with content
     await page.goto('/');
+    await page.waitForURL(/\/page\/.+/);
     await page.waitForLoadState('networkidle');
     await page.waitForTimeout(500);
 
@@ -1384,9 +1357,7 @@ Also test <img> and <a> tags`;
   });
 
   test('should hide placeholder when content is typed', async ({ page }) => {
-    // Create a new blank page
-    await page.click('button[title="新しいページを作成"]');
-    await page.waitForURL(/\/page\/.+/);
+    // We're already on a new blank page
     await page.waitForSelector('.milkdown', { timeout: 10000 });
 
     // Wait for editor to be fully loaded
@@ -1437,10 +1408,9 @@ Also test <img> and <a> tags`;
     const context = await browser.newContext();
     const page1 = await context.newPage();
     await page1.goto('/');
+    await page1.waitForURL(/\/page\/.+/);
     await page1.waitForLoadState('networkidle');
 
-    await page1.click('button[title="新しいページを作成"]');
-    await page1.waitForURL(/\/page\/.+/);
     const pageUrl = page1.url();
     await page1.waitForSelector('.milkdown', { timeout: 10000 });
     await page1.waitForTimeout(1000);
@@ -1498,9 +1468,6 @@ Also test <img> and <a> tags`;
     await page1.waitForSelector('.ProseMirror-yjs-cursor', { timeout: 5000 });
 
     // Step 5 & 6: Move cursor to each position and verify metrics don't change
-    // Cursor positions: line 1 start, line 1 end, line 2 start, line 2 end,
-    //                   line 3 start (empty), line 3 end (empty),
-    //                   line 4 start, line 4 end
     const cursorPositions = [
       { label: 'line 1 start', line: 1, position: 'start' },
       { label: 'line 1 end', line: 1, position: 'end' },
@@ -1515,31 +1482,24 @@ Also test <img> and <a> tags`;
     const failures: string[] = [];
 
     for (const pos of cursorPositions) {
-      // Move cursor in tab 2 to the target position
-      // Use Ctrl+Home to go to document start, then navigate with arrows
       await editor2.press('Control+Home');
       await page2.waitForTimeout(100);
 
-      // Move down to target line
       for (let i = 1; i < pos.line; i++) {
         await editor2.press('ArrowDown');
         await page2.waitForTimeout(50);
       }
 
-      // Move to start or end of line
       if (pos.position === 'start') {
         await editor2.press('Home');
       } else {
         await editor2.press('End');
       }
 
-      // Wait for cursor sync to tab 1
       await page2.waitForTimeout(500);
 
-      // Get metrics from tab 1 with the remote cursor present
       const currentMetrics = await getLineMetrics(page1);
 
-      // Verify all line heights and relative positions match baseline
       expect(currentMetrics).toHaveLength(baselineMetrics.length);
       for (let i = 0; i < baselineMetrics.length; i++) {
         const heightDiff = Math.abs(
@@ -1577,19 +1537,19 @@ Also test <img> and <a> tags`;
 
     // Create 6 pages to trigger the search field visibility
     for (let i = 1; i <= 6; i++) {
-      await page.goto('/');
-      await page.waitForLoadState('networkidle');
       await createPageWithContent(
         page,
         `# SearchTest${timestamp}-${i}\n\nContent for page ${i}`,
       );
     }
 
+    // Navigate to a new page to refresh sidebar
     await page.goto('/');
+    await page.waitForURL(/\/page\/.+/);
     await page.waitForLoadState('networkidle');
     await page.waitForTimeout(500);
 
-    // The search field should be visible
+    // The search field should be visible in the sidebar
     const searchInput = page.locator('input[aria-label="ページを検索"]');
     await expect(searchInput).toBeVisible();
 
@@ -1631,15 +1591,15 @@ Also test <img> and <a> tags`;
 
     // Create 6 pages to trigger the search field visibility
     for (let i = 1; i <= 6; i++) {
-      await page.goto('/');
-      await page.waitForLoadState('networkidle');
       await createPageWithContent(
         page,
         `# NoMatch${timestamp}-${i}\n\nContent`,
       );
     }
 
+    // Navigate to a new page to refresh sidebar
     await page.goto('/');
+    await page.waitForURL(/\/page\/.+/);
     await page.waitForLoadState('networkidle');
     await page.waitForTimeout(500);
 
@@ -1656,15 +1616,7 @@ Also test <img> and <a> tags`;
   test('should hide search field when 5 or fewer pages exist', async ({
     page,
   }) => {
-    // With the default state (tests create various pages but we navigate fresh),
-    // create exactly 1 page to ensure we have few pages
-    const timestamp = Date.now();
-    await createPageWithContent(
-      page,
-      `# FewPages${timestamp}\n\nOnly a few pages`,
-    );
-
-    await page.goto('/');
+    // We're on a fresh page. With the default state we should have few pages.
     await page.waitForLoadState('networkidle');
     await page.waitForTimeout(500);
 

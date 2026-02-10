@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback, useMemo } from 'react';
+import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import type {
   PageListItem as PageListItemType,
@@ -65,6 +65,16 @@ export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
     };
     loadData();
   }, [fetchPages, fetchArchives]);
+
+  // Refetch page list when navigating to a different page
+  const initialPageIdRef = useRef(currentPageId);
+  useEffect(() => {
+    if (currentPageId && currentPageId !== initialPageIdRef.current) {
+      initialPageIdRef.current = currentPageId;
+      fetchPages();
+      fetchArchives();
+    }
+  }, [currentPageId, fetchPages, fetchArchives]);
 
   const handleCreatePage = async () => {
     const id = await createPage();
