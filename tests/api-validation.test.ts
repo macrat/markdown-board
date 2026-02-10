@@ -2,7 +2,6 @@ import { describe, it, expect } from 'vitest';
 import {
   isPageListItemArray,
   isArchiveListItemArray,
-  isPage,
   isCreatePageResponse,
   isArchivePageResponse,
 } from '@/lib/api';
@@ -96,70 +95,6 @@ describe('isArchiveListItemArray', () => {
       },
     ];
     expect(isArchiveListItemArray(data)).toBe(false);
-  });
-});
-
-describe('isPage', () => {
-  it('accepts a valid page', () => {
-    const data = {
-      id: 'a',
-      title: 'A',
-      content: '# Hello',
-      created_at: 1,
-      updated_at: 2,
-      archived_at: null,
-    };
-    expect(isPage(data)).toBe(true);
-  });
-
-  it('accepts a page with numeric archived_at', () => {
-    const data = {
-      id: 'a',
-      title: 'A',
-      content: '',
-      created_at: 1,
-      updated_at: 2,
-      archived_at: 3,
-    };
-    expect(isPage(data)).toBe(true);
-  });
-
-  it('rejects non-object values', () => {
-    expect(isPage(null)).toBe(false);
-    expect(isPage(undefined)).toBe(false);
-    expect(isPage([])).toBe(false);
-    expect(isPage('string')).toBe(false);
-  });
-
-  it('rejects objects with missing fields', () => {
-    expect(isPage({ id: 'a' })).toBe(false);
-    expect(isPage({ id: 'a', title: 'A' })).toBe(false);
-  });
-
-  it('rejects objects with wrong content type', () => {
-    expect(
-      isPage({
-        id: 'a',
-        title: 'A',
-        content: 123,
-        created_at: 1,
-        updated_at: 2,
-        archived_at: null,
-      }),
-    ).toBe(false);
-  });
-
-  it('rejects objects with string archived_at', () => {
-    expect(
-      isPage({
-        id: 'a',
-        title: 'A',
-        content: '',
-        created_at: 1,
-        updated_at: 2,
-        archived_at: 'not-null',
-      }),
-    ).toBe(false);
   });
 });
 

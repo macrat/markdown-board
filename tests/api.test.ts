@@ -1,15 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import Database from 'better-sqlite3';
 import { createTestDb, insertPage } from './helpers/db';
-import {
-  extractTitle,
-  MAX_CONTENT_SIZE,
-  getContentByteSize,
-} from '@/lib/utils';
-
-// We test the API logic (DB queries + validation) directly rather than going
-// through Next.js route wrappers, since that would require mocking NextResponse.
-// This validates the same business logic that the route handlers execute.
 
 let db: Database.Database;
 
@@ -24,10 +15,10 @@ describe('Pages API logic', () => {
       const now = Date.now();
 
       const stmt = db.prepare(`
-        INSERT INTO pages (id, title, content, created_at, updated_at, archived_at)
-        VALUES (?, ?, ?, ?, ?, NULL)
+        INSERT INTO pages (id, title, created_at, updated_at, archived_at)
+        VALUES (?, ?, ?, ?, NULL)
       `);
-      stmt.run(id, 'Untitled', '', now, now);
+      stmt.run(id, 'Untitled', now, now);
 
       const page = db
         .prepare('SELECT * FROM pages WHERE id = ?')
@@ -35,7 +26,6 @@ describe('Pages API logic', () => {
       expect(page).toBeDefined();
       expect(page.id).toBe(id);
       expect(page.title).toBe('Untitled');
-      expect(page.content).toBe('');
       expect(page.archived_at).toBeNull();
     });
   });
@@ -83,7 +73,6 @@ describe('Pages API logic', () => {
       insertPage(db, {
         id: 'page-1',
         title: 'Test',
-        content: '# Test\n\nHello',
         created_at: 1000,
         updated_at: 2000,
       });
@@ -91,7 +80,7 @@ describe('Pages API logic', () => {
       const page = db
         .prepare(
           `
-        SELECT id, title, content, created_at, updated_at, archived_at
+        SELECT id, title, created_at, updated_at, archived_at
         FROM pages WHERE id = ?
       `,
         )
@@ -100,7 +89,6 @@ describe('Pages API logic', () => {
       expect(page).toBeDefined();
       expect(page.id).toBe('page-1');
       expect(page.title).toBe('Test');
-      expect(page.content).toBe('# Test\n\nHello');
       expect(page.created_at).toBe(1000);
       expect(page.updated_at).toBe(2000);
       expect(page.archived_at).toBeNull();
@@ -110,113 +98,13 @@ describe('Pages API logic', () => {
       const page = db
         .prepare(
           `
-        SELECT id, title, content, created_at, updated_at, archived_at
+        SELECT id, title, created_at, updated_at, archived_at
         FROM pages WHERE id = ?
       `,
         )
         .get('non-existent');
 
       expect(page).toBeUndefined();
-    });
-  });
-
-  describe('PATCH /api/pages/[id] (update page)', () => {
-    it('updates content and extracts title', () => {
-      insertPage(db, { id: 'page-1' });
-
-      const newContent = '# Updated Title\n\nNew content here';
-      const title = extractTitle(newContent);
-      const now = Date.now();
-
-      const stmt = db.prepare(`
-        UPDATE pages SET title = ?, content = ?, updated_at = ? WHERE id = ?
-      `);
-      const result = stmt.run(title, newContent, now, 'page-1');
-
-      expect(result.changes).toBe(1);
-
-      const page = db
-        .prepare('SELECT * FROM pages WHERE id = ?')
-        .get('page-1') as Record<string, unknown>;
-      expect(page.title).toBe('Updated Title');
-      expect(page.content).toBe(newContent);
-    });
-
-    it('sets title to "Untitled" when content is empty', () => {
-      insertPage(db, {
-        id: 'page-1',
-        title: 'Old Title',
-        content: '# Old Title',
-      });
-
-      const title = extractTitle('');
-      db.prepare(
-        'UPDATE pages SET title = ?, content = ?, updated_at = ? WHERE id = ?',
-      ).run(title, '', Date.now(), 'page-1');
-
-      const page = db
-        .prepare('SELECT * FROM pages WHERE id = ?')
-        .get('page-1') as Record<string, unknown>;
-      expect(page.title).toBe('Untitled');
-      expect(page.content).toBe('');
-    });
-
-    it('returns 0 changes for non-existent page', () => {
-      const result = db
-        .prepare(
-          'UPDATE pages SET title = ?, content = ?, updated_at = ? WHERE id = ?',
-        )
-        .run('Title', 'content', Date.now(), 'non-existent');
-
-      expect(result.changes).toBe(0);
-    });
-  });
-
-  describe('PATCH /api/pages/[id] input validation', () => {
-    it('rejects body with unexpected fields', () => {
-      const body = { content: 'hello', extra: 'field' };
-      const allowedFields = new Set(['content']);
-      const unexpectedFields = Object.keys(body).filter(
-        (key) => !allowedFields.has(key),
-      );
-      expect(unexpectedFields).toEqual(['extra']);
-    });
-
-    it('accepts body with only content field', () => {
-      const body = { content: 'hello' };
-      const allowedFields = new Set(['content']);
-      const unexpectedFields = Object.keys(body).filter(
-        (key) => !allowedFields.has(key),
-      );
-      expect(unexpectedFields).toEqual([]);
-    });
-
-    it('rejects non-string content', () => {
-      const content = 123;
-      expect(typeof content !== 'string').toBe(true);
-    });
-
-    it('rejects missing content field', () => {
-      const body = {};
-      expect((body as { content?: unknown }).content).toBeUndefined();
-    });
-
-    it('rejects content exceeding 10MB', () => {
-      const content = 'a'.repeat(MAX_CONTENT_SIZE + 1);
-      expect(getContentByteSize(content)).toBeGreaterThan(MAX_CONTENT_SIZE);
-    });
-
-    it('accepts content exactly at 10MB', () => {
-      const content = 'a'.repeat(MAX_CONTENT_SIZE);
-      expect(getContentByteSize(content)).toBeLessThanOrEqual(MAX_CONTENT_SIZE);
-    });
-
-    it('accounts for multi-byte characters in size calculation', () => {
-      // Japanese characters are 3 bytes each in UTF-8
-      // Create a string that is under the character limit but over the byte limit
-      const charCount = Math.floor(MAX_CONTENT_SIZE / 3) + 1;
-      const content = 'あ'.repeat(charCount);
-      expect(getContentByteSize(content)).toBeGreaterThan(MAX_CONTENT_SIZE);
     });
   });
 
@@ -236,6 +124,33 @@ describe('Pages API logic', () => {
         .prepare('DELETE FROM pages WHERE id = ?')
         .run('non-existent');
       expect(result.changes).toBe(0);
+    });
+
+    it('deletes associated yjs_updates when deleting a page', () => {
+      insertPage(db, { id: 'page-1' });
+
+      // Insert some yjs_updates for the page
+      db.prepare(
+        'INSERT INTO yjs_updates (doc_name, clock, value) VALUES (?, ?, ?)',
+      ).run('page-1', 0, Buffer.from([0, 0]));
+      db.prepare(
+        'INSERT INTO yjs_updates (doc_name, clock, value) VALUES (?, ?, ?)',
+      ).run('page-1', 1, Buffer.from([1, 1]));
+
+      // Delete page and yjs_updates in transaction
+      const deleteTransaction = db.transaction(() => {
+        db.prepare('DELETE FROM yjs_updates WHERE doc_name = ?').run('page-1');
+        return db.prepare('DELETE FROM pages WHERE id = ?').run('page-1');
+      });
+      deleteTransaction();
+
+      const page = db.prepare('SELECT * FROM pages WHERE id = ?').get('page-1');
+      expect(page).toBeUndefined();
+
+      const updates = db
+        .prepare('SELECT * FROM yjs_updates WHERE doc_name = ?')
+        .all('page-1');
+      expect(updates).toHaveLength(0);
     });
   });
 });
@@ -383,19 +298,16 @@ describe('Archive API logic', () => {
 
       expect(result.changes).toBe(1);
 
-      // Recent archive should still exist
       const recent = db
         .prepare('SELECT * FROM pages WHERE id = ?')
         .get('recent-archive');
       expect(recent).toBeDefined();
 
-      // Active page should still exist
       const active = db
         .prepare('SELECT * FROM pages WHERE id = ?')
         .get('active-page');
       expect(active).toBeDefined();
 
-      // Old archive should be deleted
       const old = db
         .prepare('SELECT * FROM pages WHERE id = ?')
         .get('old-archive');
@@ -420,16 +332,16 @@ describe('Archive API logic', () => {
 });
 
 describe('Page lifecycle integration', () => {
-  it('supports full create → update → archive → unarchive → delete flow', () => {
+  it('supports full create → archive → unarchive → delete flow', () => {
     // Create
     const id = 'lifecycle-page';
     const now = Date.now();
     db.prepare(
       `
-      INSERT INTO pages (id, title, content, created_at, updated_at, archived_at)
-      VALUES (?, ?, ?, ?, ?, NULL)
+      INSERT INTO pages (id, title, created_at, updated_at, archived_at)
+      VALUES (?, ?, ?, ?, NULL)
     `,
-    ).run(id, 'Untitled', '', now, now);
+    ).run(id, 'Untitled', now, now);
 
     let page = db.prepare('SELECT * FROM pages WHERE id = ?').get(id) as Record<
       string,
@@ -437,19 +349,18 @@ describe('Page lifecycle integration', () => {
     >;
     expect(page.title).toBe('Untitled');
 
-    // Update
-    const content = '# My Page\n\nSome content here';
-    const title = extractTitle(content);
-    db.prepare(
-      'UPDATE pages SET title = ?, content = ?, updated_at = ? WHERE id = ?',
-    ).run(title, content, now + 1000, id);
+    // Update title (as server-side title sync would do)
+    db.prepare('UPDATE pages SET title = ?, updated_at = ? WHERE id = ?').run(
+      'My Page',
+      now + 1000,
+      id,
+    );
 
     page = db.prepare('SELECT * FROM pages WHERE id = ?').get(id) as Record<
       string,
       unknown
     >;
     expect(page.title).toBe('My Page');
-    expect(page.content).toBe(content);
 
     // Archive
     db.prepare(

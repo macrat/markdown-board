@@ -1,17 +1,26 @@
 import { useEffect, useState, useRef } from 'react';
-import { Editor, rootCtx, defaultValueCtx } from '@milkdown/core';
+import { Editor, rootCtx } from '@milkdown/core';
 import { commonmark } from '@milkdown/preset-commonmark';
-import { listener, listenerCtx } from '@milkdown/plugin-listener';
 import { collab, collabServiceCtx } from '@milkdown/plugin-collab';
 import { logger } from '@/lib/logger';
-import { extractTitle } from '@/lib/utils';
-import { useSaveContent } from '@/hooks/useSaveContent';
-import { useFetchPage } from '@/hooks/useFetchPage';
+import { usePageExists } from '@/hooks/usePageExists';
 import * as Y from 'yjs';
 import { WebsocketProvider } from 'y-websocket';
 
 // Timeout for waiting for Yjs sync to complete (in milliseconds)
 const SYNC_TIMEOUT_MS = 500;
+
+function safeDestroy(
+  resource: { destroy(): void } | null,
+  label: string,
+): void {
+  if (!resource) return;
+  try {
+    resource.destroy();
+  } catch (e) {
+    logger.error(`[Editor] Error destroying ${label}`, e);
+  }
+}
 
 export function useCollabEditor(pageId: string) {
   const [peerCount, setPeerCount] = useState(0);
@@ -30,8 +39,27 @@ export function useCollabEditor(pageId: string) {
   const isMountedRef = useRef(false);
   const isInitializingRef = useRef(false);
 
-  const { pageContent, loading } = useFetchPage(pageId);
-  const { saveError, handleContentChange } = useSaveContent(pageId);
+  // Cleanup all collab resources stored in refs (editor -> provider -> ydoc)
+  const cleanupResources = () => {
+    safeDestroy(editorInstanceRef.current, 'editor');
+    editorInstanceRef.current = null;
+
+    if (providerRef.current) {
+      if (updatePeerCountRef.current) {
+        providerRef.current.awareness.off('change', updatePeerCountRef.current);
+      }
+      if (statusHandlerRef.current) {
+        providerRef.current.off('status', statusHandlerRef.current);
+      }
+    }
+    safeDestroy(providerRef.current, 'provider');
+    providerRef.current = null;
+
+    safeDestroy(ydocRef.current, 'ydoc');
+    ydocRef.current = null;
+  };
+
+  const { loading } = usePageExists(pageId);
 
   // Track mounted state for cleanup (compatible with React 18+ strict mode)
   useEffect(() => {
@@ -41,18 +69,9 @@ export function useCollabEditor(pageId: string) {
     };
   }, []);
 
-  // Initialize editor when page content becomes available
+  // Initialize editor when page existence is confirmed
   useEffect(() => {
-    if (loading || pageContent === null) return;
-
-    // Set initial browser tab title from loaded content
-    const pageTitle = extractTitle(pageContent);
-    document.title =
-      pageTitle === 'Untitled'
-        ? 'Markdown Board'
-        : `${pageTitle} - Markdown Board`;
-
-    const initialContent = pageContent;
+    if (loading) return;
 
     const initEditor = async () => {
       if (!editorRef.current) return;
@@ -66,10 +85,7 @@ export function useCollabEditor(pageId: string) {
       }
       isInitializingRef.current = true;
 
-      logger.log(
-        '[Editor] Initializing editor with SQLite content length:',
-        initialContent?.length || 0,
-      );
+      logger.log('[Editor] Initializing editor for page:', pageId);
 
       try {
         // Create Yjs document
@@ -80,8 +96,6 @@ export function useCollabEditor(pageId: string) {
         const wsProtocol =
           window.location.protocol === 'https:' ? 'wss:' : 'ws:';
         const wsHost = window.location.hostname;
-        // NEXT_PUBLIC_WS_PORT (optional): public env var to override the default
-        // y-websocket server port. If not set, port 1234 is used.
         const wsPort = process.env.NEXT_PUBLIC_WS_PORT || '1234';
         const wsUrl = `${wsProtocol}//${wsHost}:${wsPort}`;
 
@@ -106,7 +120,7 @@ export function useCollabEditor(pageId: string) {
 
         logger.log(`[WebSocket] Connecting to room: ${pageId} at ${wsUrl}`);
 
-        // Wait for initial sync to complete before deciding what to do
+        // Wait for initial sync to complete
         await new Promise<void>((resolve) => {
           const handleSync = (isSynced: boolean) => {
             if (isSynced) {
@@ -115,34 +129,7 @@ export function useCollabEditor(pageId: string) {
                 clearTimeout(syncTimeoutRef.current);
                 syncTimeoutRef.current = null;
               }
-
-              // Check if Yjs document is empty after sync
-              const fragment = ydoc.getXmlFragment('prosemirror');
-              const isEmpty = fragment.length === 0;
-
-              logger.log(
-                '[Yjs] Sync complete. Fragment isEmpty:',
-                isEmpty,
-                'initialContent length:',
-                initialContent?.length || 0,
-              );
-
-              // If Yjs doc is empty AND we have SQLite content, populate Yjs doc directly
-              if (isEmpty && initialContent) {
-                logger.log(
-                  '[Yjs] Populating empty Yjs document with SQLite content',
-                );
-                // Import the markdown content into the Yjs document
-                // The collab plugin will convert markdown to ProseMirror doc structure
-                // For now, we'll use the defaultValueCtx approach but need to ensure
-                // it happens before collab syncs again
-                logger.log('[Yjs] Direct Yjs population - fragment created');
-              } else if (!isEmpty) {
-                logger.log(
-                  '[Yjs] Yjs document has content from another client, ignoring SQLite',
-                );
-              }
-
+              logger.log('[Yjs] Sync complete');
               resolve();
             }
           };
@@ -153,7 +140,7 @@ export function useCollabEditor(pageId: string) {
           syncTimeoutRef.current = setTimeout(() => {
             syncTimeoutRef.current = null;
             provider.off('sync', handleSync);
-            logger.log('[Yjs] Sync timeout, assuming empty document');
+            logger.log('[Yjs] Sync timeout, proceeding');
             resolve();
           }, SYNC_TIMEOUT_MS);
         });
@@ -162,54 +149,16 @@ export function useCollabEditor(pageId: string) {
         if (!isMountedRef.current) {
           logger.log('[Editor] Component unmounted during sync, aborting');
           isInitializingRef.current = false;
-          // Clean up provider and Yjs document to avoid leaks
-          try {
-            provider.destroy();
-          } catch (e) {
-            logger.error(
-              '[Editor] Error destroying provider during unmount abort',
-              e,
-            );
-          }
-          try {
-            ydoc.destroy();
-          } catch (e) {
-            logger.error(
-              '[Editor] Error destroying ydoc during unmount abort',
-              e,
-            );
-          }
+          safeDestroy(provider, 'provider');
+          safeDestroy(ydoc, 'ydoc');
           return;
         }
-
-        // Determine if we should use SQLite content
-        const fragment = ydoc.getXmlFragment('prosemirror');
-        const shouldUseSQLiteContent =
-          fragment.length === 0 && !!initialContent;
 
         const editor = await Editor.make()
           .config((ctx) => {
             ctx.set(rootCtx, editorRef.current!);
-
-            // Set initial content from SQLite if Yjs document is empty
-            if (shouldUseSQLiteContent) {
-              logger.log(
-                '[Editor] Setting defaultValueCtx with SQLite content',
-              );
-              ctx.set(defaultValueCtx, initialContent);
-            } else {
-              logger.log(
-                '[Editor] NOT setting defaultValueCtx (using Yjs content or empty)',
-              );
-            }
-
-            // Listen to changes
-            ctx.get(listenerCtx).markdownUpdated((ctx, markdown) => {
-              handleContentChange(markdown);
-            });
           })
           .use(commonmark)
-          .use(listener)
           .use(collab)
           .config((ctx) => {
             // Configure collab service AFTER loading the plugin
@@ -234,37 +183,22 @@ export function useCollabEditor(pageId: string) {
             '[Editor] Component unmounted during editor creation, cleaning up',
           );
           isInitializingRef.current = false;
-          try {
-            editor.destroy();
-          } catch (e) {
-            logger.error('[Editor] Error destroying editor during unmount', e);
-          }
-          try {
-            provider.destroy();
-          } catch (e) {
-            logger.error(
-              '[Editor] Error destroying provider during unmount',
-              e,
-            );
-          }
-          try {
-            ydoc.destroy();
-          } catch (e) {
-            logger.error('[Editor] Error destroying ydoc during unmount', e);
-          }
+          safeDestroy(editor, 'editor');
+          safeDestroy(provider, 'provider');
+          safeDestroy(ydoc, 'ydoc');
           return;
         }
 
         // Connect the collab service AFTER editor is fully created
-        // This is critical - calling connect() before the editor is ready will fail
         editor.action((ctx) => {
           ctx.get(collabServiceCtx).connect();
         });
 
         editorInstanceRef.current = editor;
 
-        // Auto-focus the editor if it's a blank page
-        if (!initialContent || initialContent.trim() === '') {
+        // Auto-focus the editor if the Yjs doc is empty (blank page)
+        const fragment = ydoc.getXmlFragment('prosemirror');
+        if (fragment.length === 0) {
           autoFocusTimerRef.current = setTimeout(() => {
             autoFocusTimerRef.current = null;
             if (!isMountedRef.current) return;
@@ -279,29 +213,7 @@ export function useCollabEditor(pageId: string) {
         }
       } catch (error) {
         logger.error('Failed to initialize editor:', error);
-
-        // Cleanup on initialization failure: destroy in reverse dependency order
-        if (editorInstanceRef.current) {
-          editorInstanceRef.current.destroy();
-          editorInstanceRef.current = null;
-        }
-        if (providerRef.current) {
-          if (updatePeerCountRef.current) {
-            providerRef.current.awareness.off(
-              'change',
-              updatePeerCountRef.current,
-            );
-          }
-          if (statusHandlerRef.current) {
-            providerRef.current.off('status', statusHandlerRef.current);
-          }
-          providerRef.current.destroy();
-          providerRef.current = null;
-        }
-        if (ydocRef.current) {
-          ydocRef.current.destroy();
-          ydocRef.current = null;
-        }
+        cleanupResources();
       } finally {
         isInitializingRef.current = false;
       }
@@ -316,9 +228,7 @@ export function useCollabEditor(pageId: string) {
     }, 100);
 
     return () => {
-      // Restore default browser tab title
       document.title = 'Markdown Board';
-      // Cleanup: destroy in reverse dependency order (editor -> provider -> ydoc)
       if (initTimeoutRef.current) {
         clearTimeout(initTimeoutRef.current);
       }
@@ -328,32 +238,9 @@ export function useCollabEditor(pageId: string) {
       if (autoFocusTimerRef.current) {
         clearTimeout(autoFocusTimerRef.current);
       }
-      if (editorInstanceRef.current) {
-        editorInstanceRef.current.destroy();
-        editorInstanceRef.current = null;
-      }
-      if (providerRef.current) {
-        if (updatePeerCountRef.current) {
-          providerRef.current.awareness.off(
-            'change',
-            updatePeerCountRef.current,
-          );
-        }
-        if (statusHandlerRef.current) {
-          providerRef.current.off('status', statusHandlerRef.current);
-        }
-        providerRef.current.destroy();
-        providerRef.current = null;
-      }
-      if (ydocRef.current) {
-        ydocRef.current.destroy();
-        ydocRef.current = null;
-      }
+      cleanupResources();
     };
-    // handleContentChange is intentionally excluded: it is a debounced save
-    // callback that must not re-trigger editor initialization when it changes.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pageId, loading, pageContent]);
+  }, [pageId, loading]);
 
-  return { loading, peerCount, wsConnected, saveError, editorRef };
+  return { loading, peerCount, wsConnected, editorRef };
 }

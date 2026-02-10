@@ -7,17 +7,38 @@ const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
 const ONE_HOUR_MS = 60 * 60 * 1000;
 
 /**
- * Delete archived pages older than 30 days from the given database.
+ * Delete archived pages older than 30 days from the given database,
+ * including their associated yjs_updates records.
  * @param {import('better-sqlite3').Database} db
- * @returns {number} Number of deleted rows
+ * @returns {number} Number of deleted pages
  */
 function cleanupOldArchives(db) {
   const thirtyDaysAgo = Date.now() - THIRTY_DAYS_MS;
-  const stmt = db.prepare(
-    'DELETE FROM pages WHERE archived_at IS NOT NULL AND archived_at < ?',
-  );
-  const result = stmt.run(thirtyDaysAgo);
-  return result.changes;
+
+  // Find pages to delete first, then delete yjs_updates and pages in a transaction
+  const deleteOldArchives = db.transaction(() => {
+    const pages = db
+      .prepare(
+        'SELECT id FROM pages WHERE archived_at IS NOT NULL AND archived_at < ?',
+      )
+      .all(thirtyDaysAgo);
+
+    if (pages.length === 0) return 0;
+
+    const deleteYjs = db.prepare('DELETE FROM yjs_updates WHERE doc_name = ?');
+    for (const page of pages) {
+      deleteYjs.run(page.id);
+    }
+
+    const result = db
+      .prepare(
+        'DELETE FROM pages WHERE archived_at IS NOT NULL AND archived_at < ?',
+      )
+      .run(thirtyDaysAgo);
+    return result.changes;
+  });
+
+  return deleteOldArchives();
 }
 
 /**

@@ -6,7 +6,7 @@ import { useCollabEditor } from '@/hooks/useCollabEditor';
 import '../app/milkdown.css';
 
 export default function MarkdownEditor({ pageId }: { pageId: string }) {
-  const { loading, peerCount, wsConnected, saveError, editorRef } =
+  const { loading, peerCount, wsConnected, editorRef } =
     useCollabEditor(pageId);
 
   useEffect(() => {
@@ -113,21 +113,6 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
       <div className="flex-1 min-h-0 px-4 pb-4 sm:px-8 sm:pb-8 overflow-auto">
         <div ref={editorRef} className="milkdown max-w-4xl mx-auto" />
       </div>
-
-      {/* 保存エラー表示 */}
-      {saveError && (
-        <div
-          role="alert"
-          aria-live="assertive"
-          className="fixed bottom-4 left-1/2 -translate-x-1/2 text-sm px-5 py-3 rounded-lg shadow-lg transition-opacity duration-300"
-          style={{
-            color: '#f5eae6',
-            backgroundColor: '#574a46',
-          }}
-        >
-          {saveError}
-        </div>
-      )}
     </div>
   );
 }

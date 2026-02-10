@@ -1,4 +1,4 @@
-import type { Page, PageListItem, ArchiveListItem } from './types';
+import type { PageListItem, ArchiveListItem } from './types';
 import { logger } from './logger';
 
 /**
@@ -59,18 +59,6 @@ export function isArchiveListItemArray(
   data: unknown,
 ): data is ArchiveListItem[] {
   return Array.isArray(data) && data.every(hasArchiveListItemShape);
-}
-
-export function isPage(data: unknown): data is Page {
-  if (!isObject(data)) return false;
-  return (
-    typeof data.id === 'string' &&
-    typeof data.title === 'string' &&
-    typeof data.content === 'string' &&
-    typeof data.created_at === 'number' &&
-    typeof data.updated_at === 'number' &&
-    (data.archived_at === null || typeof data.archived_at === 'number')
-  );
 }
 
 export function isCreatePageResponse(data: unknown): data is { id: string } {

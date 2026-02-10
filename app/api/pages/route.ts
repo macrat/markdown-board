@@ -29,11 +29,11 @@ export async function POST() {
     const now = Date.now();
 
     const stmt = db.prepare(`
-      INSERT INTO pages (id, title, content, created_at, updated_at, archived_at)
-      VALUES (?, ?, ?, ?, ?, NULL)
+      INSERT INTO pages (id, title, created_at, updated_at, archived_at)
+      VALUES (?, ?, ?, ?, NULL)
     `);
 
-    stmt.run(id, 'Untitled', '', now, now);
+    stmt.run(id, 'Untitled', now, now);
 
     return NextResponse.json({ success: true, id }, { status: 201 });
   } catch (error) {

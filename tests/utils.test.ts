@@ -1,106 +1,179 @@
 import { describe, it, expect } from 'vitest';
-import { extractTitle, formatRelativeTime } from '@/lib/utils';
+import {
+  extractTitleFromProsemirrorJSON,
+  formatRelativeTime,
+} from '@/lib/utils';
 
-describe('extractTitle', () => {
-  describe('empty/whitespace content', () => {
-    it('returns "Untitled" for empty string', () => {
-      expect(extractTitle('')).toBe('Untitled');
+describe('extractTitleFromProsemirrorJSON', () => {
+  describe('empty/missing content', () => {
+    it('returns "Untitled" for empty doc (no content)', () => {
+      expect(
+        extractTitleFromProsemirrorJSON({ type: 'doc', content: [] }),
+      ).toBe('Untitled');
     });
 
-    it('returns "Untitled" for whitespace-only content', () => {
-      expect(extractTitle('   ')).toBe('Untitled');
+    it('returns "Untitled" for doc without content array', () => {
+      expect(extractTitleFromProsemirrorJSON({ type: 'doc' })).toBe('Untitled');
     });
 
-    it('returns "Untitled" for null-like falsy value', () => {
-      expect(extractTitle(undefined as unknown as string)).toBe('Untitled');
-    });
-
-    it('returns "Untitled" when first line is empty and rest has content', () => {
-      expect(extractTitle('\nSome content')).toBe('Untitled');
+    it('returns "Untitled" for null-like input', () => {
+      expect(
+        extractTitleFromProsemirrorJSON(
+          null as unknown as Record<string, unknown>,
+        ),
+      ).toBe('Untitled');
     });
   });
 
-  describe('markdown headings', () => {
+  describe('heading nodes', () => {
     it('extracts title from h1 heading', () => {
-      expect(extractTitle('# My Heading Title')).toBe('My Heading Title');
+      const json = {
+        type: 'doc',
+        content: [
+          {
+            type: 'heading',
+            attrs: { level: 1 },
+            content: [{ type: 'text', text: 'My Title' }],
+          },
+        ],
+      };
+      expect(extractTitleFromProsemirrorJSON(json)).toBe('My Title');
     });
 
     it('extracts title from h2 heading', () => {
-      expect(extractTitle('## Second Level')).toBe('Second Level');
+      const json = {
+        type: 'doc',
+        content: [
+          {
+            type: 'heading',
+            attrs: { level: 2 },
+            content: [{ type: 'text', text: 'Second Level' }],
+          },
+        ],
+      };
+      expect(extractTitleFromProsemirrorJSON(json)).toBe('Second Level');
     });
 
-    it('extracts title from h3 heading', () => {
-      expect(extractTitle('### Level 3 Heading')).toBe('Level 3 Heading');
+    it('concatenates multiple text nodes within heading', () => {
+      const json = {
+        type: 'doc',
+        content: [
+          {
+            type: 'heading',
+            attrs: { level: 1 },
+            content: [
+              { type: 'text', text: 'Hello ' },
+              { type: 'text', text: 'World' },
+            ],
+          },
+        ],
+      };
+      expect(extractTitleFromProsemirrorJSON(json)).toBe('Hello World');
     });
 
-    it('extracts title from h4 heading', () => {
-      expect(extractTitle('#### Level 4 Heading')).toBe('Level 4 Heading');
+    it('only uses the first node for title extraction', () => {
+      const json = {
+        type: 'doc',
+        content: [
+          {
+            type: 'heading',
+            attrs: { level: 1 },
+            content: [{ type: 'text', text: 'First' }],
+          },
+          {
+            type: 'heading',
+            attrs: { level: 2 },
+            content: [{ type: 'text', text: 'Second' }],
+          },
+        ],
+      };
+      expect(extractTitleFromProsemirrorJSON(json)).toBe('First');
     });
 
-    it('extracts title from h5 heading', () => {
-      expect(extractTitle('##### Level 5 Heading')).toBe('Level 5 Heading');
+    it('returns "Untitled" for heading with no text content', () => {
+      const json = {
+        type: 'doc',
+        content: [
+          {
+            type: 'heading',
+            attrs: { level: 1 },
+            content: [],
+          },
+        ],
+      };
+      expect(extractTitleFromProsemirrorJSON(json)).toBe('Untitled');
     });
 
-    it('extracts title from h6 heading', () => {
-      expect(extractTitle('###### Level 6 Heading')).toBe('Level 6 Heading');
-    });
-
-    it('only uses the first line for title extraction', () => {
-      expect(extractTitle('# First Heading\n## Second Heading')).toBe(
-        'First Heading',
-      );
-    });
-
-    it('returns "Untitled" for heading with only # and no text', () => {
-      expect(extractTitle('#')).toBe('Untitled');
-    });
-
-    it('returns "Untitled" for heading with # and spaces only', () => {
-      expect(extractTitle('#   ')).toBe('Untitled');
+    it('returns "Untitled" for heading with whitespace-only text', () => {
+      const json = {
+        type: 'doc',
+        content: [
+          {
+            type: 'heading',
+            attrs: { level: 1 },
+            content: [{ type: 'text', text: '   ' }],
+          },
+        ],
+      };
+      expect(extractTitleFromProsemirrorJSON(json)).toBe('Untitled');
     });
   });
 
-  describe('escaped headings', () => {
-    it('preserves # symbol for escaped heading \\#', () => {
-      expect(extractTitle('\\# hello')).toBe('# hello');
+  describe('non-heading first node', () => {
+    it('extracts title from paragraph', () => {
+      const json = {
+        type: 'doc',
+        content: [
+          {
+            type: 'paragraph',
+            content: [{ type: 'text', text: 'Just a paragraph' }],
+          },
+        ],
+      };
+      expect(extractTitleFromProsemirrorJSON(json)).toBe('Just a paragraph');
     });
 
-    it('handles escaped heading with multiple #', () => {
-      expect(extractTitle('\\## not a heading')).toBe('## not a heading');
-    });
-
-    it('returns "Untitled" for escaped heading with no text after', () => {
-      expect(extractTitle('\\#')).toBe('#');
-    });
-  });
-
-  describe('plain text', () => {
-    it('returns the first line as title for plain text', () => {
-      expect(extractTitle('Plain text title')).toBe('Plain text title');
-    });
-
-    it('returns first line when content has multiple lines', () => {
-      expect(extractTitle('First line\nSecond line\nThird line')).toBe(
-        'First line',
-      );
-    });
-
-    it('trims whitespace from the first line', () => {
-      expect(extractTitle('  Padded title  ')).toBe('Padded title');
+    it('extracts title from code block', () => {
+      const json = {
+        type: 'doc',
+        content: [
+          {
+            type: 'code_block',
+            content: [{ type: 'text', text: 'code here' }],
+          },
+        ],
+      };
+      expect(extractTitleFromProsemirrorJSON(json)).toBe('code here');
     });
   });
 
   describe('special characters', () => {
     it('handles unicode characters', () => {
-      expect(extractTitle('# こんにちは世界')).toBe('こんにちは世界');
+      const json = {
+        type: 'doc',
+        content: [
+          {
+            type: 'heading',
+            attrs: { level: 1 },
+            content: [{ type: 'text', text: 'こんにちは世界' }],
+          },
+        ],
+      };
+      expect(extractTitleFromProsemirrorJSON(json)).toBe('こんにちは世界');
     });
 
     it('handles emoji', () => {
-      expect(extractTitle('# 🌍 Hello World')).toBe('🌍 Hello World');
-    });
-
-    it('handles special symbols in plain text', () => {
-      expect(extractTitle('!@#$%^&*()')).toBe('!@#$%^&*()');
+      const json = {
+        type: 'doc',
+        content: [
+          {
+            type: 'heading',
+            attrs: { level: 1 },
+            content: [{ type: 'text', text: '🌍 Hello World' }],
+          },
+        ],
+      };
+      expect(extractTitleFromProsemirrorJSON(json)).toBe('🌍 Hello World');
     });
   });
 });
