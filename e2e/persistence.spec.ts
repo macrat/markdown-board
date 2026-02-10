@@ -1,10 +1,10 @@
 import { test, expect } from '@playwright/test';
+import { createPageWithContent } from './helpers';
 
 test.describe('Data Persistence', () => {
   test('should restore content from SQLite after server restart', async ({
     page,
   }) => {
-    // Step 1: Create a new page with content
     await page.goto('/');
     await page.waitForLoadState('networkidle');
     await page.waitForTimeout(500);
@@ -13,7 +13,6 @@ test.describe('Data Persistence', () => {
     await page.waitForURL(/\/page\/.+/);
     await page.waitForSelector('.milkdown', { timeout: 10000 });
 
-    // Add content
     const editor = page
       .locator('.milkdown')
       .locator('div[contenteditable="true"]')
@@ -29,22 +28,16 @@ test.describe('Data Persistence', () => {
     // Wait for auto-save
     await page.waitForTimeout(2500);
 
-    // Step 2: Simulate what happens after server restart by:
-    // - Clearing local cache/storage
-    // - Reloading the page (this simulates fresh load with empty Yjs on server)
+    // Clear local cache and hard reload to simulate server restart
     await page.evaluate(() => {
       localStorage.clear();
       sessionStorage.clear();
     });
 
-    // Hard reload the page
     await page.reload({ waitUntil: 'networkidle' });
-
-    // Wait for editor to load
     await page.waitForSelector('.milkdown', { timeout: 10000 });
-    await page.waitForTimeout(2000); // Wait for Yjs sync
+    await page.waitForTimeout(2000);
 
-    // Step 3: Verify content was restored from SQLite
     const editorArea = page.locator('.milkdown .ProseMirror').first();
     await expect(editorArea).toContainText('Restart Test', { timeout: 5000 });
     await expect(editorArea).toContainText(
@@ -55,8 +48,36 @@ test.describe('Data Persistence', () => {
       timeout: 5000,
     });
 
-    // Verify title is rendered as h1 in the editor content
     const pageTitle = page.locator('h1').first();
     await expect(pageTitle).toContainText('Restart Test');
+  });
+
+  test('should handle rapid navigation without data loss', async ({ page }) => {
+    await page.goto('/');
+    await page.waitForLoadState('networkidle');
+    await page.waitForTimeout(500);
+
+    await createPageWithContent(page, '# Rapid Test\n\nContent to preserve');
+
+    // Rapidly navigate back and forth
+    await page.goto('/');
+    await page.waitForLoadState('networkidle');
+    await page.waitForTimeout(300);
+
+    await page.locator('h3').filter({ hasText: 'Rapid Test' }).first().click();
+    await page.waitForURL(/\/page\/.+/);
+    await page.waitForTimeout(300);
+
+    await page.goto('/');
+    await page.waitForLoadState('networkidle');
+    await page.waitForTimeout(300);
+
+    await page.locator('h3').filter({ hasText: 'Rapid Test' }).first().click();
+    await page.waitForURL(/\/page\/.+/);
+    await page.waitForSelector('.milkdown', { timeout: 10000 });
+    await page.waitForTimeout(1000);
+
+    const editorArea = page.locator('.milkdown .ProseMirror').first();
+    await expect(editorArea).toContainText('Content to preserve');
   });
 });
