@@ -17,6 +17,7 @@ import { useArchiveToast } from '@/hooks/useArchiveToast';
 type Tab = 'latest' | 'archive';
 
 const SEARCH_VISIBLE_THRESHOLD = 5;
+const RELATIVE_TIME_UPDATE_INTERVAL_MS = 30_000;
 
 export default function PageBoard() {
   const [activeTab, setActiveTab] = useState<Tab>('latest');
@@ -26,7 +27,10 @@ export default function PageBoard() {
   const router = useRouter();
 
   useEffect(() => {
-    const id = setInterval(() => setNow(Date.now()), 30_000);
+    const id = setInterval(
+      () => setNow(Date.now()),
+      RELATIVE_TIME_UPDATE_INTERVAL_MS,
+    );
     return () => clearInterval(id);
   }, []);
 
@@ -157,7 +161,9 @@ export default function PageBoard() {
 
   if (loading) {
     return (
-      <div style={{ color: '#574a46', padding: '20px' }}>読み込み中...</div>
+      <div style={{ color: 'var(--foreground)', padding: '20px' }}>
+        読み込み中...
+      </div>
     );
   }
 
@@ -168,7 +174,7 @@ export default function PageBoard() {
         role="tablist"
         style={{
           display: 'flex',
-          borderBottom: '1px solid rgba(87, 74, 70, 0.2)',
+          borderBottom: '1px solid rgba(var(--foreground-rgb), 0.2)',
           marginBottom: '24px',
         }}
       >
@@ -193,9 +199,10 @@ export default function PageBoard() {
             border: 'none',
             borderBottom:
               activeTab === 'latest'
-                ? '2px solid #c42776'
+                ? '2px solid var(--accent)'
                 : '2px solid transparent',
-            color: activeTab === 'latest' ? '#c42776' : '#574a46',
+            color:
+              activeTab === 'latest' ? 'var(--accent)' : 'var(--foreground)',
             fontWeight: activeTab === 'latest' ? '600' : '400',
             cursor: 'pointer',
             transition: 'all 0.15s ease',
@@ -225,9 +232,10 @@ export default function PageBoard() {
             border: 'none',
             borderBottom:
               activeTab === 'archive'
-                ? '2px solid #c42776'
+                ? '2px solid var(--accent)'
                 : '2px solid transparent',
-            color: activeTab === 'archive' ? '#c42776' : '#574a46',
+            color:
+              activeTab === 'archive' ? 'var(--accent)' : 'var(--foreground)',
             fontWeight: activeTab === 'archive' ? '600' : '400',
             cursor: 'pointer',
             transition: 'all 0.15s ease',
@@ -253,10 +261,10 @@ export default function PageBoard() {
                   width: '100%',
                   padding: '10px 12px',
                   fontSize: '14px',
-                  border: '1px solid rgba(87, 74, 70, 0.2)',
+                  border: '1px solid rgba(var(--foreground-rgb), 0.2)',
                   borderRadius: '8px',
                   backgroundColor: 'transparent',
-                  color: '#574a46',
+                  color: 'var(--foreground)',
                   outline: 'none',
                   boxSizing: 'border-box',
                 }}
@@ -264,7 +272,7 @@ export default function PageBoard() {
             </div>
           )}
           {filteredPages.length === 0 ? (
-            <p style={{ color: '#574a46', opacity: 0.7 }}>
+            <p style={{ color: 'var(--foreground)', opacity: 0.7 }}>
               {searchQuery
                 ? '一致するページが見つかりません。'
                 : 'ページがありません。新しいページを作成しましょう。'}
@@ -304,7 +312,7 @@ export default function PageBoard() {
         >
           <p
             style={{
-              color: '#574a46',
+              color: 'var(--foreground)',
               opacity: 0.4,
               fontSize: '12px',
               margin: '0 0 16px 0',
@@ -313,7 +321,7 @@ export default function PageBoard() {
             30日間保持されます
           </p>
           {archives.length === 0 ? (
-            <p style={{ color: '#574a46', opacity: 0.7 }}>
+            <p style={{ color: 'var(--foreground)', opacity: 0.7 }}>
               アーカイブされたページはありません。
             </p>
           ) : (
@@ -353,10 +361,10 @@ export default function PageBoard() {
           width: '56px',
           height: '56px',
           borderRadius: '50%',
-          backgroundColor: '#c42776',
-          color: '#f5eae6',
+          backgroundColor: 'var(--accent)',
+          color: 'var(--background)',
           border: 'none',
-          boxShadow: '0 4px 12px rgba(196, 39, 118, 0.4)',
+          boxShadow: '0 4px 12px rgba(var(--accent-rgb), 0.4)',
           cursor: 'pointer',
           display: 'flex',
           alignItems: 'center',

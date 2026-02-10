@@ -95,14 +95,14 @@ export default function Toast({
         bottom: '100px',
         left: '50%',
         transform: 'translateX(-50%)',
-        backgroundColor: '#574a46',
-        color: '#f5eae6',
+        backgroundColor: 'var(--foreground)',
+        color: 'var(--background)',
         padding: '12px 20px',
         borderRadius: '8px',
         display: 'flex',
         alignItems: 'center',
         gap: '16px',
-        boxShadow: '0 4px 12px rgba(87, 74, 70, 0.3)',
+        boxShadow: '0 4px 12px rgba(var(--foreground-rgb), 0.3)',
         opacity: isVisible && !isExiting ? 1 : 0,
         transition: `opacity ${ANIMATION_DURATION_MS}ms ease-in-out`,
         zIndex: 1000,
@@ -114,8 +114,8 @@ export default function Toast({
         className="toast-cancel-button"
         style={{
           backgroundColor: 'transparent',
-          color: '#e893c2',
-          border: '1px solid #e893c2',
+          color: 'var(--accent-light)',
+          border: '1px solid var(--accent-light)',
           padding: '4px 12px',
           borderRadius: '4px',
           cursor: 'pointer',
@@ -123,13 +123,15 @@ export default function Toast({
           transition: 'background-color 0.15s ease',
         }}
         onMouseEnter={(e) => {
-          e.currentTarget.style.backgroundColor = 'rgba(232, 147, 194, 0.2)';
+          e.currentTarget.style.backgroundColor =
+            'rgba(var(--accent-light-rgb), 0.2)';
         }}
         onMouseLeave={(e) => {
           e.currentTarget.style.backgroundColor = 'transparent';
         }}
         onFocus={(e) => {
-          e.currentTarget.style.backgroundColor = 'rgba(232, 147, 194, 0.2)';
+          e.currentTarget.style.backgroundColor =
+            'rgba(var(--accent-light-rgb), 0.2)';
         }}
         onBlur={(e) => {
           e.currentTarget.style.backgroundColor = 'transparent';

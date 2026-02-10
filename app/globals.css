@@ -5,8 +5,12 @@
   --foreground: #574a46;
   --accent: #c42776;
   --accent-light: #e893c2;
-  --accent-focus-bg: rgba(196, 39, 118, 0.05);
-  --accent-light-focus-bg: rgba(232, 147, 194, 0.2);
+  --foreground-rgb: 87, 74, 70;
+  --accent-rgb: 196, 39, 118;
+  --accent-light-rgb: 232, 147, 194;
+  --background-rgb: 245, 234, 230;
+  --accent-focus-bg: rgba(var(--accent-rgb), 0.05);
+  --accent-light-focus-bg: rgba(var(--accent-light-rgb), 0.2);
 }
 
 @theme inline {
@@ -43,8 +47,8 @@ body {
 .archive-button:focus,
 .unarchive-button:hover,
 .unarchive-button:focus {
-  background-color: rgba(87, 74, 70, 0.1);
-  border-color: #574a46;
+  background-color: rgba(var(--foreground-rgb), 0.1);
+  border-color: var(--foreground);
 }
 
 .archive-button:focus-visible,
