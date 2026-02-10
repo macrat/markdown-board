@@ -104,7 +104,7 @@ setPersistence({
     // 1. Final title sync (immediate)
     syncTitleToDb(docName, ydoc);
 
-    // 2. Cancel pending debounced sync
+    // 2. Cancel pending debounced sync by replacing it with a no-op
     const debounce = titleDebouncers.get(docName);
     if (debounce) {
       debounce(null);
