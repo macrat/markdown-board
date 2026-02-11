@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { Editor, rootCtx } from '@milkdown/core';
-import { commonmark } from '@milkdown/preset-commonmark';
+import { gfm } from '@milkdown/preset-gfm';
 import { collab, collabServiceCtx } from '@milkdown/plugin-collab';
 import { logger } from '@/lib/logger';
 import { usePageExists } from '@/hooks/usePageExists';
@@ -158,7 +158,7 @@ export function useCollabEditor(pageId: string) {
           .config((ctx) => {
             ctx.set(rootCtx, editorRef.current!);
           })
-          .use(commonmark)
+          .use(gfm)
           .use(collab)
           .config((ctx) => {
             // Configure collab service AFTER loading the plugin
