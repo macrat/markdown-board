@@ -27,11 +27,9 @@ test.describe('Real-time Sync', () => {
     page1.on('console', (msg) => console.log('Page1:', msg.text()));
 
     await page1.goto('/');
+    await page1.waitForURL(/\/page\/.+/);
     await page1.waitForLoadState('networkidle');
 
-    // Create new page in Tab A
-    await page1.click('button[title="新しいページを作成"]');
-    await page1.waitForURL(/\/page\/.+/);
     const pageUrl = page1.url();
     const pageId = pageUrl.split('/page/')[1];
 
@@ -107,10 +105,9 @@ test.describe('Real-time Sync', () => {
     const context = await browser.newContext();
     const page1 = await context.newPage();
     await page1.goto('/');
+    await page1.waitForURL(/\/page\/.+/);
     await page1.waitForLoadState('networkidle');
 
-    await page1.click('button[title="新しいページを作成"]');
-    await page1.waitForURL(/\/page\/.+/);
     const pageUrl = page1.url();
     await page1.waitForSelector('.milkdown', { timeout: 10000 });
     await page1.waitForTimeout(1000);

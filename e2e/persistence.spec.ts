@@ -22,12 +22,12 @@ test.describe('Data Persistence', () => {
   test('should restore content from SQLite after server restart', async ({
     page,
   }) => {
+    // Navigate to home (auto-creates and redirects to new page)
     await page.goto('/');
+    await page.waitForURL(/\/page\/.+/);
     await page.waitForLoadState('networkidle');
     await page.waitForTimeout(500);
 
-    await page.click('button[title="新しいページを作成"]');
-    await page.waitForURL(/\/page\/.+/);
     await page.waitForSelector('.milkdown', { timeout: 10000 });
 
     const editor = page
@@ -65,44 +65,56 @@ test.describe('Data Persistence', () => {
       timeout: 5000,
     });
 
-    const pageTitle = page.locator('h1').first();
+    const pageTitle = page.locator('.milkdown .ProseMirror h1').first();
     await expect(pageTitle).toContainText('Restart Test');
   });
 
   /**
    * ページ間を素早く遷移してもデータが失われないことを検証する。
    *
-   * トップページとエディタページの間を繰り返し遷移し、最終的に
-   * コンテンツが保持されていることを確認する。Next.jsのルーティング、
-   * Yjsのドキュメント初期化/破棄、WebSocket接続の確立/切断が
-   * 高速に繰り返される実際のブラウザ環境でのテストが必要。
+   * エディタページとトップページ（新規ページにリダイレクト）の間を
+   * 繰り返し遷移し、最終的にコンテンツが保持されていることを確認する。
+   * 各遷移でYjsドキュメントの初期化/破棄、WebSocket接続の確立/切断が
+   * 繰り返される。page.goto()によるフルリロードでクライアント状態が
+   * 完全にリセットされるため、Yjs永続化の信頼性を厳密に検証できる。
    */
   test('should handle rapid navigation without data loss', async ({ page }) => {
     await page.goto('/');
+    await page.waitForURL(/\/page\/.+/);
     await page.waitForLoadState('networkidle');
     await page.waitForTimeout(500);
 
-    await createPageWithContent(page, '# Rapid Test\n\nContent to preserve');
+    const pageId = await createPageWithContent(
+      page,
+      '# Rapid Test\n\nContent to preserve',
+    );
+    const pageUrl = `/page/${pageId}`;
+
+    // Verify content is persisted (hard reload forces Yjs to load from SQLite)
+    await page.goto(pageUrl);
+    await page.waitForSelector('.milkdown', { timeout: 10000 });
+    const editorArea = page.locator('.milkdown .ProseMirror').first();
+    await expect(editorArea).toContainText('Content to preserve', {
+      timeout: 10000,
+    });
 
     // Rapidly navigate back and forth
     await page.goto('/');
-    await page.waitForLoadState('networkidle');
+    await page.waitForURL(/\/page\/.+/);
     await page.waitForTimeout(300);
 
-    await page.locator('h3').filter({ hasText: 'Rapid Test' }).first().click();
-    await page.waitForURL(/\/page\/.+/);
+    await page.goto(pageUrl);
     await page.waitForTimeout(300);
 
     await page.goto('/');
-    await page.waitForLoadState('networkidle');
+    await page.waitForURL(/\/page\/.+/);
     await page.waitForTimeout(300);
 
-    await page.locator('h3').filter({ hasText: 'Rapid Test' }).first().click();
-    await page.waitForURL(/\/page\/.+/);
+    // Final navigation: verify content survives rapid navigation
+    await page.goto(pageUrl);
     await page.waitForSelector('.milkdown', { timeout: 10000 });
-    await page.waitForTimeout(1000);
-
-    const editorArea = page.locator('.milkdown .ProseMirror').first();
-    await expect(editorArea).toContainText('Content to preserve');
+    await expect(editorArea).toContainText('Content to preserve', {
+      timeout: 10000,
+    });
   });
 });

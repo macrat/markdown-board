@@ -22,6 +22,7 @@ test.describe('Responsive Layout', () => {
     page,
   }) => {
     await page.goto('/');
+    await page.waitForURL(/\/page\/.+/);
     await page.waitForLoadState('networkidle');
     await page.waitForTimeout(500);
 
@@ -43,42 +44,56 @@ test.describe('Responsive Layout', () => {
   });
 
   /**
-   * モバイルサイズ（375x667、iPhone SE相当）のビューポートでUIが
-   * 正常に表示されることを検証する。
+   * モバイルサイズ（375x667、iPhone SE相当）のビューポートで
+   * ハンバーガーメニューが表示され、サイドバーが非表示であることを検証する。
    *
-   * タイトルと新規作成ボタンが可視状態であることを確認する。
-   * 実際のビューポートサイズ変更とレンダリングが必要なため、
+   * ハンバーガーメニューをクリックするとサイドバーが表示されることも確認する。
+   * 実際のビューポートサイズ変更とCSSメディアクエリの評価が必要なため、
    * jsdomではテストできない。
    */
-  test('should be responsive on mobile viewport', async ({ page }) => {
+  test('should show hamburger menu on mobile viewport', async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 667 });
 
     await page.goto('/');
+    await page.waitForURL(/\/page\/.+/);
     await page.waitForLoadState('networkidle');
 
-    await expect(page.locator('h1')).toBeVisible();
-    await expect(
-      page.locator('button[title="新しいページを作成"]'),
-    ).toBeVisible();
+    // Hamburger menu should be visible on mobile
+    await expect(page.locator('.hamburger-menu-button')).toBeVisible();
+
+    // Sidebar create button should not be directly visible (hidden on mobile)
+    const createButton = page.locator('button[title="新しいページを作成"]');
+    await expect(createButton).not.toBeVisible();
+
+    // Open hamburger menu
+    await page.locator('.hamburger-menu-button').click();
+    await page.waitForTimeout(300);
+
+    // Now sidebar should be visible with create button
+    await expect(createButton).toBeVisible();
   });
 
   /**
-   * タブレットサイズ（768x1024、iPad相当）のビューポートでUIが
-   * 正常に表示されることを検証する。
+   * タブレットサイズ（768x1024、iPad相当）のビューポートで
+   * サイドバーが直接表示されることを検証する。
    *
-   * タイトルと新規作成ボタンが可視状態であることを確認する。
-   * 実際のビューポートサイズ変更とレンダリングが必要なため、
-   * jsdomではテストできない。
+   * ハンバーガーメニューが非表示であり、サイドバーの新規作成ボタンが
+   * 可視状態であることを確認する。実際のビューポートサイズ変更と
+   * レンダリングが必要なため、jsdomではテストできない。
    */
-  test('should be responsive on tablet viewport', async ({ page }) => {
+  test('should show sidebar on tablet viewport', async ({ page }) => {
     await page.setViewportSize({ width: 768, height: 1024 });
 
     await page.goto('/');
+    await page.waitForURL(/\/page\/.+/);
     await page.waitForLoadState('networkidle');
 
-    await expect(page.locator('h1')).toBeVisible();
+    // Sidebar should be visible without hamburger menu
     await expect(
       page.locator('button[title="新しいページを作成"]'),
     ).toBeVisible();
+
+    // Hamburger menu should be hidden on tablet
+    await expect(page.locator('.hamburger-menu-button')).not.toBeVisible();
   });
 });

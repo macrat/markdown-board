@@ -46,6 +46,36 @@ const persistence = new YjsSqlitePersistence(db);
 // Per-document debouncer map for title sync
 const titleDebouncers = new Map<string, (cb: (() => void) | null) => void>();
 
+interface ProseMirrorNode {
+  type: string;
+  text?: string;
+  content?: ProseMirrorNode[];
+}
+
+interface ProseMirrorJSON {
+  content?: ProseMirrorNode[];
+}
+
+function isDocEmpty(json: ProseMirrorJSON): boolean {
+  const content = json?.content;
+  if (!content || content.length === 0) return true;
+
+  function hasText(nodes: ProseMirrorNode[]): boolean {
+    for (const node of nodes) {
+      if (node.type === 'text' && typeof node.text === 'string') {
+        if (node.text.trim().length > 0) return true;
+      }
+      if (node.content && hasText(node.content)) return true;
+    }
+    return false;
+  }
+
+  for (const node of content) {
+    if (node.content && hasText(node.content)) return false;
+  }
+  return true;
+}
+
 /**
  * Sync title and updated_at to pages table.
  */
@@ -101,17 +131,37 @@ setPersistence({
   },
 
   writeState: async (docName: string, ydoc: WSSharedDoc) => {
-    // 1. Final title sync (immediate)
-    syncTitleToDb(docName, ydoc);
-
-    // 2. Cancel pending debounced sync by replacing it with a no-op
+    // 1. Cancel pending debounced sync by replacing it with a no-op
     const debounce = titleDebouncers.get(docName);
     if (debounce) {
       debounce(null);
       titleDebouncers.delete(docName);
     }
 
-    // 3. Compact stored updates
+    // 2. Check if the document is empty; if so, delete the page
+    try {
+      const json = yDocToProsemirrorJSON(ydoc, 'prosemirror');
+      const title = extractTitleFromProsemirrorJSON(json);
+      if (title === 'Untitled' && isDocEmpty(json)) {
+        const deleteTransaction = db.transaction(() => {
+          db.prepare('DELETE FROM yjs_updates WHERE doc_name = ?').run(docName);
+          db.prepare('DELETE FROM pages WHERE id = ?').run(docName);
+        });
+        deleteTransaction();
+        console.log(`[persistence] Deleted empty page: ${docName}`);
+        return;
+      }
+    } catch (error) {
+      console.error(
+        `[persistence] Failed to check emptiness for ${docName}:`,
+        error,
+      );
+    }
+
+    // 3. Final title sync (immediate)
+    syncTitleToDb(docName, ydoc);
+
+    // 4. Compact stored updates
     persistence.compactDocument(docName);
 
     console.log(`[persistence] Wrote state for room: ${docName}`);

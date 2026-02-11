@@ -217,8 +217,16 @@ test.describe('Editor', () => {
   test('should handle very long content without performance issues', async ({
     page,
   }) => {
+    const syncComplete = page.waitForEvent('console', {
+      predicate: (msg) =>
+        msg.text().includes('[Yjs] Sync complete') ||
+        msg.text().includes('[Yjs] Sync timeout'),
+      timeout: 15000,
+    });
+
     await page.click('button[title="新しいページを作成"]');
     await page.waitForURL(/\/page\/.+/);
+    await syncComplete;
     await page.waitForSelector('.milkdown', { timeout: 10000 });
 
     const editor = page

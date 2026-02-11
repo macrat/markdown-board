@@ -65,15 +65,6 @@ describe('MarkdownEditor', () => {
     expect(screen.queryByRole('status')).toBeNull();
   });
 
-  it('renders home link with aria-label', () => {
-    render(<MarkdownEditor pageId="page-1" />);
-    const link = screen.getByLabelText('ページ一覧に戻る');
-    expect(link).toBeTruthy();
-    expect(link.tagName).toBe('A');
-    expect(link.getAttribute('href')).toBe('/');
-    expect(link.textContent).toContain('Markdown Board');
-  });
-
   it('shows offline indicator when WebSocket is disconnected', () => {
     mockUseCollabEditor.mockReturnValue({
       loading: false,
