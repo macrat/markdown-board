@@ -267,7 +267,10 @@ export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
       </div>
 
       {/* Scrollable content area */}
-      <div className="flex-1 overflow-y-auto" style={{ padding: '16px' }}>
+      <div
+        className="sidebar-scroll flex-1 overflow-y-auto"
+        style={{ padding: '16px' }}
+      >
         {loading ? (
           <div style={{ color: 'var(--foreground)', padding: '20px' }}>
             読み込み中...
