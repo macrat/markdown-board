@@ -38,8 +38,15 @@
   color: #574a46;
 }
 
-.milkdown ul,
+.milkdown ul {
+  list-style-type: disc;
+  margin-bottom: 1rem;
+  padding-left: 2rem;
+  color: #574a46;
+}
+
 .milkdown ol {
+  list-style-type: decimal;
   margin-bottom: 1rem;
   padding-left: 2rem;
   color: #574a46;
