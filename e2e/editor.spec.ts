@@ -27,7 +27,7 @@ test.describe('Editor', () => {
    */
   test('should show placeholder text on blank page', async ({ page }) => {
     await page.click('button[title="新しいページを作成"]');
-    await page.waitForURL(/\/page\/.+/);
+    await page.waitForURL(/\/p\/.+/);
     await page.waitForSelector('.milkdown', { timeout: 10000 });
     await page.waitForTimeout(1500);
 
@@ -66,7 +66,7 @@ test.describe('Editor', () => {
     page,
   }) => {
     await page.click('button[title="新しいページを作成"]');
-    await page.waitForURL(/\/page\/.+/);
+    await page.waitForURL(/\/p\/.+/);
     await page.waitForSelector('.milkdown', { timeout: 10000 });
     await page.waitForTimeout(1500);
 
@@ -115,7 +115,7 @@ test.describe('Editor', () => {
    */
   test('should hide placeholder when content is typed', async ({ page }) => {
     await page.click('button[title="新しいページを作成"]');
-    await page.waitForURL(/\/page\/.+/);
+    await page.waitForURL(/\/p\/.+/);
     await page.waitForSelector('.milkdown', { timeout: 10000 });
     await page.waitForTimeout(1000);
 
@@ -161,7 +161,7 @@ test.describe('Editor', () => {
    */
   test('should auto-focus editor on blank page', async ({ page }) => {
     await page.click('button[title="新しいページを作成"]');
-    await page.waitForURL(/\/page\/.+/);
+    await page.waitForURL(/\/p\/.+/);
     await page.waitForSelector('.milkdown', { timeout: 10000 });
     await page.waitForTimeout(1500);
 
@@ -192,7 +192,7 @@ test.describe('Editor', () => {
     await page.waitForLoadState('networkidle');
     await page.waitForTimeout(500);
 
-    await page.goto(`/page/${pageId}`);
+    await page.goto(`/p/${pageId}`);
     await page.waitForSelector('.milkdown', { timeout: 10000 });
     await page.waitForTimeout(1500);
 
@@ -225,7 +225,7 @@ test.describe('Editor', () => {
     });
 
     await page.click('button[title="新しいページを作成"]');
-    await page.waitForURL(/\/page\/.+/);
+    await page.waitForURL(/\/p\/.+/);
     await syncComplete;
     await page.waitForSelector('.milkdown', { timeout: 10000 });
 

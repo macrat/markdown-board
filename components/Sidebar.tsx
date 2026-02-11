@@ -82,14 +82,14 @@ export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
   const handleCreatePage = async () => {
     const id = await createPage();
     if (id) {
-      router.push(`/page/${id}`);
+      router.push(`/p/${id}`);
       onNavigate?.();
     }
   };
 
   const handleNavigate = useCallback(
     (id: string) => {
-      router.push(`/page/${id}`);
+      router.push(`/p/${id}`);
       onNavigate?.();
     },
     [router, onNavigate],

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import { uuidv7 } from 'uuidv7';
 import getDb from '@/lib/db';
+import { generateId } from '@/lib/id';
 import { logger } from '@/lib/logger';
 
 export async function GET() {
@@ -27,7 +27,7 @@ export async function GET() {
 export async function POST() {
   try {
     const db = getDb();
-    const id = uuidv7();
+    const id = generateId();
     const now = Date.now();
 
     const stmt = db.prepare(`
