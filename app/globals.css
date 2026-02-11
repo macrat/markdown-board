@@ -1,6 +1,7 @@
 @import 'tailwindcss';
 
 :root {
+  color-scheme: light;
   --background: #f5eae6;
   --foreground: #574a46;
   --accent: #c42776;
@@ -11,6 +12,20 @@
   --background-rgb: 245, 234, 230;
   --accent-focus-bg: rgba(var(--accent-rgb), 0.05);
   --accent-light-focus-bg: rgba(var(--accent-light-rgb), 0.2);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --background: #1e1a18;
+    --foreground: #e0d6d2;
+    --accent: #e0609c;
+    --accent-light: #f0a0cc;
+    --foreground-rgb: 224, 214, 210;
+    --accent-rgb: 224, 96, 156;
+    --accent-light-rgb: 240, 160, 204;
+    --background-rgb: 30, 26, 24;
+  }
 }
 
 @theme inline {
