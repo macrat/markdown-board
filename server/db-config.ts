@@ -2,8 +2,10 @@ import path from 'path';
 import fs from 'fs';
 import Database from 'better-sqlite3';
 
-export const DB_DIR = path.join(process.cwd(), 'data');
-export const DB_PATH = path.join(DB_DIR, 'markdown-board.db');
+export const DB_PATH =
+  process.env.DATABASE_PATH ||
+  path.join(process.cwd(), 'data', 'markdown-board.db');
+export const DB_DIR = path.dirname(DB_PATH);
 
 /**
  * Open a new database connection with standard configuration.
