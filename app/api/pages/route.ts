@@ -1,10 +1,11 @@
 import { NextResponse } from 'next/server';
 import { uuidv7 } from 'uuidv7';
-import db from '@/lib/db';
+import getDb from '@/lib/db';
 import { logger } from '@/lib/logger';
 
 export async function GET() {
   try {
+    const db = getDb();
     const stmt = db.prepare(`
       SELECT id, title, created_at, updated_at
       FROM pages
@@ -25,6 +26,7 @@ export async function GET() {
 
 export async function POST() {
   try {
+    const db = getDb();
     const id = uuidv7();
     const now = Date.now();
 

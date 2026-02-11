@@ -1,11 +1,12 @@
 import { NextResponse } from 'next/server';
-import db from '@/lib/db';
+import getDb from '@/lib/db';
 import { logger } from '@/lib/logger';
 
 import { cleanupOldArchives } from '@/server/cleanup-archives';
 
 export async function GET() {
   try {
+    const db = getDb();
     const stmt = db.prepare(`
       SELECT id, title, created_at, updated_at, archived_at
       FROM pages
@@ -26,6 +27,7 @@ export async function GET() {
 
 export async function DELETE() {
   try {
+    const db = getDb();
     const deleted = cleanupOldArchives(db);
 
     return NextResponse.json({ success: true, deleted });
