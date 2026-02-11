@@ -351,9 +351,7 @@ describe('Sidebar', () => {
       mockPages = [];
       await renderSidebar();
 
-      expect(
-        screen.getByText('ページがありません。新しいページを作成しましょう。'),
-      ).toBeTruthy();
+      expect(screen.getByText('ページがありません。')).toBeTruthy();
     });
 
     it('shows empty archive message when no archives exist', async () => {

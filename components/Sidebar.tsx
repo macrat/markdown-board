@@ -188,40 +188,13 @@ export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
       className="flex flex-col h-full overflow-hidden"
       style={{ backgroundColor: 'var(--background)' }}
     >
-      {/* Create button */}
-      <div style={{ padding: '16px 16px 0' }}>
-        <button
-          onClick={handleCreatePage}
-          className="create-page-button"
-          aria-label="新しいページを作成"
-          title="新しいページを作成"
-          style={{
-            width: '100%',
-            padding: '10px 16px',
-            borderRadius: '8px',
-            border: 'none',
-            cursor: 'pointer',
-            fontSize: '14px',
-            fontWeight: '600',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '6px',
-            transition: 'background-color 0.15s ease',
-          }}
-        >
-          <PlusIcon />
-          作成
-        </button>
-      </div>
-
       {/* Tab Navigation */}
       <div
         role="tablist"
         style={{
           display: 'flex',
           borderBottom: '1px solid rgba(var(--foreground-rgb), 0.2)',
-          margin: '12px 16px 0',
+          margin: '16px 16px 0',
           flexShrink: 0,
         }}
       >
@@ -318,11 +291,11 @@ export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
                       aria-label="ページを検索"
                       style={{
                         width: '100%',
-                        padding: '8px 12px',
+                        padding: '10px 12px',
                         fontSize: '13px',
-                        border: '1px solid rgba(var(--foreground-rgb), 0.2)',
+                        border: '1px solid rgba(var(--foreground-rgb), 0.15)',
                         borderRadius: '8px',
-                        backgroundColor: 'transparent',
+                        backgroundColor: 'rgba(var(--foreground-rgb), 0.05)',
                         color: 'var(--foreground)',
                         outline: 'none',
                         boxSizing: 'border-box',
@@ -330,27 +303,51 @@ export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
                     />
                   </div>
                 )}
-                {filteredPages.length === 0 ? (
-                  <p
-                    style={{
-                      color: 'var(--foreground)',
-                      opacity: 0.7,
-                      fontSize: '13px',
-                    }}
-                  >
-                    {searchQuery
-                      ? '一致するページが見つかりません。'
-                      : 'ページがありません。新しいページを作成しましょう。'}
-                  </p>
-                ) : (
-                  <div
-                    style={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: '8px',
-                    }}
-                  >
-                    {filteredPages.map((page) => (
+                <div
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '8px',
+                  }}
+                >
+                  {!searchQuery && (
+                    <button
+                      onClick={handleCreatePage}
+                      className="create-page-button"
+                      aria-label="新しいページを作成"
+                      title="新しいページを作成"
+                      style={{
+                        width: '100%',
+                        padding: '8px 12px',
+                        borderRadius: '8px',
+                        border: 'none',
+                        cursor: 'pointer',
+                        fontSize: '13px',
+                        fontWeight: '400',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        transition: 'background-color 0.15s ease',
+                      }}
+                    >
+                      <PlusIcon />
+                      新しいページ
+                    </button>
+                  )}
+                  {filteredPages.length === 0 ? (
+                    <p
+                      style={{
+                        color: 'var(--foreground)',
+                        opacity: 0.7,
+                        fontSize: '13px',
+                      }}
+                    >
+                      {searchQuery
+                        ? '一致するページが見つかりません。'
+                        : 'ページがありません。'}
+                    </p>
+                  ) : (
+                    filteredPages.map((page) => (
                       <PageListItem
                         key={page.id}
                         dataTestId={`page-item-${page.id}`}
@@ -367,9 +364,9 @@ export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
                         actionClassName="archive-button"
                         actionIcon={<ArchiveIcon />}
                       />
-                    ))}
-                  </div>
-                )}
+                    ))
+                  )}
+                </div>
               </div>
             )}
 
