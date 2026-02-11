@@ -1,8 +1,12 @@
 import fs from 'fs';
-import { TEST_DB_DIR } from './global-setup';
+import path from 'path';
 
 export default function globalTeardown() {
-  if (fs.existsSync(TEST_DB_DIR)) {
-    fs.rmSync(TEST_DB_DIR, { recursive: true });
+  const dbPath = process.env.DATABASE_PATH;
+  if (!dbPath) return;
+
+  const dbDir = path.dirname(dbPath);
+  if (fs.existsSync(dbDir)) {
+    fs.rmSync(dbDir, { recursive: true });
   }
 }

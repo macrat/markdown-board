@@ -1,8 +1,6 @@
 import { defineConfig, devices } from '@playwright/test';
-import { TEST_DB_PATH } from './e2e/global-setup';
 
 const TEST_PORT = 3100;
-const TEST_WS_PORT = 1334;
 
 export default defineConfig({
   testDir: './e2e',
@@ -30,11 +28,5 @@ export default defineConfig({
     url: `http://localhost:${TEST_PORT}`,
     reuseExistingServer: false,
     timeout: 120 * 1000,
-    env: {
-      ...process.env,
-      PORT: String(TEST_PORT),
-      NEXT_PUBLIC_WS_PORT: String(TEST_WS_PORT),
-      DATABASE_PATH: TEST_DB_PATH,
-    },
   },
 });
