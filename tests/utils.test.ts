@@ -147,6 +147,35 @@ describe('extractTitleFromProsemirrorJSON', () => {
     });
   });
 
+  describe('escaped heading markers', () => {
+    it('extracts literal "# hello" from paragraph (escaped heading)', () => {
+      // When Milkdown escapes a heading marker, it stores as paragraph text "# hello"
+      const json = {
+        type: 'doc',
+        content: [
+          {
+            type: 'paragraph',
+            content: [{ type: 'text', text: '# hello' }],
+          },
+        ],
+      };
+      expect(extractTitleFromProsemirrorJSON(json)).toBe('# hello');
+    });
+
+    it('extracts "## heading" from paragraph (double escaped)', () => {
+      const json = {
+        type: 'doc',
+        content: [
+          {
+            type: 'paragraph',
+            content: [{ type: 'text', text: '## heading' }],
+          },
+        ],
+      };
+      expect(extractTitleFromProsemirrorJSON(json)).toBe('## heading');
+    });
+  });
+
   describe('special characters', () => {
     it('handles unicode characters', () => {
       const json = {

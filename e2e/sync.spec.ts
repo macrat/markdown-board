@@ -1,6 +1,21 @@
 import { test, expect, Page } from '@playwright/test';
 
+/**
+ * リアルタイム同期に関するE2Eテスト。
+ *
+ * Yjs CRDTとWebSocketによる複数タブ間のリアルタイム同期を検証する。
+ * 複数のブラウザコンテキスト（タブ）間でのWebSocket通信と、
+ * ProseMirrorエディタのDOM同期が必要なため、jsdomでは原理的にテストできない。
+ */
 test.describe('Real-time Sync', () => {
+  /**
+   * タブAで入力したコンテンツがタブBにリアルタイムで反映されることを
+   * 検証する。
+   *
+   * 同じページを2つのタブで開き、一方で入力した内容がリロードなしで
+   * もう一方に表示されることを確認する。WebSocket経由のYjs同期と
+   * 複数ブラウザコンテキストが必要なため、E2Eテストでしか検証できない。
+   */
   test('should synchronize data across multiple tabs in real-time', async ({
     browser,
   }) => {
@@ -73,6 +88,16 @@ test.describe('Real-time Sync', () => {
     await context.close();
   });
 
+  /**
+   * リモートカーソル（他タブのカーソル表示）が行の高さや位置に
+   * 影響を与えないことを検証する。
+   *
+   * タブ2のカーソルを各行の先頭・末尾・空行に移動させ、タブ1での
+   * 各行のgetBoundingClientRect()が変わらないことを確認する。
+   * リモートカーソル要素（.ProseMirror-yjs-cursor）のCSSが行の
+   * レイアウトを崩さないことを保証する。複数ブラウザコンテキスト間の
+   * WebSocket同期と実際のDOM位置計算が必要なため、E2Eテストが必要。
+   */
   test('remote cursor should not affect line heights or positions', async ({
     browser,
   }) => {

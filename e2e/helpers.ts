@@ -22,5 +22,3 @@ export async function createPageWithContent(page: Page, content: string) {
   await page.waitForTimeout(2000);
   return page.url().split('/page/')[1];
 }
-
-export const MAX_TAB_ITERATIONS = 10;

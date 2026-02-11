@@ -10,8 +10,9 @@ import {
 import Sidebar from '@/components/Sidebar';
 import type { PageListItem, ArchiveListItem } from '@/lib/types';
 
+const mockPush = vi.fn();
 vi.mock('next/navigation', () => ({
-  useRouter: () => ({ push: vi.fn() }),
+  useRouter: () => ({ push: mockPush }),
   useParams: () => ({ id: 'current-page-id' }),
 }));
 
@@ -103,6 +104,7 @@ async function renderSidebar() {
 
 beforeEach(() => {
   cleanup();
+  vi.clearAllMocks();
   mockPages = [];
   mockArchives = [];
   mockToast = { visible: false, pageId: '', pageTitle: '' };
@@ -382,6 +384,125 @@ describe('Sidebar', () => {
       await renderSidebar();
 
       expect(screen.queryByText('アーカイブしました')).toBeNull();
+    });
+  });
+
+  describe('page navigation', () => {
+    it('navigates to page when page item is clicked', async () => {
+      mockPages = makePages(2);
+      await renderSidebar();
+
+      await act(async () => {
+        fireEvent.click(screen.getByText('Page 1'));
+      });
+
+      expect(mockPush).toHaveBeenCalledWith('/page/page-1');
+    });
+
+    it('navigates to different pages independently', async () => {
+      mockPages = makePages(3);
+      await renderSidebar();
+
+      await act(async () => {
+        fireEvent.click(screen.getByText('Page 1'));
+      });
+      expect(mockPush).toHaveBeenCalledWith('/page/page-1');
+
+      mockPush.mockClear();
+
+      await act(async () => {
+        fireEvent.click(screen.getByText('Page 2'));
+      });
+      expect(mockPush).toHaveBeenCalledWith('/page/page-2');
+    });
+  });
+
+  describe('create page', () => {
+    it('creates new page and navigates to it', async () => {
+      stablePageListFns.createPage.mockResolvedValue('new-page-id');
+      await renderSidebar();
+
+      const createButton = screen.getByTitle('新しいページを作成');
+      await act(async () => {
+        fireEvent.click(createButton);
+      });
+
+      expect(stablePageListFns.createPage).toHaveBeenCalled();
+      expect(mockPush).toHaveBeenCalledWith('/page/new-page-id');
+    });
+
+    it('does not navigate when createPage fails', async () => {
+      stablePageListFns.createPage.mockResolvedValue(null);
+      await renderSidebar();
+
+      const createButton = screen.getByTitle('新しいページを作成');
+      await act(async () => {
+        fireEvent.click(createButton);
+      });
+
+      expect(stablePageListFns.createPage).toHaveBeenCalled();
+      expect(mockPush).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('archive operations', () => {
+    it('archives a page: fadeOut → API → remove → add archive → toast', async () => {
+      mockPages = makePages(1);
+      stableAnimatingFns.startFadeOut.mockImplementation(
+        (_id: string, cb: () => void) => cb(),
+      );
+      stablePageListFns.findPage.mockReturnValue(mockPages[0]);
+      stableArchiveFns.archivePage.mockResolvedValue(now);
+      await renderSidebar();
+
+      const archiveButton = screen.getByLabelText('アーカイブする');
+      await act(async () => {
+        fireEvent.click(archiveButton);
+      });
+
+      expect(stableToastFns.hideToast).toHaveBeenCalled();
+      expect(stableAnimatingFns.startFadeOut).toHaveBeenCalledWith(
+        'page-1',
+        expect.any(Function),
+      );
+      expect(stableArchiveFns.archivePage).toHaveBeenCalledWith('page-1');
+      expect(stablePageListFns.removePage).toHaveBeenCalledWith('page-1');
+      expect(stableArchiveFns.addArchive).toHaveBeenCalled();
+      expect(stableToastFns.showToast).toHaveBeenCalledWith('page-1', 'Page 1');
+    });
+
+    it('cancels archive: unarchive → restore page → fade in', async () => {
+      vi.useFakeTimers();
+      const archivedPage = {
+        id: 'page-1',
+        title: 'Page 1',
+        created_at: now,
+        updated_at: now,
+        archived_at: now,
+      };
+      stableArchiveFns.findArchive.mockReturnValue(archivedPage);
+      stableArchiveFns.unarchivePage.mockResolvedValue(true);
+      mockToast = { visible: true, pageId: 'page-1', pageTitle: 'Page 1' };
+      await renderSidebar();
+
+      const cancelButton = screen.getByText('キャンセル');
+      await act(async () => {
+        fireEvent.click(cancelButton);
+      });
+
+      // Toast has an animation delay before calling onCancel
+      await act(async () => {
+        vi.advanceTimersByTime(300);
+      });
+
+      expect(stableToastFns.hideToast).toHaveBeenCalled();
+      expect(stableArchiveFns.findArchive).toHaveBeenCalledWith('page-1');
+      expect(stablePageListFns.addPage).toHaveBeenCalled();
+      expect(stableArchiveFns.removeArchive).toHaveBeenCalledWith('page-1');
+      expect(stableAnimatingFns.startFadeIn).toHaveBeenCalledWith('page-1');
+      expect(stableArchiveFns.unarchivePage).toHaveBeenCalledWith('page-1');
+
+      vi.useRealTimers();
     });
   });
 });
