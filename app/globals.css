@@ -79,9 +79,14 @@ body {
 }
 
 /* Create page button */
+.create-page-button {
+  background-color: var(--accent);
+  color: var(--background);
+}
+
 .create-page-button:hover,
 .create-page-button:focus {
-  background-color: var(--accent-light) !important;
+  background-color: var(--accent-light);
 }
 
 .create-page-button:focus-visible {

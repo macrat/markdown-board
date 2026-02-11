@@ -199,8 +199,6 @@ export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
             width: '100%',
             padding: '10px 16px',
             borderRadius: '8px',
-            backgroundColor: 'var(--accent)',
-            color: 'var(--background)',
             border: 'none',
             cursor: 'pointer',
             fontSize: '14px',
