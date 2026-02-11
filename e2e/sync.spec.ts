@@ -27,11 +27,11 @@ test.describe('Real-time Sync', () => {
     page1.on('console', (msg) => console.log('Page1:', msg.text()));
 
     await page1.goto('/');
-    await page1.waitForURL(/\/page\/.+/);
+    await page1.waitForURL(/\/p\/.+/);
     await page1.waitForLoadState('networkidle');
 
     const pageUrl = page1.url();
-    const pageId = pageUrl.split('/page/')[1];
+    const pageId = pageUrl.split('/p/')[1];
 
     console.log(`Testing sync for page: ${pageId}`);
 
@@ -105,7 +105,7 @@ test.describe('Real-time Sync', () => {
     const context = await browser.newContext();
     const page1 = await context.newPage();
     await page1.goto('/');
-    await page1.waitForURL(/\/page\/.+/);
+    await page1.waitForURL(/\/p\/.+/);
     await page1.waitForLoadState('networkidle');
 
     const pageUrl = page1.url();

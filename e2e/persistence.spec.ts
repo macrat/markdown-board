@@ -24,7 +24,7 @@ test.describe('Data Persistence', () => {
   }) => {
     // Navigate to home (auto-creates and redirects to new page)
     await page.goto('/');
-    await page.waitForURL(/\/page\/.+/);
+    await page.waitForURL(/\/p\/.+/);
     await page.waitForLoadState('networkidle');
     await page.waitForTimeout(500);
 
@@ -80,7 +80,7 @@ test.describe('Data Persistence', () => {
    */
   test('should handle rapid navigation without data loss', async ({ page }) => {
     await page.goto('/');
-    await page.waitForURL(/\/page\/.+/);
+    await page.waitForURL(/\/p\/.+/);
     await page.waitForLoadState('networkidle');
     await page.waitForTimeout(500);
 
@@ -88,7 +88,7 @@ test.describe('Data Persistence', () => {
       page,
       '# Rapid Test\n\nContent to preserve',
     );
-    const pageUrl = `/page/${pageId}`;
+    const pageUrl = `/p/${pageId}`;
 
     // Verify content is persisted (hard reload forces Yjs to load from SQLite)
     await page.goto(pageUrl);
@@ -100,14 +100,14 @@ test.describe('Data Persistence', () => {
 
     // Rapidly navigate back and forth
     await page.goto('/');
-    await page.waitForURL(/\/page\/.+/);
+    await page.waitForURL(/\/p\/.+/);
     await page.waitForTimeout(300);
 
     await page.goto(pageUrl);
     await page.waitForTimeout(300);
 
     await page.goto('/');
-    await page.waitForURL(/\/page\/.+/);
+    await page.waitForURL(/\/p\/.+/);
     await page.waitForTimeout(300);
 
     // Final navigation: verify content survives rapid navigation
