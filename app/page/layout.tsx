@@ -29,36 +29,34 @@ export default function PageLayout({
 
   return (
     <div className="h-screen flex overflow-hidden">
-      {/* Desktop sidebar */}
-      <div className="hidden md:flex md:flex-col md:w-80 md:border-r md:border-[rgba(var(--foreground-rgb),0.1)]">
+      {/* Sidebar: hidden on mobile, shown as overlay when sidebarOpen; always visible on desktop */}
+      <aside
+        className={[
+          sidebarOpen
+            ? 'fixed inset-y-0 left-0 z-50 flex flex-col w-80 max-w-[85vw] bg-[var(--background)] shadow-xl'
+            : 'hidden',
+          'md:relative md:inset-auto md:z-auto md:flex md:flex-col md:w-80 md:max-w-none md:bg-transparent md:shadow-none md:border-r md:border-[rgba(var(--foreground-rgb),0.1)]',
+        ].join(' ')}
+        role={sidebarOpen ? 'dialog' : undefined}
+        aria-modal={sidebarOpen || undefined}
+      >
         <Sidebar onNavigate={closeSidebar} />
-      </div>
+      </aside>
 
-      {/* Mobile sidebar overlay */}
+      {/* Mobile sidebar backdrop */}
       {sidebarOpen && (
         <div
-          className="fixed inset-0 z-40 md:hidden"
-          aria-modal="true"
-          role="dialog"
-        >
-          {/* Backdrop */}
-          <div
-            className="fixed inset-0 bg-black/30"
-            onClick={closeSidebar}
-            aria-hidden="true"
-          />
-          {/* Sidebar panel */}
-          <div className="fixed inset-y-0 left-0 w-80 max-w-[85vw] z-50 flex flex-col bg-[var(--background)] shadow-xl">
-            <Sidebar onNavigate={closeSidebar} />
-          </div>
-        </div>
+          className="fixed inset-0 bg-black/30 z-40 md:hidden"
+          onClick={closeSidebar}
+          aria-hidden="true"
+        />
       )}
 
       {/* Main content area */}
       <div ref={mainRef} className="flex-1 flex flex-col min-w-0 overflow-auto">
         {/* Hamburger menu button (mobile only) */}
         <button
-          className={`hamburger-menu-button md:hidden${scrolled ? ' scrolled' : ''}`}
+          className={`hamburger-menu-button flex items-center justify-center md:hidden${scrolled ? ' scrolled' : ''}`}
           onClick={openSidebar}
           aria-label="ページ一覧を開く"
         >
