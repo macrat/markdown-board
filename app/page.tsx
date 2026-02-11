@@ -1,10 +1,11 @@
 import { redirect } from 'next/navigation';
 import { uuidv7 } from 'uuidv7';
-import db from '@/lib/db';
+import getDb from '@/lib/db';
 
 export const dynamic = 'force-dynamic';
 
 export default function Home() {
+  const db = getDb();
   const id = uuidv7();
   const now = Date.now();
 
