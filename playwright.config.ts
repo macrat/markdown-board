@@ -1,11 +1,13 @@
 import { chromium, defineConfig, devices } from '@playwright/test';
 
+const isClaudeCodeRemote = process.env.CLAUDE_CODE_REMOTE === 'true';
+
 export default defineConfig({
   testDir: './e2e',
   fullyParallel: false,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
-  workers: 1,
+  workers: isClaudeCodeRemote ? 1 : process.env.CI ? 2 : 4,
   reporter: 'html',
   use: {
     baseURL: 'http://localhost:3000',
@@ -17,16 +19,18 @@ export default defineConfig({
       name: 'chromium',
       use: {
         ...devices['Desktop Chrome'],
-        launchOptions: {
-          executablePath: chromium.executablePath(),
-          args: [
-            '--no-sandbox',
-            '--disable-setuid-sandbox',
-            '--disable-dev-shm-usage',
-            '--disable-gpu',
-            '--no-zygote',
-          ],
-        },
+        ...(isClaudeCodeRemote && {
+          launchOptions: {
+            executablePath: chromium.executablePath(),
+            args: [
+              '--no-sandbox',
+              '--disable-setuid-sandbox',
+              '--disable-dev-shm-usage',
+              '--disable-gpu',
+              '--no-zygote',
+            ],
+          },
+        }),
       },
     },
   ],
