@@ -1,15 +1,17 @@
 import { describe, it, expect } from 'vitest';
 import { unified } from 'unified';
 import remarkParse from 'remark-parse';
+import remarkGfm from 'remark-gfm';
 import type { Root, RootContent } from 'mdast';
 
 /**
- * Milkdown uses remark (via @milkdown/preset-commonmark) to parse
- * CommonMark markdown into an AST, which is then converted to ProseMirror
- * nodes for rendering. These tests verify the parsing pipeline that
- * underpins the editor's markdown rendering.
+ * Milkdown uses remark (via @milkdown/preset-gfm) to parse
+ * GFM (GitHub Flavored Markdown) into an AST, which is then converted
+ * to ProseMirror nodes for rendering. These tests verify the parsing
+ * pipeline that underpins the editor's markdown rendering.
  */
 const parser = unified().use(remarkParse);
+const gfmParser = unified().use(remarkParse).use(remarkGfm);
 
 function parse(markdown: string): Root {
   return parser.parse(markdown);
@@ -237,6 +239,73 @@ describe('CommonMark markdown parsing', () => {
         .join('');
       expect(allText).toContain('<div>');
       expect(allText).toContain('<script>');
+    });
+  });
+});
+
+function parseGfm(markdown: string): Root {
+  return gfmParser.parse(markdown);
+}
+
+function gfmFirstChild(root: Root): RootContent {
+  return root.children[0];
+}
+
+describe('GFM markdown parsing', () => {
+  describe('strikethrough', () => {
+    it('parses strikethrough text', () => {
+      const ast = parseGfm('~~deleted text~~');
+      const para = gfmFirstChild(ast);
+      expect(para.type).toBe('paragraph');
+      if (para.type === 'paragraph') {
+        expect(para.children[0]).toMatchObject({ type: 'delete' });
+        const del = para.children[0];
+        if (del.type === 'delete') {
+          expect(del.children[0]).toMatchObject({
+            type: 'text',
+            value: 'deleted text',
+          });
+        }
+      }
+    });
+  });
+
+  describe('tables', () => {
+    it('parses a simple table', () => {
+      const md = `| Name | Age |
+| --- | --- |
+| Alice | 30 |
+| Bob | 25 |`;
+
+      const ast = parseGfm(md);
+      const table = gfmFirstChild(ast);
+      expect(table.type).toBe('table');
+      if (table.type === 'table') {
+        expect(table.children).toHaveLength(3);
+        const headerRow = table.children[0];
+        expect(headerRow.type).toBe('tableRow');
+        if (headerRow.type === 'tableRow') {
+          expect(headerRow.children).toHaveLength(2);
+        }
+      }
+    });
+  });
+
+  describe('task lists', () => {
+    it('parses task list items', () => {
+      const md = `- [ ] Unchecked task
+- [x] Checked task
+- Regular item`;
+
+      const ast = parseGfm(md);
+      const list = gfmFirstChild(ast);
+      expect(list.type).toBe('list');
+      if (list.type === 'list') {
+        expect(list.children).toHaveLength(3);
+        expect(list.children[0].checked).toBe(false);
+        expect(list.children[1].checked).toBe(true);
+        expect(list.children[2].checked).toBeNull();
+      }
     });
   });
 });
