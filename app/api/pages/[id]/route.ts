@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import db from '@/lib/db';
+import getDb from '@/lib/db';
 import { logger } from '@/lib/logger';
 
 export async function GET(
@@ -7,6 +7,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
+    const db = getDb();
     const { id } = await params;
 
     const stmt = db.prepare(`
@@ -36,6 +37,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
+    const db = getDb();
     const { id } = await params;
 
     const deleteTransaction = db.transaction(() => {

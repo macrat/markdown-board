@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import db from '@/lib/db';
+import getDb from '@/lib/db';
 import { logger } from '@/lib/logger';
 
 export async function POST(
@@ -7,6 +7,7 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
+    const db = getDb();
     const { id } = await params;
     const now = Date.now();
 
