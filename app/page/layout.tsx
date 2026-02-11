@@ -28,7 +28,7 @@ export default function PageLayout({
   }, []);
 
   return (
-    <div className="h-screen flex overflow-hidden">
+    <div className="h-dvh flex overflow-hidden">
       {/* Sidebar: hidden on mobile, shown as overlay when sidebarOpen; always visible on desktop */}
       <aside
         className={[
