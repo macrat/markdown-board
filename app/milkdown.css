@@ -108,7 +108,7 @@
 .milkdown .ProseMirror {
   outline: none;
   white-space: pre-wrap;
-  padding: 0 1rem;
+  padding: 4rem 1rem 0;
 }
 
 .milkdown .ProseMirror p:first-child:only-child:empty {
