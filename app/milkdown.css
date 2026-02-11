@@ -111,6 +111,12 @@
   padding: 4rem 1rem 0;
 }
 
+@media (min-width: 768px) {
+  .milkdown .ProseMirror {
+    padding-top: 2rem;
+  }
+}
+
 .milkdown .ProseMirror p:first-child:only-child:empty {
   position: relative;
 }
