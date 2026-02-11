@@ -42,7 +42,7 @@
   list-style-type: disc;
   margin-bottom: 1rem;
   padding-left: 2rem;
-  color: #574a46;
+  color: var(--foreground);
 }
 
 .milkdown ol {
