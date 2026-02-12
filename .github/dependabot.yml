@@ -11,3 +11,8 @@ updates:
     directory: '/'
     schedule:
       interval: 'weekly'
+    ignore:
+      # ADR-0008: gVisor環境のプリインストール済みブラウザに合わせて固定
+      - dependency-name: '@playwright/test'
+      - dependency-name: 'playwright'
+      - dependency-name: 'playwright-core'

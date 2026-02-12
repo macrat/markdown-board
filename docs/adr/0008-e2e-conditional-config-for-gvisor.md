@@ -61,6 +61,7 @@ E2Eテストが全く実行できない状態は、テスト設定に環境分�
 
 - `playwright.config.ts`: `CLAUDE_CODE_REMOTE` 環境変数による Chromium 起動設定の条件分岐
 - `package.json` / `package-lock.json`: `@playwright/test` を v1.56.1 に固定
+- `.github/dependabot.yml`: Playwright 関連パッケージを自動更新の対象外に設定
 
 ### 関連コミット
 
@@ -75,7 +76,11 @@ E2Eテストが全く実行できない状態は、テスト設定に環境分�
 - **Claude Code Web の実行環境が変わった場合**: 別の回避策が必要になるか、回避策が不要になる可能性がある
 - **Playwright がこの問題に対する公式の対応を提供した場合**: Playwright 側の設定に移行する
 
-除去する際は、`isClaudeCodeRemote` に関連する条件分岐を削除し、通常の環境と同じ設定に統一すればよい。
+除去する際は、以下の作業を行う。
+
+1. `playwright.config.ts` から `isClaudeCodeRemote` に関連する条件分岐を削除し、`chromium` のインポートも不要なら除去する
+2. `.github/dependabot.yml` の `ignore` セクションから `@playwright/test`、`playwright`、`playwright-core` の3エントリを削除し、Dependabot による自動更新を再開する
+3. `@playwright/test` を最新バージョンに更新し、`npx playwright install` でブラウザバイナリを取得する
 
 ## 代替案
 
