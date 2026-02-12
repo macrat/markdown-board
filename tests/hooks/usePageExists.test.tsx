@@ -25,7 +25,8 @@ describe('usePageExists', () => {
     const mockFetch = vi.fn().mockResolvedValue({
       ok: true,
       status: 200,
-    } as Response);
+      json: () => Promise.resolve({ id: 'page-1', archived_at: null }),
+    } as unknown as Response);
     vi.stubGlobal('fetch', mockFetch);
 
     const { result } = renderHook(() => usePageExists('page-1'));
@@ -38,7 +39,27 @@ describe('usePageExists', () => {
     });
 
     expect(result.current.error).toBe(null);
+    expect(result.current.archivedAt).toBeNull();
     expect(mockFetch).toHaveBeenCalledWith('/api/pages/page-1');
+  });
+
+  it('sets archivedAt when page is archived', async () => {
+    const archivedTimestamp = 1700000000000;
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: () =>
+        Promise.resolve({ id: 'page-1', archived_at: archivedTimestamp }),
+    } as unknown as Response);
+    vi.stubGlobal('fetch', mockFetch);
+
+    const { result } = renderHook(() => usePageExists('page-1'));
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+
+    expect(result.current.archivedAt).toBe(archivedTimestamp);
   });
 
   it('sets not-found error on 404', async () => {
@@ -101,7 +122,11 @@ describe('usePageExists', () => {
 
     unmount();
 
-    resolvePromise({ ok: true, status: 200 } as Response);
+    resolvePromise({
+      ok: true,
+      status: 200,
+      json: () => Promise.resolve({ id: 'page-1', archived_at: null }),
+    } as unknown as Response);
 
     await new Promise((resolve) => setTimeout(resolve, 10));
 

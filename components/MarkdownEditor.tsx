@@ -1,9 +1,13 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useCollabEditor } from '@/hooks/useCollabEditor';
 import type { PageError } from '@/hooks/usePageExists';
+import { logResponseError } from '@/lib/api';
+import { logger } from '@/lib/logger';
+import { UnarchiveIcon } from './Icons';
 import '../app/milkdown.css';
 
 const errorMessages: Record<PageError, string> = {
@@ -12,13 +16,48 @@ const errorMessages: Record<PageError, string> = {
 };
 
 export default function MarkdownEditor({ pageId }: { pageId: string }) {
-  const { loading, error, peerCount, wsConnected, editorRef } =
+  const { loading, error, readOnly, peerCount, wsConnected, editorRef } =
     useCollabEditor(pageId);
+  const [unarchiving, setUnarchiving] = useState(false);
+  const router = useRouter();
+
+  const handleUnarchive = useCallback(async () => {
+    setUnarchiving(true);
+    try {
+      const response = await fetch(`/api/pages/${pageId}/unarchive`, {
+        method: 'POST',
+      });
+      if (response.ok) {
+        router.push(`/p/${pageId}`);
+        router.refresh();
+      } else {
+        await logResponseError('Unarchive', response);
+      }
+    } catch (error) {
+      logger.error('[MarkdownEditor] Unarchive failed:', error);
+    } finally {
+      setUnarchiving(false);
+    }
+  }, [pageId, router]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // Ctrl+S / Cmd+S: suppress browser save dialog
       if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault();
+      }
+
+      // Tab/Shift+Tab: prevent focus from leaving the editor.
+      // ProseMirror's keymap plugin handles Tab for list indentation
+      // (sinkListItem/liftListItem). When these commands succeed, the keymap
+      // plugin calls preventDefault. This fallback catches cases where
+      // the list commands don't apply (e.g., cursor is not in a list).
+      if (
+        e.key === 'Tab' &&
+        !e.defaultPrevented &&
+        document.activeElement &&
+        editorRef.current?.contains(document.activeElement)
+      ) {
         e.preventDefault();
       }
 
@@ -67,8 +106,28 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
 
   return (
     <div className="flex-1 flex flex-col min-h-0 relative">
+      {/* Archive banner for read-only archived pages */}
+      {readOnly && (
+        <div
+          role="status"
+          className="archive-banner"
+          data-testid="archive-banner"
+        >
+          <span>アーカイブされているため編集できません</span>
+          <button
+            onClick={handleUnarchive}
+            disabled={unarchiving}
+            className="archive-banner-button"
+            aria-label="アーカイブを解除する"
+          >
+            <UnarchiveIcon />
+            アーカイブを解除
+          </button>
+        </div>
+      )}
+
       {/* Indicators container (fixed, top-right) */}
-      {(!wsConnected || peerCount > 0) && (
+      {!readOnly && (!wsConnected || peerCount > 0) && (
         <div className="indicators-container">
           {!wsConnected && (
             <div
