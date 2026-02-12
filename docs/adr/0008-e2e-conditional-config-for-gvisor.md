@@ -79,7 +79,7 @@ E2Eテストが全く実行できない状態は、テスト設定に環境分�
 除去する際は、以下の作業を行う。
 
 1. `playwright.config.ts` から `isClaudeCodeRemote` に関連する条件分岐を削除し、`chromium` のインポートも不要なら除去する
-2. `.github/dependabot.yml` の `ignore` セクションから `@playwright/test`、`playwright`、`playwright-core` の3エントリを削除し、Dependabot による自動更新を再開する
+2. `.github/dependabot.yml` の `ignore` セクションから `@playwright/test` のエントリを削除し、Dependabot による自動更新を再開する
 3. `@playwright/test` を最新バージョンに更新し、`npx playwright install` でブラウザバイナリを取得する
 
 ## 代替案
