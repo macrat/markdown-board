@@ -122,20 +122,6 @@ export default function Toast({
           fontSize: '14px',
           transition: 'background-color 0.15s ease',
         }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.backgroundColor =
-            'rgba(var(--accent-light-rgb), 0.2)';
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.backgroundColor = 'transparent';
-        }}
-        onFocus={(e) => {
-          e.currentTarget.style.backgroundColor =
-            'rgba(var(--accent-light-rgb), 0.2)';
-        }}
-        onBlur={(e) => {
-          e.currentTarget.style.backgroundColor = 'transparent';
-        }}
       >
         キャンセル
       </button>
