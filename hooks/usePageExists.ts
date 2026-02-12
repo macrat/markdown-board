@@ -16,10 +16,12 @@ export function usePageExists(pageId: string) {
         if (!isMounted) return;
 
         if (!response.ok) {
+          const errorType =
+            response.status === 404 ? 'not-found' : 'network-error';
           logger.error(
-            `[Editor] Page not found: ${pageId} (${response.status})`,
+            `[Editor] Page check failed: ${pageId} (${response.status})`,
           );
-          setError('not-found');
+          setError(errorType);
           setLoading(false);
           return;
         }

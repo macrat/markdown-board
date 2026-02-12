@@ -57,6 +57,22 @@ describe('usePageExists', () => {
     expect(result.current.error).toBe('not-found');
   });
 
+  it('sets network-error on server error (500)', async () => {
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 500,
+    } as Response);
+    vi.stubGlobal('fetch', mockFetch);
+
+    const { result } = renderHook(() => usePageExists('page-1'));
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+
+    expect(result.current.error).toBe('network-error');
+  });
+
   it('sets network-error on fetch failure', async () => {
     const mockFetch = vi.fn().mockRejectedValue(new Error('Network failure'));
     vi.stubGlobal('fetch', mockFetch);
