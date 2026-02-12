@@ -74,16 +74,20 @@ describe('MarkdownEditor', () => {
     });
 
     render(<MarkdownEditor pageId="page-1" />);
-    const offlineStatus =
-      screen.getByLabelText('サーバーとの接続が切れています');
+    const offlineStatus = screen.getByLabelText(
+      'サーバーとの接続が切れています。編集内容は保持され、再接続時に自動で同期されます',
+    );
     expect(offlineStatus).toBeTruthy();
     expect(offlineStatus.textContent).toContain('オフライン');
+    expect(offlineStatus.textContent).toContain('再接続時に同期');
   });
 
   it('does not show offline indicator when connected', () => {
     render(<MarkdownEditor pageId="page-1" />);
     expect(
-      screen.queryByLabelText('サーバーとの接続が切れています'),
+      screen.queryByLabelText(
+        'サーバーとの接続が切れています。編集内容は保持され、再接続時に自動で同期されます',
+      ),
     ).toBeNull();
   });
 

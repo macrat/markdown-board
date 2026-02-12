@@ -50,7 +50,8 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
             <div
               role="status"
               aria-live="assertive"
-              aria-label="サーバーとの接続が切れています"
+              aria-label="サーバーとの接続が切れています。編集内容は保持され、再接続時に自動で同期されます"
+              title="編集内容は保持され、再接続時に自動で同期されます"
               className="connection-status-indicator"
             >
               <svg
@@ -72,7 +73,7 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
                 <path d="M8.53 16.11a6 6 0 0 1 6.95 0" />
                 <line x1="12" y1="20" x2="12.01" y2="20" />
               </svg>
-              オフライン
+              オフライン（再接続時に同期）
             </div>
           )}
           {peerCount > 0 && (
@@ -80,6 +81,7 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
               role="status"
               aria-live="polite"
               aria-label={`他に${peerCount}人が接続中`}
+              title={`他に${peerCount}人が接続中`}
               className="peer-count-indicator"
             >
               <svg
@@ -99,6 +101,7 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
                 <path d="M16 3.13a4 4 0 0 1 0 7.75" />
               </svg>
               {peerCount}
+              <span aria-hidden="true">人</span>
             </div>
           )}
         </div>
