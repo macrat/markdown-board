@@ -1,7 +1,7 @@
 import type Database from 'better-sqlite3';
 import { openDatabase } from '../server/db-config';
 
-let _db: Database.Database | undefined;
+let _db: Database.Database | null = null;
 
 export default function getDb(): Database.Database {
   if (_db) return _db;
