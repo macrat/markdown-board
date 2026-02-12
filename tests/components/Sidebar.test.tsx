@@ -317,6 +317,79 @@ describe('Sidebar', () => {
     });
   });
 
+  describe('archive search', () => {
+    it('shows search field on archive tab', async () => {
+      mockArchives = makeArchives(2);
+      await renderSidebar();
+
+      const archiveTab = screen.getByRole('tab', { name: 'アーカイブ' });
+      await act(async () => {
+        fireEvent.click(archiveTab);
+      });
+
+      expect(screen.getByLabelText('アーカイブを検索')).toBeTruthy();
+    });
+
+    it('filters archives by search query', async () => {
+      mockArchives = makeArchives(3);
+      await renderSidebar();
+
+      const archiveTab = screen.getByRole('tab', { name: 'アーカイブ' });
+      await act(async () => {
+        fireEvent.click(archiveTab);
+      });
+
+      const searchInput = screen.getByLabelText('アーカイブを検索');
+      await act(async () => {
+        fireEvent.change(searchInput, { target: { value: 'Archived 1' } });
+      });
+
+      expect(screen.getByText('Archived 1')).toBeTruthy();
+      expect(screen.queryByText('Archived 2')).toBeNull();
+    });
+
+    it('shows no-results message when archive search matches nothing', async () => {
+      mockArchives = makeArchives(2);
+      await renderSidebar();
+
+      const archiveTab = screen.getByRole('tab', { name: 'アーカイブ' });
+      await act(async () => {
+        fireEvent.click(archiveTab);
+      });
+
+      const searchInput = screen.getByLabelText('アーカイブを検索');
+      await act(async () => {
+        fireEvent.change(searchInput, {
+          target: { value: 'zzz-nonexistent' },
+        });
+      });
+
+      expect(screen.getByText('一致するページが見つかりません。')).toBeTruthy();
+    });
+
+    it('shows all archives when search is cleared', async () => {
+      mockArchives = makeArchives(3);
+      await renderSidebar();
+
+      const archiveTab = screen.getByRole('tab', { name: 'アーカイブ' });
+      await act(async () => {
+        fireEvent.click(archiveTab);
+      });
+
+      const searchInput = screen.getByLabelText('アーカイブを検索');
+      await act(async () => {
+        fireEvent.change(searchInput, { target: { value: 'Archived 1' } });
+      });
+      await act(async () => {
+        fireEvent.change(searchInput, { target: { value: '' } });
+      });
+
+      for (let i = 1; i <= 3; i++) {
+        expect(screen.getByText(`Archived ${i}`)).toBeTruthy();
+      }
+    });
+  });
+
   describe('page list rendering', () => {
     it('renders page items with correct data-testid', async () => {
       mockPages = makePages(2);

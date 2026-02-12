@@ -76,6 +76,7 @@ export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
   const [activeTab, setActiveTab] = useState<Tab>('latest');
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [archiveSearchQuery, setArchiveSearchQuery] = useState('');
   const [now, setNow] = useState(() => Date.now());
   const router = useRouter();
   const params = useParams();
@@ -109,6 +110,12 @@ export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
     const query = searchQuery.toLowerCase();
     return pages.filter((page) => page.title.toLowerCase().includes(query));
   }, [pages, searchQuery]);
+
+  const filteredArchives = useMemo(() => {
+    if (!archiveSearchQuery) return archives;
+    const query = archiveSearchQuery.toLowerCase();
+    return archives.filter((page) => page.title.toLowerCase().includes(query));
+  }, [archives, archiveSearchQuery]);
 
   useEffect(() => {
     const loadData = async () => {
@@ -392,14 +399,36 @@ export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
                 >
                   30日間保持されます
                 </p>
-                {archives.length === 0 ? (
+                <div style={{ marginBottom: '12px' }}>
+                  <input
+                    type="text"
+                    value={archiveSearchQuery}
+                    onChange={(e) => setArchiveSearchQuery(e.target.value)}
+                    placeholder="アーカイブを検索..."
+                    aria-label="アーカイブを検索"
+                    style={{
+                      width: '100%',
+                      padding: '10px 12px',
+                      fontSize: '13px',
+                      border: '1px solid rgba(var(--foreground-rgb), 0.15)',
+                      borderRadius: '8px',
+                      backgroundColor: 'rgba(var(--foreground-rgb), 0.05)',
+                      color: 'var(--foreground)',
+                      outline: 'none',
+                      boxSizing: 'border-box',
+                    }}
+                  />
+                </div>
+                {filteredArchives.length === 0 ? (
                   <p
                     style={{
                       color: 'var(--foreground-muted)',
                       fontSize: '13px',
                     }}
                   >
-                    アーカイブされたページはありません。
+                    {archiveSearchQuery
+                      ? '一致するページが見つかりません。'
+                      : 'アーカイブされたページはありません。'}
                   </p>
                 ) : (
                   <div
@@ -409,7 +438,7 @@ export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
                       gap: '8px',
                     }}
                   >
-                    {archives.map((page) => (
+                    {filteredArchives.map((page) => (
                       <PageListItem
                         key={page.id}
                         dataTestId={`archive-item-${page.id}`}
