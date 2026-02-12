@@ -10,6 +10,7 @@ export function formatRelativeTime(
 ): string {
   const diff = now - timestamp;
 
+  // Negative diff can occur from server/client clock skew; treat as "just now"
   if (diff < 0) {
     return 'たった今';
   }

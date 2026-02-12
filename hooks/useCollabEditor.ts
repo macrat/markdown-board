@@ -11,6 +11,66 @@ import { WebsocketProvider } from 'y-websocket';
 // Timeout for waiting for Yjs sync to complete (in milliseconds)
 const SYNC_TIMEOUT_MS = 500;
 
+function buildWsUrl(): string {
+  const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+  const wsHost = window.location.hostname;
+  const wsPort = process.env.NEXT_PUBLIC_WS_PORT || '1234';
+  return `${wsProtocol}//${wsHost}:${wsPort}`;
+}
+
+function waitForSync(
+  provider: WebsocketProvider,
+  timeoutMs: number,
+): Promise<void> {
+  return new Promise<void>((resolve) => {
+    const handleSync = (isSynced: boolean) => {
+      if (isSynced) {
+        provider.off('sync', handleSync);
+        clearTimeout(timeout);
+        logger.log('[Yjs] Sync complete');
+        resolve();
+      }
+    };
+
+    provider.on('sync', handleSync);
+
+    const timeout = setTimeout(() => {
+      provider.off('sync', handleSync);
+      logger.log('[Yjs] Sync timeout, proceeding');
+      resolve();
+    }, timeoutMs);
+  });
+}
+
+function createMilkdownEditor(
+  container: HTMLElement,
+  ydoc: Y.Doc,
+  awareness: WebsocketProvider['awareness'],
+): Promise<Editor> {
+  return Editor.make()
+    .config((ctx) => {
+      ctx.set(rootCtx, container);
+    })
+    .use(commonmark)
+    .use(gfm)
+    .use(collab)
+    .config((ctx) => {
+      const collabService = ctx.get(collabServiceCtx);
+      collabService.bindDoc(ydoc);
+      collabService.setAwareness(awareness);
+      collabService.mergeOptions({
+        yCursorOpts: {
+          cursorBuilder: () => {
+            const cursor = document.createElement('span');
+            cursor.classList.add('ProseMirror-yjs-cursor');
+            return cursor;
+          },
+        },
+      });
+    })
+    .create();
+}
+
 function safeDestroy(
   resource: { destroy(): void } | null,
   label: string,
@@ -35,7 +95,6 @@ export function useCollabEditor(pageId: string) {
     null,
   );
   const initTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const syncTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const autoFocusTimerRef = useRef<NodeJS.Timeout | null>(null);
   const isMountedRef = useRef(false);
   const isInitializingRef = useRef(false);
@@ -94,11 +153,7 @@ export function useCollabEditor(pageId: string) {
         ydocRef.current = ydoc;
 
         // Connect to WebSocket server for collaborative editing
-        const wsProtocol =
-          window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const wsHost = window.location.hostname;
-        const wsPort = process.env.NEXT_PUBLIC_WS_PORT || '1234';
-        const wsUrl = `${wsProtocol}//${wsHost}:${wsPort}`;
+        const wsUrl = buildWsUrl();
 
         const provider = new WebsocketProvider(wsUrl, pageId, ydoc);
         providerRef.current = provider;
@@ -122,29 +177,7 @@ export function useCollabEditor(pageId: string) {
         logger.log(`[WebSocket] Connecting to room: ${pageId} at ${wsUrl}`);
 
         // Wait for initial sync to complete
-        await new Promise<void>((resolve) => {
-          const handleSync = (isSynced: boolean) => {
-            if (isSynced) {
-              provider.off('sync', handleSync);
-              if (syncTimeoutRef.current) {
-                clearTimeout(syncTimeoutRef.current);
-                syncTimeoutRef.current = null;
-              }
-              logger.log('[Yjs] Sync complete');
-              resolve();
-            }
-          };
-
-          provider.on('sync', handleSync);
-
-          // Timeout fallback in case sync takes too long
-          syncTimeoutRef.current = setTimeout(() => {
-            syncTimeoutRef.current = null;
-            provider.off('sync', handleSync);
-            logger.log('[Yjs] Sync timeout, proceeding');
-            resolve();
-          }, SYNC_TIMEOUT_MS);
-        });
+        await waitForSync(provider, SYNC_TIMEOUT_MS);
 
         // Abort if component unmounted during sync wait
         if (!isMountedRef.current) {
@@ -155,29 +188,11 @@ export function useCollabEditor(pageId: string) {
           return;
         }
 
-        const editor = await Editor.make()
-          .config((ctx) => {
-            ctx.set(rootCtx, editorRef.current!);
-          })
-          .use(commonmark)
-          .use(gfm)
-          .use(collab)
-          .config((ctx) => {
-            // Configure collab service AFTER loading the plugin
-            const collabService = ctx.get(collabServiceCtx);
-            collabService.bindDoc(ydoc);
-            collabService.setAwareness(provider.awareness);
-            collabService.mergeOptions({
-              yCursorOpts: {
-                cursorBuilder: () => {
-                  const cursor = document.createElement('span');
-                  cursor.classList.add('ProseMirror-yjs-cursor');
-                  return cursor;
-                },
-              },
-            });
-          })
-          .create();
+        const editor = await createMilkdownEditor(
+          editorRef.current!,
+          ydoc,
+          provider.awareness,
+        );
 
         // If component unmounted during initialization, clean up and bail out
         if (!isMountedRef.current) {
@@ -221,7 +236,8 @@ export function useCollabEditor(pageId: string) {
       }
     };
 
-    // Small delay to ensure DOM is ready
+    // Milkdown requires the container to be fully laid out before initialization.
+    // useEffect fires after paint, but React may not have flushed the ref'd element yet.
     initTimeoutRef.current = setTimeout(() => {
       initTimeoutRef.current = null;
       if (isMountedRef.current) {
@@ -233,9 +249,6 @@ export function useCollabEditor(pageId: string) {
       document.title = 'Markdown Board';
       if (initTimeoutRef.current) {
         clearTimeout(initTimeoutRef.current);
-      }
-      if (syncTimeoutRef.current) {
-        clearTimeout(syncTimeoutRef.current);
       }
       if (autoFocusTimerRef.current) {
         clearTimeout(autoFocusTimerRef.current);

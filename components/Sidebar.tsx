@@ -16,6 +16,60 @@ import { useArchiveToast } from '@/hooks/useArchiveToast';
 
 type Tab = 'latest' | 'archive';
 
+interface TabButtonProps {
+  id: string;
+  label: string;
+  isActive: boolean;
+  controls: string;
+  onClick: () => void;
+  onSwitchTab: () => void;
+  switchTargetId: string;
+}
+
+function TabButton({
+  id,
+  label,
+  isActive,
+  controls,
+  onClick,
+  onSwitchTab,
+  switchTargetId,
+}: TabButtonProps) {
+  return (
+    <button
+      id={id}
+      role="tab"
+      className="tab-button"
+      tabIndex={isActive ? 0 : -1}
+      aria-selected={isActive}
+      aria-controls={controls}
+      onClick={onClick}
+      onKeyDown={(e) => {
+        if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
+          e.preventDefault();
+          onSwitchTab();
+          document.getElementById(switchTargetId)?.focus();
+        }
+      }}
+      style={{
+        padding: '12px 24px',
+        backgroundColor: 'transparent',
+        border: 'none',
+        borderBottom: isActive
+          ? '2px solid var(--accent)'
+          : '2px solid transparent',
+        color: isActive ? 'var(--accent)' : 'var(--foreground)',
+        fontWeight: isActive ? '600' : '400',
+        cursor: 'pointer',
+        transition: 'all 0.15s ease',
+        fontSize: '14px',
+      }}
+    >
+      {label}
+    </button>
+  );
+}
+
 const SEARCH_VISIBLE_THRESHOLD = 5;
 const RELATIVE_TIME_UPDATE_INTERVAL_MS = 30_000;
 
@@ -69,7 +123,8 @@ export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
     loadData();
   }, [fetchPages, fetchArchives]);
 
-  // Refetch page list when navigating to a different page
+  // Tracks the last-fetched page ID so we only refetch on navigation to a
+  // different page, not on initial mount (which is handled by loadData above).
   const initialPageIdRef = useRef(currentPageId);
   useEffect(() => {
     if (currentPageId && currentPageId !== initialPageIdRef.current) {
@@ -198,72 +253,24 @@ export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
           flexShrink: 0,
         }}
       >
-        <button
+        <TabButton
           id="tab-latest"
-          role="tab"
-          className="tab-button"
-          tabIndex={activeTab === 'latest' ? 0 : -1}
-          aria-selected={activeTab === 'latest'}
-          aria-controls="tabpanel-latest"
+          label="最新"
+          isActive={activeTab === 'latest'}
+          controls="tabpanel-latest"
           onClick={() => setActiveTab('latest')}
-          onKeyDown={(e) => {
-            if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
-              e.preventDefault();
-              setActiveTab('archive');
-              document.getElementById('tab-archive')?.focus();
-            }
-          }}
-          style={{
-            padding: '12px 24px',
-            backgroundColor: 'transparent',
-            border: 'none',
-            borderBottom:
-              activeTab === 'latest'
-                ? '2px solid var(--accent)'
-                : '2px solid transparent',
-            color:
-              activeTab === 'latest' ? 'var(--accent)' : 'var(--foreground)',
-            fontWeight: activeTab === 'latest' ? '600' : '400',
-            cursor: 'pointer',
-            transition: 'all 0.15s ease',
-            fontSize: '14px',
-          }}
-        >
-          最新
-        </button>
-        <button
+          onSwitchTab={() => setActiveTab('archive')}
+          switchTargetId="tab-archive"
+        />
+        <TabButton
           id="tab-archive"
-          role="tab"
-          className="tab-button"
-          tabIndex={activeTab === 'archive' ? 0 : -1}
-          aria-selected={activeTab === 'archive'}
-          aria-controls="tabpanel-archive"
+          label="アーカイブ"
+          isActive={activeTab === 'archive'}
+          controls="tabpanel-archive"
           onClick={() => setActiveTab('archive')}
-          onKeyDown={(e) => {
-            if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
-              e.preventDefault();
-              setActiveTab('latest');
-              document.getElementById('tab-latest')?.focus();
-            }
-          }}
-          style={{
-            padding: '12px 24px',
-            backgroundColor: 'transparent',
-            border: 'none',
-            borderBottom:
-              activeTab === 'archive'
-                ? '2px solid var(--accent)'
-                : '2px solid transparent',
-            color:
-              activeTab === 'archive' ? 'var(--accent)' : 'var(--foreground)',
-            fontWeight: activeTab === 'archive' ? '600' : '400',
-            cursor: 'pointer',
-            transition: 'all 0.15s ease',
-            fontSize: '14px',
-          }}
-        >
-          アーカイブ
-        </button>
+          onSwitchTab={() => setActiveTab('latest')}
+          switchTargetId="tab-latest"
+        />
       </div>
 
       {/* Scrollable content area */}

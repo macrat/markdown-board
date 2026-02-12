@@ -9,6 +9,8 @@ import {
 
 export function usePageList() {
   const [pages, setPages] = useState<PageListItem[]>([]);
+  // Ref lets findPage keep a stable identity (empty deps) while reading latest state.
+  // Using pages directly would cascade re-creation through every dependent useCallback.
   const pagesRef = useRef<PageListItem[]>([]);
 
   useEffect(() => {

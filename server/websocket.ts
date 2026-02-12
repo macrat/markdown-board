@@ -23,14 +23,19 @@ import { yDocToProsemirrorJSON } from 'y-prosemirror';
 import { createDebouncer } from 'lib0/eventloop';
 import { extractTitleFromProsemirrorJSON } from './extract-title';
 
+// NEXT_PUBLIC_ prefix: single source of truth shared with the client (useCollabEditor.ts).
+// A separate WS_PORT would risk port mismatch between client and server.
 const PORT = process.env.NEXT_PUBLIC_WS_PORT || 1234;
 const TITLE_SYNC_DEBOUNCE_MS = 3000;
 const TITLE_SYNC_MAX_WAIT_MS = 10000;
+// Yjs encodes an empty document as 2 bytes: [0, 0]
+const EMPTY_YJS_STATE_SIZE = 2;
 
 // Open a persistent DB connection for the WebSocket server process
 const db = openDatabase();
 
-// Ensure pages table exists (in case WS server starts before Next.js)
+// Minimal schema duplicated from lib/db.ts because this process starts
+// independently and may run before Next.js initializes its own DB connection.
 db.exec(`
   CREATE TABLE IF NOT EXISTS pages (
     id TEXT PRIMARY KEY,
@@ -44,8 +49,12 @@ db.exec(`
 const persistence = new YjsSqlitePersistence(db);
 
 // Per-document debouncer map for title sync
-const titleDebouncers = new Map<string, (cb: (() => void) | null) => void>();
+type DebounceFn = (cb: (() => void) | null) => void;
+const titleDebouncers = new Map<string, DebounceFn>();
 
+// Strict local types for isDocEmpty/hasText traversal.
+// extract-title.ts intentionally uses Record<string, unknown> to accept
+// untyped output from yDocToProsemirrorJSON without casts at call sites.
 interface ProseMirrorNode {
   type: string;
   text?: string;
@@ -56,19 +65,19 @@ interface ProseMirrorJSON {
   content?: ProseMirrorNode[];
 }
 
+function hasText(nodes: ProseMirrorNode[]): boolean {
+  for (const node of nodes) {
+    if (node.type === 'text' && typeof node.text === 'string') {
+      if (node.text.trim().length > 0) return true;
+    }
+    if (node.content && hasText(node.content)) return true;
+  }
+  return false;
+}
+
 function isDocEmpty(json: ProseMirrorJSON): boolean {
   const content = json?.content;
   if (!content || content.length === 0) return true;
-
-  function hasText(nodes: ProseMirrorNode[]): boolean {
-    for (const node of nodes) {
-      if (node.type === 'text' && typeof node.text === 'string') {
-        if (node.text.trim().length > 0) return true;
-      }
-      if (node.content && hasText(node.content)) return true;
-    }
-    return false;
-  }
 
   for (const node of content) {
     if (node.content && hasText(node.content)) return false;
@@ -103,8 +112,7 @@ setPersistence({
     const persistedYdoc = persistence.getYDoc(docName);
 
     const currentState = Y.encodeStateAsUpdate(persistedYdoc);
-    // Empty state is 2 bytes [0, 0]
-    if (currentState.length > 2) {
+    if (currentState.length > EMPTY_YJS_STATE_SIZE) {
       Y.applyUpdate(ydoc, currentState);
     }
     persistedYdoc.destroy();
@@ -178,7 +186,8 @@ const wss = new WebSocketServer({ server });
 console.log(`✓ WebSocket server running on ws://localhost:${PORT}`);
 
 wss.on('connection', (conn, req) => {
-  const roomName = req.url?.slice(1) || 'default';
+  const roomName =
+    new URL(req.url || '/', 'http://localhost').pathname.slice(1) || 'default';
   console.log(`Client connected to room: ${roomName}`);
 
   setupWSConnection(conn, req, {

@@ -140,6 +140,11 @@ body {
   background-color: var(--accent-focus-bg);
 }
 
+.toast-cancel-button:hover,
+.toast-cancel-button:focus {
+  background-color: rgba(var(--accent-light-rgb), 0.2);
+}
+
 .toast-cancel-button:focus-visible {
   outline: 3px solid var(--accent-light);
   outline-offset: 2px;
