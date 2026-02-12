@@ -3,9 +3,17 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, cleanup } from '@testing-library/react';
 import MarkdownEditor from '@/components/MarkdownEditor';
 
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({
+    push: vi.fn(),
+    refresh: vi.fn(),
+  }),
+}));
+
 vi.mock('@/hooks/useCollabEditor', () => ({
   useCollabEditor: vi.fn(() => ({
     loading: false,
+    readOnly: false,
     peerCount: 0,
     wsConnected: true,
     editorRef: { current: null },
@@ -21,6 +29,7 @@ beforeEach(() => {
   cleanup();
   mockUseCollabEditor.mockReturnValue({
     loading: false,
+    readOnly: false,
     peerCount: 0,
     wsConnected: true,
     editorRef: { current: null },
@@ -31,6 +40,7 @@ describe('MarkdownEditor', () => {
   it('shows loading state when loading is true', () => {
     mockUseCollabEditor.mockReturnValue({
       loading: true,
+      readOnly: false,
       peerCount: 0,
       wsConnected: true,
       editorRef: { current: null },
@@ -48,6 +58,7 @@ describe('MarkdownEditor', () => {
   it('shows peer count when peerCount > 0', () => {
     mockUseCollabEditor.mockReturnValue({
       loading: false,
+      readOnly: false,
       peerCount: 3,
       wsConnected: true,
       editorRef: { current: null },
@@ -68,6 +79,7 @@ describe('MarkdownEditor', () => {
   it('shows offline indicator when WebSocket is disconnected', () => {
     mockUseCollabEditor.mockReturnValue({
       loading: false,
+      readOnly: false,
       peerCount: 0,
       wsConnected: false,
       editorRef: { current: null },
@@ -96,5 +108,47 @@ describe('MarkdownEditor', () => {
     const milkdown = container.querySelector('.milkdown');
     expect(milkdown).toBeTruthy();
     expect(milkdown?.tagName).toBe('DIV');
+  });
+
+  it('shows archive banner when readOnly is true', () => {
+    mockUseCollabEditor.mockReturnValue({
+      loading: false,
+      readOnly: true,
+      peerCount: 0,
+      wsConnected: true,
+      editorRef: { current: null },
+    });
+
+    render(<MarkdownEditor pageId="page-1" />);
+    expect(
+      screen.getByText('アーカイブされているため編集できません'),
+    ).toBeTruthy();
+    expect(
+      screen.getByRole('button', { name: 'アーカイブを解除する' }),
+    ).toBeTruthy();
+  });
+
+  it('does not show archive banner when readOnly is false', () => {
+    render(<MarkdownEditor pageId="page-1" />);
+    expect(
+      screen.queryByText('アーカイブされているため編集できません'),
+    ).toBeNull();
+  });
+
+  it('hides indicators when readOnly is true', () => {
+    mockUseCollabEditor.mockReturnValue({
+      loading: false,
+      readOnly: true,
+      peerCount: 3,
+      wsConnected: false,
+      editorRef: { current: null },
+    });
+
+    render(<MarkdownEditor pageId="page-1" />);
+    expect(
+      screen.queryByLabelText(
+        'サーバーとの接続が切れています。編集内容は保持され、再接続時に自動で同期されます',
+      ),
+    ).toBeNull();
   });
 });

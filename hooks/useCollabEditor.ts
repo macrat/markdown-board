@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
-import { Editor, rootCtx } from '@milkdown/core';
+import { Editor, rootCtx, editorViewOptionsCtx } from '@milkdown/core';
 import { commonmark } from '@milkdown/preset-commonmark';
 import { gfm } from '@milkdown/preset-gfm';
 import { collab, collabServiceCtx } from '@milkdown/plugin-collab';
@@ -46,10 +46,14 @@ function createMilkdownEditor(
   container: HTMLElement,
   ydoc: Y.Doc,
   awareness: WebsocketProvider['awareness'],
+  readOnly: boolean,
 ): Promise<Editor> {
-  return Editor.make()
+  const builder = Editor.make()
     .config((ctx) => {
       ctx.set(rootCtx, container);
+      if (readOnly) {
+        ctx.set(editorViewOptionsCtx, { editable: () => false });
+      }
     })
     .use(commonmark)
     .use(gfm)
@@ -67,8 +71,9 @@ function createMilkdownEditor(
           },
         },
       });
-    })
-    .create();
+    });
+
+  return builder.create();
 }
 
 function safeDestroy(
@@ -119,7 +124,8 @@ export function useCollabEditor(pageId: string) {
     ydocRef.current = null;
   };
 
-  const { loading } = usePageExists(pageId);
+  const { loading, archivedAt } = usePageExists(pageId);
+  const readOnly = archivedAt !== null;
 
   // Track mounted state for cleanup (compatible with React 18+ strict mode)
   useEffect(() => {
@@ -145,34 +151,38 @@ export function useCollabEditor(pageId: string) {
       }
       isInitializingRef.current = true;
 
-      logger.log('[Editor] Initializing editor for page:', pageId);
+      logger.log(
+        `[Editor] Initializing editor for page: ${pageId}${readOnly ? ' (read-only)' : ''}`,
+      );
 
       try {
         // Create Yjs document
         const ydoc = new Y.Doc();
         ydocRef.current = ydoc;
 
-        // Connect to WebSocket server for collaborative editing
+        // Connect to WebSocket server to load the document
         const wsUrl = buildWsUrl();
 
         const provider = new WebsocketProvider(wsUrl, pageId, ydoc);
         providerRef.current = provider;
 
-        // Track peer count via Awareness API
-        const updatePeerCount = () => {
-          const states = provider.awareness.getStates();
-          setPeerCount(Math.max(0, states.size - 1));
-        };
-        updatePeerCountRef.current = updatePeerCount;
-        provider.awareness.on('change', updatePeerCount);
-        updatePeerCount();
+        if (!readOnly) {
+          // Track peer count via Awareness API
+          const updatePeerCount = () => {
+            const states = provider.awareness.getStates();
+            setPeerCount(Math.max(0, states.size - 1));
+          };
+          updatePeerCountRef.current = updatePeerCount;
+          provider.awareness.on('change', updatePeerCount);
+          updatePeerCount();
 
-        // Track WebSocket connection status
-        const handleStatus = (event: { status: string }) => {
-          setWsConnected(event.status === 'connected');
-        };
-        statusHandlerRef.current = handleStatus;
-        provider.on('status', handleStatus);
+          // Track WebSocket connection status
+          const handleStatus = (event: { status: string }) => {
+            setWsConnected(event.status === 'connected');
+          };
+          statusHandlerRef.current = handleStatus;
+          provider.on('status', handleStatus);
+        }
 
         logger.log(`[WebSocket] Connecting to room: ${pageId} at ${wsUrl}`);
 
@@ -188,10 +198,19 @@ export function useCollabEditor(pageId: string) {
           return;
         }
 
+        // Disconnect the WebSocket after loading for read-only pages
+        if (readOnly) {
+          provider.disconnect();
+          logger.log(
+            '[Editor] Disconnected WebSocket for read-only archived page',
+          );
+        }
+
         const editor = await createMilkdownEditor(
           editorRef.current!,
           ydoc,
           provider.awareness,
+          readOnly,
         );
 
         // If component unmounted during initialization, clean up and bail out
@@ -206,27 +225,30 @@ export function useCollabEditor(pageId: string) {
           return;
         }
 
-        // Connect the collab service AFTER editor is fully created
+        // Connect the collab service to render Yjs document content in ProseMirror.
+        // For read-only pages the WebSocket is already disconnected, so no sync occurs.
         editor.action((ctx) => {
           ctx.get(collabServiceCtx).connect();
         });
 
         editorInstanceRef.current = editor;
 
-        // Auto-focus the editor if the Yjs doc is empty (blank page)
-        const fragment = ydoc.getXmlFragment('prosemirror');
-        if (fragment.length === 0) {
-          autoFocusTimerRef.current = setTimeout(() => {
-            autoFocusTimerRef.current = null;
-            if (!isMountedRef.current) return;
-            const editableElement = editorRef.current?.querySelector(
-              'div[contenteditable="true"]',
-            ) as HTMLElement | null;
-            if (editableElement) {
-              editableElement.focus();
-              logger.log('[Editor] Auto-focused blank page editor');
-            }
-          }, 100);
+        // Auto-focus the editor if the Yjs doc is empty (blank page, editable only)
+        if (!readOnly) {
+          const fragment = ydoc.getXmlFragment('prosemirror');
+          if (fragment.length === 0) {
+            autoFocusTimerRef.current = setTimeout(() => {
+              autoFocusTimerRef.current = null;
+              if (!isMountedRef.current) return;
+              const editableElement = editorRef.current?.querySelector(
+                'div[contenteditable="true"]',
+              ) as HTMLElement | null;
+              if (editableElement) {
+                editableElement.focus();
+                logger.log('[Editor] Auto-focused blank page editor');
+              }
+            }, 100);
+          }
         }
       } catch (error) {
         logger.error('Failed to initialize editor:', error);
@@ -255,7 +277,7 @@ export function useCollabEditor(pageId: string) {
       }
       cleanupResources();
     };
-  }, [pageId, loading]);
+  }, [pageId, loading, readOnly]);
 
-  return { loading, peerCount, wsConnected, editorRef };
+  return { loading, readOnly, peerCount, wsConnected, editorRef };
 }
