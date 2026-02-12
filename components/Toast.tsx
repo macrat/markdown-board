@@ -116,7 +116,7 @@ export default function Toast({
           backgroundColor: 'transparent',
           color: 'var(--background)',
           border: '1px solid var(--background)',
-          padding: '4px 12px',
+          padding: '12px 16px',
           borderRadius: '4px',
           cursor: 'pointer',
           fontSize: '14px',

@@ -147,7 +147,7 @@
 .milkdown .ProseMirror {
   outline: none;
   white-space: pre-wrap;
-  padding: 4rem 1rem 0;
+  padding: 2.75rem 1rem 0;
 }
 
 @media (min-width: 768px) {
