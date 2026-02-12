@@ -52,8 +52,7 @@ export default function PageListItem({
       </h3>
       <p
         style={{
-          color: 'var(--foreground)',
-          opacity: 0.6,
+          color: 'var(--foreground-muted)',
           fontSize: '12px',
           margin: 0,
         }}

@@ -347,8 +347,7 @@ export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
                   {filteredPages.length === 0 ? (
                     <p
                       style={{
-                        color: 'var(--foreground)',
-                        opacity: 0.7,
+                        color: 'var(--foreground-muted)',
                         fontSize: '13px',
                       }}
                     >
@@ -389,8 +388,7 @@ export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
               >
                 <p
                   style={{
-                    color: 'var(--foreground)',
-                    opacity: 0.4,
+                    color: 'var(--foreground-subtle)',
                     fontSize: '12px',
                     margin: '0 0 12px 0',
                   }}
@@ -400,8 +398,7 @@ export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
                 {archives.length === 0 ? (
                   <p
                     style={{
-                      color: 'var(--foreground)',
-                      opacity: 0.7,
+                      color: 'var(--foreground-muted)',
                       fontSize: '13px',
                     }}
                   >
