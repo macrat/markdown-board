@@ -23,6 +23,8 @@ import { yDocToProsemirrorJSON } from 'y-prosemirror';
 import { createDebouncer } from 'lib0/eventloop';
 import { extractTitleFromProsemirrorJSON } from './extract-title';
 
+// NEXT_PUBLIC_ prefix: single source of truth shared with the client (useCollabEditor.ts).
+// A separate WS_PORT would risk port mismatch between client and server.
 const PORT = process.env.NEXT_PUBLIC_WS_PORT || 1234;
 const TITLE_SYNC_DEBOUNCE_MS = 3000;
 const TITLE_SYNC_MAX_WAIT_MS = 10000;
@@ -30,7 +32,8 @@ const TITLE_SYNC_MAX_WAIT_MS = 10000;
 // Open a persistent DB connection for the WebSocket server process
 const db = openDatabase();
 
-// Ensure pages table exists (in case WS server starts before Next.js)
+// Minimal schema duplicated from lib/db.ts because this process starts
+// independently and may run before Next.js initializes its own DB connection.
 db.exec(`
   CREATE TABLE IF NOT EXISTS pages (
     id TEXT PRIMARY KEY,
@@ -47,6 +50,9 @@ const persistence = new YjsSqlitePersistence(db);
 type DebounceFn = (cb: (() => void) | null) => void;
 const titleDebouncers = new Map<string, DebounceFn>();
 
+// Strict local types for isDocEmpty/hasText traversal.
+// extract-title.ts intentionally uses Record<string, unknown> to accept
+// untyped output from yDocToProsemirrorJSON without casts at call sites.
 interface ProseMirrorNode {
   type: string;
   text?: string;
