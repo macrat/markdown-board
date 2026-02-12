@@ -9,9 +9,13 @@ export default function Home() {
   const id = generateId();
   const now = Date.now();
 
-  db.prepare(
-    `INSERT INTO pages (id, title, created_at, updated_at, archived_at) VALUES (?, ?, ?, ?, NULL)`,
-  ).run(id, 'Untitled', now, now);
+  try {
+    db.prepare(
+      `INSERT INTO pages (id, title, created_at, updated_at, archived_at) VALUES (?, ?, ?, ?, NULL)`,
+    ).run(id, 'Untitled', now, now);
+  } catch {
+    throw new Error('Failed to create a new page');
+  }
 
   redirect(`/p/${id}`);
 }
