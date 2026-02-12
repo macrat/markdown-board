@@ -106,7 +106,45 @@ subagent_type: ux-reviewer
 
 4. **修正単位にグルーピング**: 同じファイルや同じ機能に関する指摘をまとめて、修正しやすい単位にグルーピングする
 
-整理した結果を TodoWrite ツールで TODO リストとして記録してください。
+### 対応しない指摘への設計意図コメント
+
+指摘に対応しないと判断した場合、その理由が以下のいずれかに該当するときは、**該当箇所のコードに設計意図を説明するコメントを追加する**こと:
+
+- **意図的な設計判断**: トレードオフを検討した結果、現在の設計が最適と判断した場合
+- **レビュアーの誤検出**: レビュアーの前提が誤っており、指摘が実際には当てはまらない場合
+
+コメントには以下の内容を簡潔に含めること:
+
+1. **なぜこの設計にしているのか**（設計意図）
+2. **トレードオフになっているものは何か**（代替案と、それを採用しなかった理由）
+3. **どういう条件であれば見直すべきか**（該当する場合のみ）
+
+例:
+
+```typescript
+// Ref lets findPage keep a stable identity (empty deps) while reading latest state.
+// Using pages directly would cascade re-creation through every dependent useCallback.
+const pagesRef = useRef<PageListItem[]>([]);
+```
+
+```typescript
+// NEXT_PUBLIC_ prefix: single source of truth shared with the client (useCollabEditor.ts).
+// A separate WS_PORT would risk port mismatch between client and server.
+const PORT = process.env.NEXT_PUBLIC_WS_PORT || 1234;
+```
+
+これにより、将来のレビューで同じ指摘が繰り返されることを防ぎ、設計判断の経緯をコードに残すことができる。
+
+**コメント追加不要なケース**:
+
+- 言語やフレームワークの標準的なパターンであり、説明が不要な場合（例: `ReturnType<typeof setTimeout>` の型、ESLint準拠の依存配列）
+- 指摘自体が非常に軽微で、再検出されても判断に迷わない場合
+
+設計意図コメントの追加も TODO リストに含め、ステップ3でコード修正と同様にコミットすること。
+
+### TODO リストの記録
+
+整理した結果を TodoWrite ツールで TODO リストとして記録してください。修正する指摘と、設計意図コメントを追加する指摘の両方を含めること。
 
 ---
 
