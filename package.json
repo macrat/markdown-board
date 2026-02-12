@@ -6,7 +6,7 @@
     "dev": "concurrently \"next dev\" \"tsx server/websocket.ts\"",
     "build": "next build",
     "start": "concurrently \"next start\" \"tsx server/websocket.ts\"",
-    "lint": "eslint",
+    "lint": "eslint app components hooks lib server tests e2e scripts",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "editorconfig": "editorconfig-checker",
