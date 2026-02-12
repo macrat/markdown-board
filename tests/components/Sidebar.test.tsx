@@ -394,7 +394,7 @@ describe('Sidebar', () => {
         fireEvent.click(screen.getByText('Page 1'));
       });
 
-      expect(mockPush).toHaveBeenCalledWith('/page/page-1');
+      expect(mockPush).toHaveBeenCalledWith('/p/page-1');
     });
 
     it('navigates to different pages independently', async () => {
@@ -404,14 +404,14 @@ describe('Sidebar', () => {
       await act(async () => {
         fireEvent.click(screen.getByText('Page 1'));
       });
-      expect(mockPush).toHaveBeenCalledWith('/page/page-1');
+      expect(mockPush).toHaveBeenCalledWith('/p/page-1');
 
       mockPush.mockClear();
 
       await act(async () => {
         fireEvent.click(screen.getByText('Page 2'));
       });
-      expect(mockPush).toHaveBeenCalledWith('/page/page-2');
+      expect(mockPush).toHaveBeenCalledWith('/p/page-2');
     });
   });
 
@@ -426,7 +426,7 @@ describe('Sidebar', () => {
       });
 
       expect(stablePageListFns.createPage).toHaveBeenCalled();
-      expect(mockPush).toHaveBeenCalledWith('/page/new-page-id');
+      expect(mockPush).toHaveBeenCalledWith('/p/new-page-id');
     });
 
     it('does not navigate when createPage fails', async () => {

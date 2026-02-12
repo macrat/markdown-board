@@ -1,5 +1,5 @@
 .milkdown {
-  color: #574a46;
+  color: var(--foreground);
 }
 
 .milkdown .editor {
@@ -13,7 +13,7 @@
   font-weight: bold;
   margin-top: 1.5rem;
   margin-bottom: 1rem;
-  color: #574a46;
+  color: var(--foreground);
 }
 
 .milkdown h2 {
@@ -21,7 +21,7 @@
   font-weight: bold;
   margin-top: 1.25rem;
   margin-bottom: 0.875rem;
-  color: #574a46;
+  color: var(--foreground);
 }
 
 .milkdown h3 {
@@ -29,20 +29,27 @@
   font-weight: bold;
   margin-top: 1rem;
   margin-bottom: 0.75rem;
-  color: #574a46;
+  color: var(--foreground);
 }
 
 .milkdown p {
   margin-bottom: 1rem;
   line-height: 1.7;
-  color: #574a46;
+  color: var(--foreground);
 }
 
-.milkdown ul,
-.milkdown ol {
+.milkdown ul {
+  list-style-type: disc;
   margin-bottom: 1rem;
   padding-left: 2rem;
-  color: #574a46;
+  color: var(--foreground);
+}
+
+.milkdown ol {
+  list-style-type: decimal;
+  margin-bottom: 1rem;
+  padding-left: 2rem;
+  color: var(--foreground);
 }
 
 .milkdown li {
@@ -51,24 +58,24 @@
 }
 
 .milkdown a {
-  color: #c42776;
+  color: var(--accent);
   text-decoration: underline;
 }
 
 .milkdown a:hover {
-  color: #e893c2;
+  color: var(--accent-light);
 }
 
 .milkdown code {
-  background-color: rgba(87, 74, 70, 0.1);
+  background-color: rgba(var(--foreground-rgb), 0.1);
   padding: 0.2rem 0.4rem;
   border-radius: 0.25rem;
   font-family: monospace;
-  color: #574a46;
+  color: var(--foreground);
 }
 
 .milkdown pre {
-  background-color: rgba(87, 74, 70, 0.05);
+  background-color: rgba(var(--foreground-rgb), 0.05);
   padding: 1rem;
   border-radius: 0.5rem;
   overflow-x: auto;
@@ -81,28 +88,61 @@
 }
 
 .milkdown blockquote {
-  border-left: 4px solid #c42776;
+  border-left: 4px solid var(--accent);
   padding-left: 1rem;
   margin-left: 0;
   margin-bottom: 1rem;
-  color: #574a46;
+  color: var(--foreground);
   opacity: 0.9;
 }
 
 .milkdown hr {
   border: none;
-  border-top: 2px solid rgba(87, 74, 70, 0.2);
+  border-top: 2px solid rgba(var(--foreground-rgb), 0.2);
   margin: 2rem 0;
 }
 
 .milkdown strong {
   font-weight: bold;
-  color: #574a46;
+  color: var(--foreground);
 }
 
 .milkdown em {
   font-style: italic;
-  color: #574a46;
+  color: var(--foreground);
+}
+
+.milkdown del {
+  text-decoration: line-through;
+  color: var(--foreground);
+  opacity: 0.7;
+}
+
+.milkdown table {
+  border-collapse: collapse;
+  margin-bottom: 1rem;
+  width: 100%;
+}
+
+.milkdown th,
+.milkdown td {
+  border: 1px solid rgba(var(--foreground-rgb), 0.2);
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+}
+
+.milkdown th {
+  font-weight: bold;
+  background-color: rgba(var(--foreground-rgb), 0.05);
+}
+
+.milkdown li.task-list-item {
+  list-style-type: none;
+  margin-left: -1.5rem;
+}
+
+.milkdown li.task-list-item input[type='checkbox'] {
+  margin-right: 0.5rem;
 }
 
 .milkdown .ProseMirror {
@@ -123,7 +163,7 @@
 
 .milkdown .ProseMirror p:first-child:only-child:empty::after {
   content: 'ここに入力...';
-  color: rgba(87, 74, 70, 0.4);
+  color: rgba(var(--foreground-rgb), 0.4);
   pointer-events: none;
   position: absolute;
   top: 0;
@@ -143,7 +183,7 @@
     > br.ProseMirror-trailingBreak:only-child
   )::after {
   content: 'ここに入力...';
-  color: rgba(87, 74, 70, 0.4);
+  color: rgba(var(--foreground-rgb), 0.4);
   pointer-events: none;
   position: absolute;
   top: 0;
@@ -163,7 +203,7 @@
 /* Collaborative cursor styling - single simple caret */
 .milkdown .ProseMirror-yjs-cursor {
   position: relative;
-  border-left: 2px solid #c42776;
+  border-left: 2px solid var(--accent);
   border-right: none;
   margin-left: -1px;
   margin-right: -1px;
@@ -178,7 +218,7 @@
   align-items: center;
   gap: 0.25rem;
   font-size: 0.75rem;
-  color: #574a46;
+  color: var(--foreground);
   opacity: 0.7;
 }
 
@@ -188,6 +228,6 @@
   align-items: center;
   gap: 0.25rem;
   font-size: 0.75rem;
-  color: #574a46;
+  color: var(--foreground);
   opacity: 0.7;
 }

@@ -22,7 +22,7 @@ test.describe('Responsive Layout', () => {
     page,
   }) => {
     await page.goto('/');
-    await page.waitForURL(/\/page\/.+/);
+    await page.waitForURL(/\/p\/.+/);
     await page.waitForLoadState('networkidle');
     await page.waitForTimeout(500);
 
@@ -55,7 +55,7 @@ test.describe('Responsive Layout', () => {
     await page.setViewportSize({ width: 375, height: 667 });
 
     await page.goto('/');
-    await page.waitForURL(/\/page\/.+/);
+    await page.waitForURL(/\/p\/.+/);
     await page.waitForLoadState('networkidle');
 
     // Hamburger menu should be visible on mobile
@@ -85,7 +85,7 @@ test.describe('Responsive Layout', () => {
     await page.setViewportSize({ width: 768, height: 1024 });
 
     await page.goto('/');
-    await page.waitForURL(/\/page\/.+/);
+    await page.waitForURL(/\/p\/.+/);
     await page.waitForLoadState('networkidle');
 
     // Sidebar should be visible without hamburger menu

@@ -82,14 +82,14 @@ export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
   const handleCreatePage = async () => {
     const id = await createPage();
     if (id) {
-      router.push(`/page/${id}`);
+      router.push(`/p/${id}`);
       onNavigate?.();
     }
   };
 
   const handleNavigate = useCallback(
     (id: string) => {
-      router.push(`/page/${id}`);
+      router.push(`/p/${id}`);
       onNavigate?.();
     },
     [router, onNavigate],
@@ -267,7 +267,10 @@ export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
       </div>
 
       {/* Scrollable content area */}
-      <div className="flex-1 overflow-y-auto" style={{ padding: '16px' }}>
+      <div
+        className="sidebar-scroll flex-1 overflow-y-auto"
+        style={{ padding: '16px' }}
+      >
         {loading ? (
           <div style={{ color: 'var(--foreground)', padding: '20px' }}>
             読み込み中...

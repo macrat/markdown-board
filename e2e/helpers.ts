@@ -11,7 +11,7 @@ export async function createPageWithContent(page: Page, content: string) {
   });
 
   await page.click('button[title="新しいページを作成"]');
-  await page.waitForURL(/\/page\/.+/);
+  await page.waitForURL(/\/p\/.+/);
 
   // Wait for Yjs WebSocket sync to complete. This confirms the WebSocket
   // is connected, so typed content will be sent to the server immediately.
@@ -36,5 +36,5 @@ export async function createPageWithContent(page: Page, content: string) {
   // is confirmed connected (sync above), each keystroke's Yjs update is
   // sent immediately via broadcastMessage.
   await page.waitForTimeout(2000);
-  return page.url().split('/page/')[1];
+  return page.url().split('/p/')[1];
 }
