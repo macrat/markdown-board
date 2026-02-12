@@ -170,7 +170,14 @@ setPersistence({
     syncTitleToDb(docName, ydoc);
 
     // 4. Compact stored updates
-    persistence.compactDocument(docName);
+    try {
+      persistence.compactDocument(docName);
+    } catch (error) {
+      console.error(
+        `[persistence] Failed to compact document ${docName}:`,
+        error,
+      );
+    }
 
     console.log(`[persistence] Wrote state for room: ${docName}`);
   },
