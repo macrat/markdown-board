@@ -1,6 +1,13 @@
 'use client';
 
-import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
+import {
+  useEffect,
+  useState,
+  useCallback,
+  useMemo,
+  useRef,
+  KeyboardEvent,
+} from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import type {
   PageListItem as PageListItemType,
@@ -49,6 +56,12 @@ function TabButton({
           e.preventDefault();
           onSwitchTab();
           document.getElementById(switchTargetId)?.focus();
+        } else if (e.key === 'Home') {
+          e.preventDefault();
+          document.getElementById('tab-latest')?.focus();
+        } else if (e.key === 'End') {
+          e.preventDefault();
+          document.getElementById('tab-archive')?.focus();
         }
       }}
       style={{
@@ -132,6 +145,39 @@ export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
       fetchArchives();
     }
   }, [currentPageId, fetchPages, fetchArchives]);
+
+  const latestItemRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const archiveItemRefs = useRef<(HTMLDivElement | null)[]>([]);
+
+  const handleListKeyDown = useCallback(
+    (
+      e: KeyboardEvent<HTMLDivElement>,
+      index: number,
+      itemCount: number,
+      refs: React.RefObject<(HTMLDivElement | null)[]>,
+    ) => {
+      let nextIndex: number;
+      switch (e.key) {
+        case 'ArrowDown':
+          nextIndex = Math.min(index + 1, itemCount - 1);
+          break;
+        case 'ArrowUp':
+          nextIndex = Math.max(index - 1, 0);
+          break;
+        case 'Home':
+          nextIndex = 0;
+          break;
+        case 'End':
+          nextIndex = itemCount - 1;
+          break;
+        default:
+          return;
+      }
+      e.preventDefault();
+      refs.current?.[nextIndex]?.focus();
+    },
+    [],
+  );
 
   const handleCreatePage = async () => {
     const id = await createPage();
@@ -353,9 +399,12 @@ export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
                         : 'ページがありません。'}
                     </p>
                   ) : (
-                    filteredPages.map((page) => (
+                    filteredPages.map((page, index) => (
                       <PageListItem
                         key={page.id}
+                        ref={(el) => {
+                          latestItemRefs.current[index] = el;
+                        }}
                         dataTestId={`page-item-${page.id}`}
                         title={page.title}
                         timestamp={page.updated_at}
@@ -364,6 +413,14 @@ export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
                         active={page.id === currentPageId}
                         onNavigate={() => handleNavigate(page.id)}
                         navigateAriaLabel={`${page.title}を開く`}
+                        onNavigateKeyDown={(e) =>
+                          handleListKeyDown(
+                            e,
+                            index,
+                            filteredPages.length,
+                            latestItemRefs,
+                          )
+                        }
                         onAction={() => handleArchivePage(page.id, page.title)}
                         actionAriaLabel="アーカイブする"
                         actionTitle="アーカイブ"
@@ -409,9 +466,12 @@ export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
                       gap: '8px',
                     }}
                   >
-                    {archives.map((page) => (
+                    {archives.map((page, index) => (
                       <PageListItem
                         key={page.id}
+                        ref={(el) => {
+                          archiveItemRefs.current[index] = el;
+                        }}
                         dataTestId={`archive-item-${page.id}`}
                         title={page.title}
                         timestamp={page.archived_at}
@@ -420,6 +480,14 @@ export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
                         active={page.id === currentPageId}
                         onNavigate={() => handleNavigate(page.id)}
                         navigateAriaLabel={`${page.title}をプレビュー`}
+                        onNavigateKeyDown={(e) =>
+                          handleListKeyDown(
+                            e,
+                            index,
+                            archives.length,
+                            archiveItemRefs,
+                          )
+                        }
                         onAction={() => handleUnarchivePage(page.id)}
                         actionAriaLabel="アーカイブを解除する"
                         actionTitle="アーカイブを解除"
