@@ -256,15 +256,15 @@ describe('Sidebar', () => {
   });
 
   describe('search', () => {
-    it('hides search field when 5 or fewer pages exist', async () => {
-      mockPages = makePages(5);
+    it('shows search field even when no pages exist', async () => {
+      mockPages = [];
       await renderSidebar();
 
-      expect(screen.queryByLabelText('ページを検索')).toBeNull();
+      expect(screen.getByLabelText('ページを検索')).toBeTruthy();
     });
 
-    it('shows search field when more than 5 pages exist', async () => {
-      mockPages = makePages(6);
+    it('shows search field regardless of page count', async () => {
+      mockPages = makePages(2);
       await renderSidebar();
 
       expect(screen.getByLabelText('ページを検索')).toBeTruthy();
@@ -286,7 +286,7 @@ describe('Sidebar', () => {
     });
 
     it('shows no-results message when search matches nothing', async () => {
-      mockPages = makePages(6);
+      mockPages = makePages(3);
       await renderSidebar();
 
       const searchInput = screen.getByLabelText('ページを検索');
@@ -300,7 +300,7 @@ describe('Sidebar', () => {
     });
 
     it('shows all pages when search is cleared', async () => {
-      mockPages = makePages(6);
+      mockPages = makePages(4);
       await renderSidebar();
 
       const searchInput = screen.getByLabelText('ページを検索');
@@ -311,7 +311,7 @@ describe('Sidebar', () => {
         fireEvent.change(searchInput, { target: { value: '' } });
       });
 
-      for (let i = 1; i <= 6; i++) {
+      for (let i = 1; i <= 4; i++) {
         expect(screen.getByText(`Page ${i}`)).toBeTruthy();
       }
     });
