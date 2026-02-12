@@ -28,6 +28,8 @@ import { extractTitleFromProsemirrorJSON } from './extract-title';
 const PORT = process.env.NEXT_PUBLIC_WS_PORT || 1234;
 const TITLE_SYNC_DEBOUNCE_MS = 3000;
 const TITLE_SYNC_MAX_WAIT_MS = 10000;
+// Yjs encodes an empty document as 2 bytes: [0, 0]
+const EMPTY_YJS_STATE_SIZE = 2;
 
 // Open a persistent DB connection for the WebSocket server process
 const db = openDatabase();
@@ -110,8 +112,7 @@ setPersistence({
     const persistedYdoc = persistence.getYDoc(docName);
 
     const currentState = Y.encodeStateAsUpdate(persistedYdoc);
-    // Empty state is 2 bytes [0, 0]
-    if (currentState.length > 2) {
+    if (currentState.length > EMPTY_YJS_STATE_SIZE) {
       Y.applyUpdate(ydoc, currentState);
     }
     persistedYdoc.destroy();
