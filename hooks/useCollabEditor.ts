@@ -94,8 +94,8 @@ export function useCollabEditor(pageId: string) {
   const statusHandlerRef = useRef<((event: { status: string }) => void) | null>(
     null,
   );
-  const initTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const autoFocusTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const initTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const autoFocusTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isMountedRef = useRef(false);
   const isInitializingRef = useRef(false);
 

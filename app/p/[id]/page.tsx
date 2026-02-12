@@ -1,3 +1,4 @@
+import EditorErrorBoundary from '@/components/EditorErrorBoundary';
 import MarkdownEditor from '@/components/MarkdownEditor';
 
 export default async function PageView({
@@ -7,5 +8,9 @@ export default async function PageView({
 }) {
   const { id } = await params;
 
-  return <MarkdownEditor pageId={id} />;
+  return (
+    <EditorErrorBoundary>
+      <MarkdownEditor pageId={id} />
+    </EditorErrorBoundary>
+  );
 }
