@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useCollabEditor } from '@/hooks/useCollabEditor';
 import { logResponseError } from '@/lib/api';
+import { logger } from '@/lib/logger';
 import { UnarchiveIcon } from './Icons';
 import '../app/milkdown.css';
 
@@ -25,6 +26,8 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
       } else {
         await logResponseError('Unarchive', response);
       }
+    } catch (error) {
+      logger.error('[MarkdownEditor] Unarchive failed:', error);
     } finally {
       setUnarchiving(false);
     }
