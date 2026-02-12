@@ -44,7 +44,8 @@ db.exec(`
 const persistence = new YjsSqlitePersistence(db);
 
 // Per-document debouncer map for title sync
-const titleDebouncers = new Map<string, (cb: (() => void) | null) => void>();
+type DebounceFn = (cb: (() => void) | null) => void;
+const titleDebouncers = new Map<string, DebounceFn>();
 
 interface ProseMirrorNode {
   type: string;
@@ -56,19 +57,19 @@ interface ProseMirrorJSON {
   content?: ProseMirrorNode[];
 }
 
+function hasText(nodes: ProseMirrorNode[]): boolean {
+  for (const node of nodes) {
+    if (node.type === 'text' && typeof node.text === 'string') {
+      if (node.text.trim().length > 0) return true;
+    }
+    if (node.content && hasText(node.content)) return true;
+  }
+  return false;
+}
+
 function isDocEmpty(json: ProseMirrorJSON): boolean {
   const content = json?.content;
   if (!content || content.length === 0) return true;
-
-  function hasText(nodes: ProseMirrorNode[]): boolean {
-    for (const node of nodes) {
-      if (node.type === 'text' && typeof node.text === 'string') {
-        if (node.text.trim().length > 0) return true;
-      }
-      if (node.content && hasText(node.content)) return true;
-    }
-    return false;
-  }
 
   for (const node of content) {
     if (node.content && hasText(node.content)) return false;
@@ -178,7 +179,8 @@ const wss = new WebSocketServer({ server });
 console.log(`✓ WebSocket server running on ws://localhost:${PORT}`);
 
 wss.on('connection', (conn, req) => {
-  const roomName = req.url?.slice(1) || 'default';
+  const roomName =
+    new URL(req.url || '/', 'http://localhost').pathname.slice(1) || 'default';
   console.log(`Client connected to room: ${roomName}`);
 
   setupWSConnection(conn, req, {
