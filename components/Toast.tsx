@@ -114,8 +114,8 @@ export default function Toast({
         className="toast-cancel-button"
         style={{
           backgroundColor: 'transparent',
-          color: 'var(--accent-light)',
-          border: '1px solid var(--accent-light)',
+          color: 'var(--background)',
+          border: '1px solid var(--background)',
           padding: '4px 12px',
           borderRadius: '4px',
           cursor: 'pointer',
