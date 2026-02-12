@@ -16,12 +16,14 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
       }
 
       // Tab/Shift+Tab: prevent focus from leaving the editor.
-      // ProseMirror's list keymap already handles Tab for list indentation
-      // (sinkListItem/liftListItem) and calls preventDefault when it succeeds.
-      // This fallback catches cases where the cursor is not in a list.
+      // ProseMirror's keymap plugin handles Tab for list indentation
+      // (sinkListItem/liftListItem). When these commands succeed, the keymap
+      // plugin calls preventDefault. This fallback catches cases where
+      // the list commands don't apply (e.g., cursor is not in a list).
       if (
         e.key === 'Tab' &&
         !e.defaultPrevented &&
+        document.activeElement &&
         editorRef.current?.contains(document.activeElement)
       ) {
         e.preventDefault();
