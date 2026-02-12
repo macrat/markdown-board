@@ -1,12 +1,34 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { useCollabEditor } from '@/hooks/useCollabEditor';
+import { logResponseError } from '@/lib/api';
+import { UnarchiveIcon } from './Icons';
 import '../app/milkdown.css';
 
 export default function MarkdownEditor({ pageId }: { pageId: string }) {
-  const { loading, peerCount, wsConnected, editorRef } =
+  const { loading, readOnly, peerCount, wsConnected, editorRef } =
     useCollabEditor(pageId);
+  const [unarchiving, setUnarchiving] = useState(false);
+  const router = useRouter();
+
+  const handleUnarchive = useCallback(async () => {
+    setUnarchiving(true);
+    try {
+      const response = await fetch(`/api/pages/${pageId}/unarchive`, {
+        method: 'POST',
+      });
+      if (response.ok) {
+        router.push(`/p/${pageId}`);
+        router.refresh();
+      } else {
+        await logResponseError('Unarchive', response);
+      }
+    } finally {
+      setUnarchiving(false);
+    }
+  }, [pageId, router]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -43,8 +65,28 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
 
   return (
     <div className="flex-1 flex flex-col min-h-0 relative">
+      {/* Archive banner for read-only archived pages */}
+      {readOnly && (
+        <div
+          role="status"
+          className="archive-banner"
+          data-testid="archive-banner"
+        >
+          <span>アーカイブされているため編集できません</span>
+          <button
+            onClick={handleUnarchive}
+            disabled={unarchiving}
+            className="archive-banner-button"
+            aria-label="アーカイブを解除する"
+          >
+            <UnarchiveIcon />
+            アーカイブを解除
+          </button>
+        </div>
+      )}
+
       {/* Indicators container (fixed, top-right) */}
-      {(!wsConnected || peerCount > 0) && (
+      {!readOnly && (!wsConnected || peerCount > 0) && (
         <div className="indicators-container">
           {!wsConnected && (
             <div

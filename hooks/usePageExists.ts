@@ -4,6 +4,7 @@ import { logger } from '@/lib/logger';
 
 export function usePageExists(pageId: string) {
   const [loading, setLoading] = useState(true);
+  const [archivedAt, setArchivedAt] = useState<number | null>(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -22,6 +23,12 @@ export function usePageExists(pageId: string) {
           return;
         }
 
+        const data = await response.json();
+        if (!isMounted) return;
+
+        setArchivedAt(
+          typeof data.archived_at === 'number' ? data.archived_at : null,
+        );
         setLoading(false);
       } catch (error) {
         logger.error('[Editor] Failed to check page existence:', error);
@@ -38,5 +45,5 @@ export function usePageExists(pageId: string) {
     };
   }, [pageId, router]);
 
-  return { loading };
+  return { loading, archivedAt };
 }

@@ -420,6 +420,9 @@ export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
                         timestamp={page.archived_at}
                         now={now}
                         opacity={getItemOpacity(page.id)}
+                        active={page.id === currentPageId}
+                        onNavigate={() => handleNavigate(page.id)}
+                        navigateAriaLabel={`${page.title}をプレビュー`}
                         onAction={() => handleUnarchivePage(page.id)}
                         actionAriaLabel="アーカイブを解除する"
                         actionTitle="アーカイブを解除"
