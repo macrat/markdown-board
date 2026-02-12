@@ -67,7 +67,7 @@ body {
   border: none;
   color: var(--foreground);
   cursor: pointer;
-  z-index: 30;
+  z-index: 35;
   transition: box-shadow 0.2s ease;
 }
 
