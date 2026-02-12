@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { logger } from '@/lib/logger';
+
+export type PageError = 'not-found' | 'network-error';
 
 export function usePageExists(pageId: string) {
   const [loading, setLoading] = useState(true);
-  const router = useRouter();
+  const [error, setError] = useState<PageError | null>(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -18,7 +19,8 @@ export function usePageExists(pageId: string) {
           logger.error(
             `[Editor] Page not found: ${pageId} (${response.status})`,
           );
-          router.push('/');
+          setError('not-found');
+          setLoading(false);
           return;
         }
 
@@ -26,7 +28,8 @@ export function usePageExists(pageId: string) {
       } catch (error) {
         logger.error('[Editor] Failed to check page existence:', error);
         if (isMounted) {
-          router.push('/');
+          setError('network-error');
+          setLoading(false);
         }
       }
     };
@@ -36,7 +39,7 @@ export function usePageExists(pageId: string) {
     return () => {
       isMounted = false;
     };
-  }, [pageId, router]);
+  }, [pageId]);
 
-  return { loading };
+  return { loading, error };
 }
