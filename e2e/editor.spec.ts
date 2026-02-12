@@ -263,6 +263,112 @@ test.describe('Editor', () => {
     await expect(editorArea).toContainText('Section 10');
   });
 
+  // ==================== Tab Key ====================
+
+  /**
+   * エディタにフォーカスがある状態でTabキーを押しても、
+   * フォーカスがエディタの外に移動しないことを検証する。
+   *
+   * ProseMirrorのkeymapプラグインによるキーイベントの制御は
+   * ブラウザのネイティブなフォーカス管理に依存するため、
+   * jsdomではテストできない。
+   */
+  test('should keep focus in editor when Tab is pressed outside a list', async ({
+    page,
+  }) => {
+    await page.click('button[title="新しいページを作成"]');
+    await page.waitForURL(/\/p\/.+/);
+    await page.waitForSelector('.milkdown', { timeout: 10000 });
+    await page.waitForTimeout(1500);
+
+    const editor = page
+      .locator('.milkdown')
+      .locator('div[contenteditable="true"]')
+      .first();
+    await editor.click();
+    await editor.type('Hello');
+
+    await editor.press('Tab');
+
+    const focusStillInEditor = await page.evaluate(() => {
+      const activeEl = document.activeElement;
+      return activeEl?.getAttribute('contenteditable') === 'true';
+    });
+
+    expect(focusStillInEditor).toBe(true);
+  });
+
+  /**
+   * エディタにフォーカスがある状態でShift+Tabキーを押しても、
+   * フォーカスがエディタの外に移動しないことを検証する。
+   *
+   * ProseMirrorのkeymapプラグインによるキーイベントの制御は
+   * ブラウザのネイティブなフォーカス管理に依存するため、
+   * jsdomではテストできない。
+   */
+  test('should keep focus in editor when Shift+Tab is pressed outside a list', async ({
+    page,
+  }) => {
+    await page.click('button[title="新しいページを作成"]');
+    await page.waitForURL(/\/p\/.+/);
+    await page.waitForSelector('.milkdown', { timeout: 10000 });
+    await page.waitForTimeout(1500);
+
+    const editor = page
+      .locator('.milkdown')
+      .locator('div[contenteditable="true"]')
+      .first();
+    await editor.click();
+    await editor.type('Hello');
+
+    await editor.press('Shift+Tab');
+
+    const focusStillInEditor = await page.evaluate(() => {
+      const activeEl = document.activeElement;
+      return activeEl?.getAttribute('contenteditable') === 'true';
+    });
+
+    expect(focusStillInEditor).toBe(true);
+  });
+
+  /**
+   * リスト内でTabキーを押すとインデントが増えることを検証する。
+   *
+   * Milkdownのリスト操作コマンド（sinkListItem）がTabキーで
+   * 正しく動作することを、実際のブラウザ上でのキー入力で確認する。
+   * ProseMirrorのコマンド実行とDOM更新を伴うため、jsdomではテストできない。
+   */
+  test('should indent list item when Tab is pressed in a list', async ({
+    page,
+  }) => {
+    await page.click('button[title="新しいページを作成"]');
+    await page.waitForURL(/\/p\/.+/);
+    await page.waitForSelector('.milkdown', { timeout: 10000 });
+    await page.waitForTimeout(1500);
+
+    const editor = page
+      .locator('.milkdown')
+      .locator('div[contenteditable="true"]')
+      .first();
+    await editor.click();
+
+    await editor.type('- item 1');
+    await editor.press('Enter');
+    await editor.type('item 2');
+    await page.waitForTimeout(300);
+
+    await editor.press('Tab');
+    await page.waitForTimeout(300);
+
+    const hasNestedList = await page.evaluate(() => {
+      const prosemirror = document.querySelector('.milkdown .ProseMirror');
+      if (!prosemirror) return false;
+      return prosemirror.querySelector('ul ul, ol ol') !== null;
+    });
+
+    expect(hasNestedList).toBe(true);
+  });
+
   // ==================== Focus Indicator ====================
 
   /**
