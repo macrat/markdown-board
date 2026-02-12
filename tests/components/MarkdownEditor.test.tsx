@@ -13,6 +13,7 @@ vi.mock('next/navigation', () => ({
 vi.mock('@/hooks/useCollabEditor', () => ({
   useCollabEditor: vi.fn(() => ({
     loading: false,
+    error: null,
     readOnly: false,
     peerCount: 0,
     wsConnected: true,
@@ -29,6 +30,7 @@ beforeEach(() => {
   cleanup();
   mockUseCollabEditor.mockReturnValue({
     loading: false,
+    error: null,
     readOnly: false,
     peerCount: 0,
     wsConnected: true,
@@ -40,6 +42,7 @@ describe('MarkdownEditor', () => {
   it('shows loading state when loading is true', () => {
     mockUseCollabEditor.mockReturnValue({
       loading: true,
+      error: null,
       readOnly: false,
       peerCount: 0,
       wsConnected: true,
@@ -55,9 +58,42 @@ describe('MarkdownEditor', () => {
     expect(container.querySelector('.milkdown')).toBeTruthy();
   });
 
+  it('shows not-found error message', () => {
+    mockUseCollabEditor.mockReturnValue({
+      loading: false,
+      error: 'not-found',
+      readOnly: false,
+      peerCount: 0,
+      wsConnected: true,
+      editorRef: { current: null },
+    });
+
+    render(<MarkdownEditor pageId="page-1" />);
+    expect(screen.getByRole('alert')).toBeTruthy();
+    expect(screen.getByText('ページが見つかりません')).toBeTruthy();
+    expect(screen.getByText('ホームに戻る')).toBeTruthy();
+  });
+
+  it('shows network-error message', () => {
+    mockUseCollabEditor.mockReturnValue({
+      loading: false,
+      error: 'network-error',
+      readOnly: false,
+      peerCount: 0,
+      wsConnected: true,
+      editorRef: { current: null },
+    });
+
+    render(<MarkdownEditor pageId="page-1" />);
+    expect(screen.getByRole('alert')).toBeTruthy();
+    expect(screen.getByText('接続に失敗しました')).toBeTruthy();
+    expect(screen.getByText('ホームに戻る')).toBeTruthy();
+  });
+
   it('shows peer count when peerCount > 0', () => {
     mockUseCollabEditor.mockReturnValue({
       loading: false,
+      error: null,
       readOnly: false,
       peerCount: 3,
       wsConnected: true,
@@ -79,6 +115,7 @@ describe('MarkdownEditor', () => {
   it('shows offline indicator when WebSocket is disconnected', () => {
     mockUseCollabEditor.mockReturnValue({
       loading: false,
+      error: null,
       readOnly: false,
       peerCount: 0,
       wsConnected: false,
@@ -113,6 +150,7 @@ describe('MarkdownEditor', () => {
   it('shows archive banner when readOnly is true', () => {
     mockUseCollabEditor.mockReturnValue({
       loading: false,
+      error: null,
       readOnly: true,
       peerCount: 0,
       wsConnected: true,
@@ -138,6 +176,7 @@ describe('MarkdownEditor', () => {
   it('hides indicators when readOnly is true', () => {
     mockUseCollabEditor.mockReturnValue({
       loading: false,
+      error: null,
       readOnly: true,
       peerCount: 3,
       wsConnected: false,

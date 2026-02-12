@@ -124,7 +124,7 @@ export function useCollabEditor(pageId: string) {
     ydocRef.current = null;
   };
 
-  const { loading, archivedAt } = usePageExists(pageId);
+  const { loading, error, archivedAt } = usePageExists(pageId);
   const readOnly = archivedAt !== null;
 
   // Track mounted state for cleanup (compatible with React 18+ strict mode)
@@ -137,7 +137,7 @@ export function useCollabEditor(pageId: string) {
 
   // Initialize editor when page existence is confirmed
   useEffect(() => {
-    if (loading) return;
+    if (loading || error) return;
 
     const initEditor = async () => {
       if (!editorRef.current) return;
@@ -277,7 +277,7 @@ export function useCollabEditor(pageId: string) {
       }
       cleanupResources();
     };
-  }, [pageId, loading, readOnly]);
+  }, [pageId, loading, error, readOnly]);
 
-  return { loading, readOnly, peerCount, wsConnected, editorRef };
+  return { loading, error, readOnly, peerCount, wsConnected, editorRef };
 }

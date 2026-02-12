@@ -1,15 +1,22 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useCollabEditor } from '@/hooks/useCollabEditor';
+import type { PageError } from '@/hooks/usePageExists';
 import { logResponseError } from '@/lib/api';
 import { logger } from '@/lib/logger';
 import { UnarchiveIcon } from './Icons';
 import '../app/milkdown.css';
 
+const errorMessages: Record<PageError, string> = {
+  'not-found': 'ページが見つかりません',
+  'network-error': '接続に失敗しました',
+};
+
 export default function MarkdownEditor({ pageId }: { pageId: string }) {
-  const { loading, readOnly, peerCount, wsConnected, editorRef } =
+  const { loading, error, readOnly, peerCount, wsConnected, editorRef } =
     useCollabEditor(pageId);
   const [unarchiving, setUnarchiving] = useState(false);
   const router = useRouter();
@@ -76,6 +83,23 @@ export default function MarkdownEditor({ pageId }: { pageId: string }) {
     return (
       <div className="flex-1 flex items-center justify-center">
         <p style={{ color: 'var(--foreground)' }}>読み込み中...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div
+        role="alert"
+        className="flex-1 flex items-center justify-center"
+        style={{ color: 'var(--foreground)' }}
+      >
+        <div className="text-center">
+          <p style={{ marginBottom: '1rem' }}>{errorMessages[error]}</p>
+          <Link href="/" className="error-boundary-button">
+            ホームに戻る
+          </Link>
+        </div>
       </div>
     );
   }
