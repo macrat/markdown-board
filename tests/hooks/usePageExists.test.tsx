@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, waitFor } from '@testing-library/react';
-import { usePageExists } from '@/hooks/usePageExists';
+import { usePageExists, clearPageExistsCache } from '@/hooks/usePageExists';
 
 const mockPush = vi.fn();
 vi.mock('next/navigation', () => ({
@@ -21,6 +21,7 @@ vi.mock('@/lib/logger', () => ({
 beforeEach(() => {
   vi.clearAllMocks();
   vi.stubGlobal('fetch', vi.fn());
+  clearPageExistsCache();
 });
 
 afterEach(() => {
@@ -117,5 +118,90 @@ describe('usePageExists', () => {
     await new Promise((resolve) => setTimeout(resolve, 10));
 
     expect(result.current.loading).toBe(true);
+  });
+
+  it('skips API request for previously checked page', async () => {
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: () => Promise.resolve({ id: 'page-2', archived_at: null }),
+    } as unknown as Response);
+    vi.stubGlobal('fetch', mockFetch);
+
+    const { result, unmount } = renderHook(() => usePageExists('page-2'));
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+
+    unmount();
+
+    const { result: result2 } = renderHook(() => usePageExists('page-2'));
+
+    expect(result2.current.loading).toBe(false);
+    expect(result2.current.archivedAt).toBeNull();
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+  });
+
+  it('returns cached archivedAt for previously checked archived page', async () => {
+    const archivedTimestamp = 1700000000000;
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: () =>
+        Promise.resolve({ id: 'page-3', archived_at: archivedTimestamp }),
+    } as unknown as Response);
+    vi.stubGlobal('fetch', mockFetch);
+
+    const { result, unmount } = renderHook(() => usePageExists('page-3'));
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+    expect(result.current.archivedAt).toBe(archivedTimestamp);
+
+    unmount();
+
+    const { result: result2 } = renderHook(() => usePageExists('page-3'));
+
+    expect(result2.current.loading).toBe(false);
+    expect(result2.current.archivedAt).toBe(archivedTimestamp);
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+  });
+
+  it('fetches normally for uncached page IDs', async () => {
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: () => Promise.resolve({ id: 'page-a', archived_at: null }),
+    } as unknown as Response);
+    vi.stubGlobal('fetch', mockFetch);
+
+    const { result: result1, unmount: unmount1 } = renderHook(() =>
+      usePageExists('page-a'),
+    );
+
+    await waitFor(() => {
+      expect(result1.current.loading).toBe(false);
+    });
+
+    unmount1();
+
+    mockFetch.mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: () => Promise.resolve({ id: 'page-b', archived_at: null }),
+    } as unknown as Response);
+
+    const { result: result2 } = renderHook(() => usePageExists('page-b'));
+
+    await waitFor(() => {
+      expect(result2.current.loading).toBe(false);
+    });
+
+    expect(mockFetch).toHaveBeenCalledTimes(2);
+    expect(mockFetch).toHaveBeenCalledWith('/api/pages/page-a');
+    expect(mockFetch).toHaveBeenCalledWith('/api/pages/page-b');
   });
 });
