@@ -213,11 +213,9 @@ export function useCollabEditor(pageId: string) {
 
         editorInstanceRef.current = editor;
 
-        // Auto-focus the editor if the Yjs doc is empty (blank page).
-        // Skip on mobile viewports to avoid the soft keyboard covering the screen.
-        const isMobile = window.innerWidth < 768;
+        // Auto-focus the editor if the Yjs doc is empty (blank page)
         const fragment = ydoc.getXmlFragment('prosemirror');
-        if (fragment.length === 0 && !isMobile) {
+        if (fragment.length === 0) {
           autoFocusTimerRef.current = setTimeout(() => {
             autoFocusTimerRef.current = null;
             if (!isMountedRef.current) return;
