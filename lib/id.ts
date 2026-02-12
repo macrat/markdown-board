@@ -3,6 +3,7 @@ import { randomBytes } from 'crypto';
 const CHARSET =
   'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
 const ID_LENGTH = 12;
+// Reject bytes >= MAX_BYTE to avoid modulo bias (256 is not evenly divisible by 62)
 const MAX_BYTE = Math.floor(256 / CHARSET.length) * CHARSET.length;
 
 export function generateId(): string {
