@@ -175,4 +175,26 @@ describe('YjsSqlitePersistence', () => {
 
     doc.destroy();
   });
+
+  it('compactDocument handles document with only corrupted updates', () => {
+    const insertStmt = db.prepare(
+      'INSERT INTO yjs_updates (doc_name, clock, value) VALUES (?, ?, ?)',
+    );
+    insertStmt.run('doc-all-corrupt', 0, Buffer.from([255, 255, 255]));
+    insertStmt.run('doc-all-corrupt', 1, Buffer.from([255, 255, 255]));
+
+    const beforeCount = db
+      .prepare('SELECT COUNT(*) as cnt FROM yjs_updates WHERE doc_name = ?')
+      .get('doc-all-corrupt') as { cnt: number };
+    expect(beforeCount.cnt).toBe(2);
+
+    // compactDocument should not throw
+    persistence.compactDocument('doc-all-corrupt');
+
+    // Data should remain unchanged (compaction aborted)
+    const afterCount = db
+      .prepare('SELECT COUNT(*) as cnt FROM yjs_updates WHERE doc_name = ?')
+      .get('doc-all-corrupt') as { cnt: number };
+    expect(afterCount.cnt).toBe(2);
+  });
 });
