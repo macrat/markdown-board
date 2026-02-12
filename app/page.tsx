@@ -13,8 +13,9 @@ export default function Home() {
     db.prepare(
       `INSERT INTO pages (id, title, created_at, updated_at, archived_at) VALUES (?, ?, ?, ?, NULL)`,
     ).run(id, 'Untitled', now, now);
-  } catch {
-    throw new Error('Failed to create a new page');
+  } catch (error) {
+    console.error('Failed to create a new page:', error);
+    throw error;
   }
 
   redirect(`/p/${id}`);
