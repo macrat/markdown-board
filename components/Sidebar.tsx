@@ -70,7 +70,6 @@ function TabButton({
   );
 }
 
-const SEARCH_VISIBLE_THRESHOLD = 5;
 const RELATIVE_TIME_UPDATE_INTERVAL_MS = 30_000;
 
 export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
@@ -291,28 +290,26 @@ export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
                 id="tabpanel-latest"
                 aria-labelledby="tab-latest"
               >
-                {pages.length > SEARCH_VISIBLE_THRESHOLD && (
-                  <div style={{ marginBottom: '12px' }}>
-                    <input
-                      type="text"
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      placeholder="ページを検索..."
-                      aria-label="ページを検索"
-                      style={{
-                        width: '100%',
-                        padding: '10px 12px',
-                        fontSize: '13px',
-                        border: '1px solid rgba(var(--foreground-rgb), 0.15)',
-                        borderRadius: '8px',
-                        backgroundColor: 'rgba(var(--foreground-rgb), 0.05)',
-                        color: 'var(--foreground)',
-                        outline: 'none',
-                        boxSizing: 'border-box',
-                      }}
-                    />
-                  </div>
-                )}
+                <div style={{ marginBottom: '12px' }}>
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="ページを検索..."
+                    aria-label="ページを検索"
+                    style={{
+                      width: '100%',
+                      padding: '10px 12px',
+                      fontSize: '13px',
+                      border: '1px solid rgba(var(--foreground-rgb), 0.15)',
+                      borderRadius: '8px',
+                      backgroundColor: 'rgba(var(--foreground-rgb), 0.05)',
+                      color: 'var(--foreground)',
+                      outline: 'none',
+                      boxSizing: 'border-box',
+                    }}
+                  />
+                </div>
                 <div
                   style={{
                     display: 'flex',
