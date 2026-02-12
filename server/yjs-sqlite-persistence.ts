@@ -77,7 +77,20 @@ export class YjsSqlitePersistence {
     if (rows.length <= 1) return;
 
     const updates = rows.map((row) => row.value);
-    const merged = Y.mergeUpdates(updates);
+
+    let merged: Uint8Array;
+    try {
+      merged = Y.mergeUpdates(updates);
+    } catch (error) {
+      console.error(
+        `[yjs-persistence] Failed to merge updates for "${docName}":`,
+        error,
+      );
+      // Keep existing data as-is — the safest approach on corruption.
+      // getYDoc applies updates individually, so reads are unaffected.
+      // Compaction is an optimization; failure causes no functional issue.
+      return;
+    }
 
     const compact = this.db.transaction(() => {
       this._deleteStmt.run(docName);
