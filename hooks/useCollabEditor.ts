@@ -236,7 +236,8 @@ export function useCollabEditor(pageId: string) {
       }
     };
 
-    // Small delay to ensure DOM is ready
+    // Milkdown requires the container to be fully laid out before initialization.
+    // useEffect fires after paint, but React may not have flushed the ref'd element yet.
     initTimeoutRef.current = setTimeout(() => {
       initTimeoutRef.current = null;
       if (isMountedRef.current) {

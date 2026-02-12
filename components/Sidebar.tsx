@@ -123,7 +123,8 @@ export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
     loadData();
   }, [fetchPages, fetchArchives]);
 
-  // Refetch page list when navigating to a different page
+  // Tracks the last-fetched page ID so we only refetch on navigation to a
+  // different page, not on initial mount (which is handled by loadData above).
   const initialPageIdRef = useRef(currentPageId);
   useEffect(() => {
     if (currentPageId && currentPageId !== initialPageIdRef.current) {
