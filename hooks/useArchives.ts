@@ -9,6 +9,8 @@ import {
 
 export function useArchives() {
   const [archives, setArchives] = useState<ArchiveListItem[]>([]);
+  // Ref lets findArchive keep a stable identity (empty deps) while reading latest state.
+  // Using archives directly would cascade re-creation through every dependent useCallback.
   const archivesRef = useRef<ArchiveListItem[]>([]);
 
   useEffect(() => {
