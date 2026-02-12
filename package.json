@@ -47,7 +47,7 @@
     "@types/react-dom": "^19",
     "@types/ws": "^8.18.1",
     "editorconfig-checker": "^6.1.1",
-    "eslint": "^9",
+    "eslint": "^10",
     "eslint-config-next": "16.1.6",
     "eslint-config-prettier": "^10.1.8",
     "jsdom": "^28.0.0",
